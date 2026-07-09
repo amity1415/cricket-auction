@@ -84,6 +84,60 @@ header nav a.active {
 header nav .nav-sep {
   width: 1px; height: 22px; margin: 0 4px; background: var(--border-strong); border-radius: 1px;
 }
+
+/* --- Dropdown menu (built by auth.js) --------------------------------- */
+header nav { position: relative; }
+/* Hide any page's inline links (except the broadcast screen, which keeps its
+   own simple nav) — the dropdown built by auth.js is the single source of nav. */
+body:not(.broadcast-mode) header nav > a,
+body:not(.broadcast-mode) header nav > .nav-sep,
+body:not(.broadcast-mode) header nav > .auth-badge,
+body:not(.broadcast-mode) header nav > .auth-logout { display: none; }
+
+.menu-btn {
+  display: inline-flex; flex-direction: column; justify-content: center; gap: 4px;
+  width: 42px; height: 38px; padding: 0 11px; cursor: pointer;
+  background: rgba(148,163,205,.08); border: 1px solid var(--border); border-radius: 10px;
+  transition: background .16s, border-color .16s;
+}
+.menu-btn span { display: block; height: 2px; width: 100%; background: var(--text); border-radius: 2px; transition: transform .2s, opacity .2s; }
+.menu-btn:hover { background: rgba(148,163,205,.14); }
+header nav.open .menu-btn { background: rgba(91,140,255,.16); border-color: rgba(91,140,255,.4); }
+header nav.open .menu-btn span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+header nav.open .menu-btn span:nth-child(2) { opacity: 0; }
+header nav.open .menu-btn span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.menu-panel {
+  display: none; position: absolute; top: calc(100% + 10px); right: 0;
+  width: 256px; max-width: calc(100vw - 28px); padding: 8px;
+  background: var(--card-solid); border: 1px solid var(--border-strong);
+  border-radius: 14px; box-shadow: var(--shadow); z-index: 60;
+}
+header nav.open .menu-panel { display: block; animation: menuIn .16s ease; }
+@keyframes menuIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.menu-user {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px 11px;
+  border-bottom: 1px solid var(--border); margin-bottom: 6px;
+}
+.menu-avatar { font-size: 22px; line-height: 1; }
+.menu-uinfo { display: flex; flex-direction: column; gap: 2px; line-height: 1.2; }
+.menu-uinfo b { font-size: 14px; }
+.menu-role { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.menu-role.muted { color: var(--muted); }
+
+.menu-item {
+  display: block; width: 100%; box-sizing: border-box; text-align: left;
+  padding: 10px 12px; border-radius: 9px; color: var(--text) !important; text-decoration: none;
+  font-size: 14px; font-weight: 600; background: transparent; border: 0; cursor: pointer;
+  transition: background .14s;
+}
+.menu-item:hover { background: rgba(148,163,205,.12); }
+.menu-item.active { color: #fff !important; background: linear-gradient(135deg, rgba(91,140,255,.26), rgba(139,92,246,.2)); }
+.menu-foot { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
+.menu-logout { color: var(--red) !important; }
+.menu-login { color: var(--accent) !important; }
+
 .muted { color: var(--muted); font-weight: normal; }
 
 /* --- Layout & cards --------------------------------------------------- */

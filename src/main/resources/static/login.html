@@ -22,6 +22,15 @@
     .auth-msg.ok { color: var(--green); }
     .auth-alt { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: center; }
     .auth-alt a { color: var(--accent); }
+    .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 12px; color: var(--muted); font-size: 12px; }
+    .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .guest-btn {
+      display: block; text-align: center; text-decoration: none;
+      padding: 11px; border-radius: 10px; border: 1px solid var(--border-strong);
+      color: var(--text); font-weight: 700; font-size: 14px; transition: border-color .15s, background .15s;
+    }
+    .guest-btn:hover { border-color: var(--accent); background: rgba(91,140,255,.08); }
+    .guest-hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
   </style>
 </head>
 <body>
@@ -41,6 +50,9 @@
       </div>
       <button type="submit" class="primary" id="submit-btn">Sign in</button>
     </form>
+    <div class="auth-divider"><span>or</span></div>
+    <a href="players.html" class="guest-btn">👁 Continue as guest</a>
+    <p class="guest-hint">Browse the player list &amp; analysis — no account needed.</p>
     <p class="auth-alt">Franchise owner? <a href="register.html">Create an account</a></p>
     <p class="auth-alt" style="margin-top:8px"><a href="broadcast.html">Watch the live broadcast →</a></p>
   </div>

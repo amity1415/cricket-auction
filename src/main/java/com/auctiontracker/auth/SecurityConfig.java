@@ -51,8 +51,10 @@ public class SecurityConfig {
                 .requestMatchers("/*.js", "/*.css", "/*.ico",
                         "/*.png", "/*.svg", "/*.woff2", "/*.map").permitAll()
 
-                // Public pages: the login/register screens and the live broadcast.
-                .requestMatchers("/login.html", "/register.html", "/broadcast.html").permitAll()
+                // Public pages: login/register, the live broadcast, and the
+                // read-only player list + analysis + profile (guest access).
+                .requestMatchers("/login.html", "/register.html", "/broadcast.html",
+                        "/players.html", "/player.html").permitAll()
 
                 // Public auth endpoints (login/register/self-lookup/logout + team list).
                 .requestMatchers("/api/auth/login", "/api/auth/register",
