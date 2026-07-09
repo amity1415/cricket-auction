@@ -42,10 +42,12 @@
         <a href="players.html" class="analyse-link">📊 Analyse</a>
         <button id="pm-add" class="primary">＋ Add player</button>
       </div>
-      <table class="pool">
-        <thead><tr><th>Player</th><th>Role</th><th>Grp</th><th>Base</th><th>Status</th><th></th></tr></thead>
-        <tbody id="pm-body"></tbody>
-      </table>
+      <div class="table-scroll list-scroll pm-scroll">
+        <table class="pool">
+          <thead><tr><th>Player</th><th>Role</th><th>Grp</th><th>Base</th><th>Status</th><th></th></tr></thead>
+          <tbody id="pm-body"></tbody>
+        </table>
+      </div>
       <p class="hint">Players already retained, on the block, or sold are locked — release or reset them first.</p>
     </section>
   </div>
@@ -84,10 +86,12 @@
       <p class="hint">Franchise owners register themselves at
         <a href="register.html">/register.html</a> and get a read-only view of their team.
         Remove an account here to revoke its access.</p>
-      <table class="pool">
-        <thead><tr><th>Owner</th><th>Team</th><th>Joined</th><th></th></tr></thead>
-        <tbody id="owners-body"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
-      </table>
+      <div class="table-scroll list-scroll owners-scroll">
+        <table class="pool">
+          <thead><tr><th>Owner</th><th>Team</th><th>Joined</th><th></th></tr></thead>
+          <tbody id="owners-body"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
     </section>
 
     <a class="go-btn" href="auction.html">Start the auction →</a>

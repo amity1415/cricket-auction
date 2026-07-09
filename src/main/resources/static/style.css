@@ -51,21 +51,39 @@ button, input, select { font-family: inherit; }
 /* --- Header ---------------------------------------------------------- */
 header {
   position: sticky; top: 0; z-index: 20;
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 14px 26px;
-  background: rgba(10, 14, 26, .78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(18, 24, 44, .92), rgba(10, 14, 26, .80));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 30px -18px rgba(0, 0, 0, .8);
 }
-header h1 { font-size: 17px; font-weight: 800; letter-spacing: -.01em; margin: 0; }
-header nav { display: flex; gap: 4px; flex-wrap: wrap; }
+/* Gradient accent hairline along the bottom edge. */
+header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(91,140,255,.55), rgba(139,92,246,.5), transparent);
+}
+header h1 {
+  font-size: 16px; font-weight: 800; letter-spacing: -.015em; margin: 0;
+  display: inline-flex; align-items: baseline; gap: 7px; white-space: nowrap;
+}
+header nav { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
 header nav a {
-  color: var(--muted); text-decoration: none; font-weight: 600; font-size: 13px;
-  padding: 6px 12px; border-radius: 8px; margin-left: 0;
-  transition: color .15s, background .15s;
+  position: relative; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 13px;
+  padding: 7px 13px; border-radius: 9px; margin-left: 0;
+  transition: color .16s ease, background .16s ease, box-shadow .16s ease;
 }
-header nav a:hover { color: var(--text); background: rgba(148,163,205,.10); }
+header nav a:hover { color: var(--text); background: rgba(148,163,205,.12); }
+header nav a.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(91,140,255,.24), rgba(139,92,246,.20));
+  box-shadow: inset 0 0 0 1px rgba(91,140,255,.4);
+}
+/* Thin divider between the page links and the user/logout chrome. */
+header nav .nav-sep {
+  width: 1px; height: 22px; margin: 0 4px; background: var(--border-strong); border-radius: 1px;
+}
 .muted { color: var(--muted); font-weight: normal; }
 
 /* --- Layout & cards --------------------------------------------------- */
@@ -637,15 +655,16 @@ body.broadcast-mode { background: var(--bg); }
 
 /* Auth chrome injected into the header nav by auth.js. */
 .auth-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-left: 8px; padding: 4px 10px; border-radius: 8px;
-  background: rgba(148,163,205,.10); font-size: 13px; font-weight: 600; color: var(--text);
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px 5px 11px; border-radius: 20px;
+  background: rgba(148,163,205,.10); border: 1px solid var(--border);
+  font-size: 13px; font-weight: 600; color: var(--text);
 }
 .auth-role {
   font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
-  color: var(--accent); background: rgba(91,140,255,.14); padding: 2px 6px; border-radius: 5px;
+  color: var(--accent); background: rgba(91,140,255,.16); padding: 2px 7px; border-radius: 20px;
 }
-button.ghost.auth-logout { padding: 6px 12px; font-size: 13px; }
+button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20px; }
 
 /* ---- Sold / unsold result reveal (team dashboard) ---- */
 .reveal-overlay {
@@ -710,7 +729,12 @@ button.ghost.auth-logout { padding: 6px 12px; font-size: 13px; }
 }
 
 /* ---- Players & analysis page ---- */
-.nav-cta { color: var(--accent) !important; font-weight: 700; }
+.nav-cta {
+  color: #dbe7ff !important; font-weight: 700;
+  background: linear-gradient(135deg, rgba(91,140,255,.22), rgba(139,92,246,.18));
+  box-shadow: inset 0 0 0 1px rgba(91,140,255,.34);
+}
+.nav-cta:hover { color: #fff !important; box-shadow: inset 0 0 0 1px rgba(91,140,255,.55); }
 .players-wrap { max-width: 1200px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 
 .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
@@ -725,7 +749,7 @@ button.ghost.auth-logout { padding: 6px 12px; font-size: 13px; }
 .controls .search-input { flex: 1 1 180px; min-width: 160px; }
 #sort-dir { padding: 8px 12px; font-size: 13px; align-self: flex-end; }
 
-.table-scroll { overflow-x: auto; }
+.table-scroll { overflow: auto; max-height: 68vh; }
 .players-table { width: 100%; min-width: 860px; }
 .players-table th, .players-table td { white-space: nowrap; }
 .players-table .numc { text-align: right; }
@@ -737,3 +761,35 @@ button.ghost.auth-logout { padding: 6px 12px; font-size: 13px; }
   font-size: 13px; white-space: nowrap; flex: 0 0 auto;
 }
 .analyse-link:hover { border-color: var(--accent); background: rgba(91,140,255,.08); }
+
+/* ============================================================================
+   Scrollable lists — cap tall lists so they scroll inside their card instead of
+   stretching the page, keeping headers/controls in view. Table headers stick.
+   ============================================================================ */
+
+/* Wrap a <table class="pool"> in this to make its rows scroll under a pinned head. */
+.list-scroll { overflow-y: auto; }
+.list-scroll.pm-scroll     { max-height: 56vh; }   /* setup: player pool        */
+.list-scroll.owners-scroll { max-height: 40vh; }   /* setup: franchise owners   */
+.list-scroll.squad-scroll  { max-height: 56vh; }   /* team dashboard: squad     */
+
+/* Pinned header row for any scrollable pool table. */
+.list-scroll table.pool thead th,
+.table-scroll table.pool thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--card-solid);
+}
+
+/* Div-based lists get a capped, scrollable height too. */
+.team-list  { max-height: 40vh; overflow-y: auto; padding-right: 4px; }
+.ret-list   { max-height: 32vh; overflow-y: auto; padding-right: 4px; }
+.picker     { max-height: 62vh; overflow-y: auto; }
+#teams.teams-grid { max-height: 62vh; overflow-y: auto; padding: 2px 4px 2px 2px; }
+#bid-history { max-height: 220px; overflow-y: auto; }
+
+/* Nicer, slimmer scrollbars for the inner scroll areas. */
+.list-scroll::-webkit-scrollbar, .table-scroll::-webkit-scrollbar,
+.team-list::-webkit-scrollbar, .ret-list::-webkit-scrollbar,
+.picker::-webkit-scrollbar, .teams-grid::-webkit-scrollbar,
+.audit::-webkit-scrollbar, #bid-history::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4568; }

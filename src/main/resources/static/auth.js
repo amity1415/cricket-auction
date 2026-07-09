@@ -29,6 +29,18 @@
           if (ADMIN_ONLY.test(a.getAttribute('href') || '')) a.remove();
         });
       }
+
+      // Highlight the link for the page we're on.
+      const here = (location.pathname.split('/').pop() || 'index.html');
+      nav.querySelectorAll('a').forEach(a => {
+        const target = (a.getAttribute('href') || '').split(/[?#]/)[0].split('/').pop();
+        if (target && target === here) a.classList.add('active');
+      });
+
+      // Visual divider between page links and the user chrome.
+      const sep = document.createElement('span');
+      sep.className = 'nav-sep';
+      nav.appendChild(sep);
       const badge = document.createElement('span');
       badge.className = 'auth-badge';
       badge.innerHTML = `👤 ${escapeHtml(me.displayName || me.username)}`
