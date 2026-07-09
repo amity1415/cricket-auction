@@ -1,8 +1,9 @@
-/* Players & analysis — owner-facing. Lists every player with full detail and
- * lets the owner filter (role, status; default: unsold), sort by any available
- * stat, and group by category / role / status. Data is fetched from the public
- * read APIs and all filtering/sorting/grouping happens client-side, so the view
- * redistributes instantly as options change. Polls every 8s to stay live. */
+/* Players & analysis. Lists every player with full detail and lets you filter by
+ * any combination of statuses and roles (none selected = all), sort by any
+ * available stat, and group by category / role / status. Franchise owners also
+ * get a "my squad" scope. Data comes from the public read APIs and all
+ * filtering/sorting/grouping happens client-side, so the view redistributes
+ * instantly. Polls every 8s but only redraws when the data actually changed. */
 
 const fmtINR = n => n == null ? '—'
     : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
@@ -51,13 +52,16 @@ const GROUP_LABEL = {
 const GROUP_KEY = { category: p => p.category, role: p => p.role, status: p => p.status };
 
 const state = {
-  scope: 'all', status: 'UNSOLD', role: 'ALL',
+  scope: 'all',
+  statuses: new Set(),  // empty = every status (all players visible by default)
+  roles: new Set(),     // empty = every role
   sort: 'battingAverage', sortDir: 'desc', group: 'none', search: '',
 };
 
 let allPlayers = [];
 let teamNames = {};     // teamId -> name
 let myTeamId = null;
+let lastSig = null;     // signature of the last-rendered data — skip identical polls
 
 const $ = id => document.getElementById(id);
 
@@ -86,8 +90,8 @@ function sortPlayers(list) {
 function filtered() {
   return allPlayers.filter(p => {
     if (state.scope === 'mine' && p.soldToTeamId !== myTeamId) return false;
-    if (state.status !== 'ALL' && p.status !== state.status) return false;
-    if (state.role !== 'ALL' && p.role !== state.role) return false;
+    if (state.statuses.size && !state.statuses.has(p.status)) return false;
+    if (state.roles.size && !state.roles.has(p.role)) return false;
     if (state.search && !p.name.toLowerCase().includes(state.search)) return false;
     return true;
   });
@@ -147,9 +151,14 @@ function render() {
   }
 
   const scopeTxt = state.scope === 'mine' ? 'your squad' : 'all players';
-  const statusTxt = state.status === 'ALL' ? 'any status' : (STATUS_LABEL[state.status] || state.status).toLowerCase();
+  const statusTxt = state.statuses.size
+      ? [...state.statuses].map(s => STATUS_LABEL[s] || s).join(', ')
+      : 'all statuses';
+  const roleTxt = state.roles.size
+      ? [...state.roles].map(r => ROLE_NAME[r] || r).join(', ')
+      : 'all roles';
   $('summary').textContent =
-      `${total} player${total === 1 ? '' : 's'} · ${scopeTxt} · ${statusTxt}`
+      `${total} player${total === 1 ? '' : 's'} · ${scopeTxt} · ${statusTxt} · ${roleTxt}`
       + ` · sorted by ${SORTS[state.sort].label.toLowerCase()} (${state.sortDir})`
       + (state.group !== 'none' ? ` · grouped by ${state.group}` : '');
 }
@@ -160,11 +169,19 @@ async function load() {
       getJSON('/api/players'),
       getJSON('/api/dashboard').catch(() => ({ teams: [] })),
     ]);
+    // Only re-render when the underlying data actually changed — an unchanged
+    // 8s poll used to redraw the whole table and cause a flicker.
+    const sig = JSON.stringify(players) + '|'
+        + JSON.stringify((dash.teams || []).map(t => [t.teamId, t.name]));
+    if (sig === lastSig) return;
+    lastSig = sig;
     allPlayers = players;
     teamNames = Object.fromEntries((dash.teams || []).map(t => [t.teamId, t.name]));
     render();
   } catch (e) {
-    $('results').innerHTML = '<section class="card"><p class="muted">Could not load players. Retrying…</p></section>';
+    if (!allPlayers.length) {
+      $('results').innerHTML = '<section class="card"><p class="muted">Could not load players. Retrying…</p></section>';
+    }
   }
 }
 
@@ -173,16 +190,25 @@ function buildSortOptions() {
       .map(([k, v]) => `<option value="${k}" ${k === state.sort ? 'selected' : ''}>${v.label}</option>`).join('');
 }
 
+// Toggle-chip multi-selects for status and role. No selection = no filter (all).
+function buildChips() {
+  const make = (containerId, entries, set, label) =>
+    $(containerId).innerHTML = entries.map(([v, text]) =>
+        `<button type="button" class="fchip" data-v="${v}">${label(v, text)}</button>`).join('');
+  make('status-chips', Object.entries(STATUS_LABEL), state.statuses, (v, t) => t);
+  make('role-chips', Object.entries(ROLE_NAME), state.roles, (v, t) => `${ROLE_ICON[v] || ''} ${t}`);
+  $('status-chips').querySelectorAll('.fchip').forEach(c => c.onclick = () => toggleChip(c, state.statuses));
+  $('role-chips').querySelectorAll('.fchip').forEach(c => c.onclick = () => toggleChip(c, state.roles));
+}
+
+function toggleChip(chip, set) {
+  const v = chip.dataset.v;
+  if (set.has(v)) { set.delete(v); chip.classList.remove('active'); }
+  else { set.add(v); chip.classList.add('active'); }
+  render();
+}
+
 function wire() {
-  $('scope').onchange = e => {
-    state.scope = e.target.value;
-    // Your squad is only ever sold/retained players, so default to all statuses there.
-    if (state.scope === 'mine') { state.status = 'ALL'; $('status').value = 'ALL'; }
-    else { state.status = 'UNSOLD'; $('status').value = 'UNSOLD'; }
-    render();
-  };
-  $('status').onchange = e => { state.status = e.target.value; render(); };
-  $('role').onchange = e => { state.role = e.target.value; render(); };
   $('sort').onchange = e => { state.sort = e.target.value; render(); };
   $('group').onchange = e => { state.group = e.target.value; render(); };
   $('sort-dir').onclick = () => {
@@ -201,12 +227,17 @@ function wire() {
   const me = window.authReady ? await window.authReady : null;
   myTeamId = me && me.teamId ? me.teamId : null;
   if (myTeamId) {
-    // Offer a "my squad" scope for franchise owners.
-    const opt = document.createElement('option');
-    opt.value = 'mine';
-    opt.textContent = 'My squad only';
-    $('scope').appendChild(opt);
+    // Franchise owners get a "Show" control (All players / My squad); everyone
+    // else has only one meaningful option, so we don't render it at all.
+    const label = document.createElement('label');
+    label.className = 'ctl';
+    label.innerHTML = 'Show <select id="scope">'
+        + '<option value="all">All players</option>'
+        + '<option value="mine">My squad only</option></select>';
+    document.querySelector('.controls').prepend(label);
+    $('scope').onchange = e => { state.scope = e.target.value; render(); };
   }
+  buildChips();
   buildSortOptions();
   wire();
   await load();

@@ -15,30 +15,14 @@
 <main class="players-wrap">
   <section class="card">
     <div class="controls">
-      <label class="ctl">Show
-        <select id="scope">
-          <option value="all">All players</option>
-        </select>
-      </label>
-      <label class="ctl">Status
-        <select id="status">
-          <option value="ALL">All statuses</option>
-          <option value="AVAILABLE">Available</option>
-          <option value="UNSOLD" selected>Unsold</option>
-          <option value="SOLD">Sold</option>
-          <option value="RETAINED">Retained</option>
-          <option value="UNDER_AUCTION">Under auction</option>
-        </select>
-      </label>
-      <label class="ctl">Role
-        <select id="role">
-          <option value="ALL">All roles</option>
-          <option value="BATSMAN">Batsman</option>
-          <option value="BOWLER">Bowler</option>
-          <option value="ALL_ROUNDER">All-rounder</option>
-          <option value="WICKETKEEPER">Wicketkeeper</option>
-        </select>
-      </label>
+      <div class="ctl-group">
+        <span class="ctl-label">Status <span class="ctl-hint">(any = all)</span></span>
+        <div class="chip-filter" id="status-chips"></div>
+      </div>
+      <div class="ctl-group">
+        <span class="ctl-label">Role <span class="ctl-hint">(any = all)</span></span>
+        <div class="chip-filter" id="role-chips"></div>
+      </div>
       <label class="ctl">Sort by
         <select id="sort"></select>
       </label>
