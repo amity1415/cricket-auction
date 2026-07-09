@@ -13,6 +13,20 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BWL', ALL_ROUNDER: 'AR', WICKETKEEPER: 'WK' };
 const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🎯', ALL_ROUNDER: '🔄', WICKETKEEPER: '🧤' };
+const initials = name => String(name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+// Only rewrite a container when its HTML actually changed. Re-writing innerHTML
+// on every 3s poll forces a repaint (and, for animated elements, re-runs their
+// entrance animation) — that is the flicker. Caching the last HTML per element
+// makes an unchanged poll a no-op.
+const _htmlCache = {};
+function setHTMLIfChanged(id, html) {
+  if (_htmlCache[id] === html) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = html;
+  _htmlCache[id] = html;
+}
 
 const teamId = new URLSearchParams(location.search).get('teamId');
 let auctionConfig = null;
@@ -34,15 +48,17 @@ async function showPicker() {
 
 async function refresh() {
   try {
-    const [detail, dash] = await Promise.all([
+    const [detail, dash, audit] = await Promise.all([
       getJSON(`/api/dashboard/teams/${teamId}`),
       getJSON('/api/dashboard'),
+      getJSON('/api/admin/audit').catch(() => []),
     ]);
     document.getElementById('dashboard').style.display = '';
     renderBanner(dash.onTheBlock, detail.team);
     renderHead(detail.team, detail.squad);
     renderComposition(detail.team);
     renderSquad(detail.squad, detail.team);
+    updateLastResult(audit);
   } catch (e) { /* retry on next tick */ }
 }
 
@@ -57,20 +73,43 @@ function profileStats(st) {
       `<div class="pstat"><b>${v}</b><span>${label}</span></div>`).join('')}</div>`;
 }
 
+// The player currently drawn in the banner. We rebuild the banner element only
+// when the player changes (so the entrance animation runs once per player); for
+// the same player we patch just the bid line in place — no flicker on each poll.
+let bannerPlayerId = null;
+
+function bannerBidHtml(block, leading) {
+  return block.currentBidAmount != null
+    ? `current bid <b>${fmtINR(block.currentBidAmount)}</b> by <b>${esc(block.currentLeadingTeamName)}</b>${leading ? ' — 👑 that\'s you!' : ''}`
+    : `opens at <b>${fmtINR(block.basePrice)}</b>`;
+}
+
 function renderBanner(block, team) {
   const el = document.getElementById('block-banner');
-  if (!block) { el.innerHTML = ''; return; }
+  if (!block) {
+    if (bannerPlayerId !== null) { el.innerHTML = ''; bannerPlayerId = null; }
+    return;
+  }
   const leading = block.currentLeadingTeamId === team.teamId;
-  el.innerHTML = `
-    <div class="banner ${leading ? 'leading' : ''}">
-      <a class="plink" href="player.html?playerId=${block.playerId}"><b>${esc(block.name)}</b></a>
-      (${ROLE_SHORT[block.role]}, Group ${block.category}${block.overseas ? ', ✈' : ''})
-      is on the block —
-      ${block.currentBidAmount != null
-        ? `current bid <b>${fmtINR(block.currentBidAmount)}</b> by <b>${esc(block.currentLeadingTeamName)}</b>${leading ? ' — 👑 that\'s you!' : ''}`
-        : `opens at <b>${fmtINR(block.basePrice)}</b>`}
-      ${profileStats(block.stats)}
-    </div>`;
+  if (block.playerId !== bannerPlayerId) {
+    // New player on the block — build once (this is when the animation should run).
+    el.innerHTML = `
+      <div class="banner ${leading ? 'leading' : ''}">
+        <a class="plink" href="player.html?playerId=${block.playerId}"><b>${esc(block.name)}</b></a>
+        (${ROLE_SHORT[block.role]}, Group ${block.category}${block.overseas ? ', ✈' : ''})
+        is on the block —
+        <span class="bblock-bid">${bannerBidHtml(block, leading)}</span>
+        ${profileStats(block.stats)}
+      </div>`;
+    bannerPlayerId = block.playerId;
+  } else {
+    // Same player — patch only the volatile bits, leaving the element (and its
+    // animation) untouched.
+    const banner = el.querySelector('.banner');
+    if (banner) banner.classList.toggle('leading', leading);
+    const bid = el.querySelector('.bblock-bid');
+    if (bid) bid.innerHTML = bannerBidHtml(block, leading);
+  }
 }
 
 function renderHead(t, squad) {
@@ -78,7 +117,7 @@ function renderHead(t, squad) {
   const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
   const retained = squad.filter(p => p.retained).length;
   const maxRetained = auctionConfig?.retention?.maxPerTeam ?? 3;
-  document.getElementById('team-head').innerHTML = `
+  setHTMLIfChanged('team-head', `
     <div class="hero-top">
       <h2>${esc(t.name)} <span class="muted">· ${esc(t.ownerName)}</span>${teamId === myTeamId ? ' <span class="chip">⭐ Your team</span>' : ''}</h2>
       <span class="live"><i></i>LIVE</span>
@@ -91,7 +130,7 @@ function renderHead(t, squad) {
       <div class="tile"><span class="ticon">💰</span><b>${fmtShort(t.maxAffordableBid)}</b><span>Max affordable bid</span></div>
       <div class="tile"><span class="ticon">📌</span><b>${retained}/${maxRetained}</b><span>Retained</span></div>
       <div class="tile"><span class="ticon">✈️</span><b>${t.overseasUsed}</b><span>Overseas (no limit)</span></div>
-    </div>`;
+    </div>`);
 }
 
 function meterRow(icon, label, have, target, capped) {
@@ -117,18 +156,18 @@ function renderComposition(t) {
       .filter(([g]) => rules[g]?.maxPerTeam != null)
       .map(([g, n]) => meterRow('', 'Group ' + g, n, rules[g].maxPerTeam, true))
       .join('');
-  document.getElementById('composition').innerHTML = `
+  setHTMLIfChanged('composition', `
     <div class="req-grid">
       <div><h3>Squad make-up · no role limits</h3><div class="role-chips">${roles}</div></div>
       <div><h3>Group quotas (max per team)</h3>${groups || '<p class="muted">No group rules configured.</p>'}</div>
-    </div>`;
+    </div>`);
 }
 
 function renderSquad(squad, t) {
   document.getElementById('squad-summary').textContent =
       squad.length ? `· ${squad.length} player${squad.length > 1 ? 's' : ''} · ${fmtShort(squad.reduce((s, p) => s + (p.soldPrice || 0), 0))} spent` : '';
   const topPrice = Math.max(0, ...squad.map(p => p.soldPrice || 0));
-  document.getElementById('squad-body').innerHTML = squad.length
+  setHTMLIfChanged('squad-body', squad.length
       ? squad.map((p, i) => `
         <tr>
           <td class="muted">${i + 1}</td>
@@ -138,7 +177,97 @@ function renderSquad(squad, t) {
           <td><span class="chip">${p.category}</span></td>
           <td><b>${fmtINR(p.soldPrice)}</b></td>
         </tr>`).join('')
-      : '<tr><td colspan="5" class="muted">No players bought yet — your signings will appear here live.</td></tr>';
+      : '<tr><td colspan="5" class="muted">No players bought yet — your signings will appear here live.</td></tr>');
+}
+
+// ---------------------------------------------------------------------------
+// Sold / unsold result popup. On a NEW terminal result (a SOLD or UNSOLD audit
+// entry we haven't shown), play a broadcast-style reveal centred for 4s, then
+// shrink it into a small card pinned to the bottom-right corner that persists as
+// "the last player sold/unsold". On first page load we don't replay the reveal —
+// we just seed the corner card with the most recent result.
+let lastResultKey = null; // saleId of the last result we've shown
+let resultBaselineSet = false; // has the first poll established the "already seen" baseline?
+let revealTimer = null;
+let revealCloseTimer = null;
+
+function resultBig(r) {
+  const sold = r.type === 'SOLD';
+  return `
+    <span class="rv-badge ${sold ? 'sold' : 'unsold'}">${sold ? '✅ SOLD' : '🚫 UNSOLD'}</span>
+    <div class="rv-avatar">${esc(initials(r.playerName))}</div>
+    <div class="rv-name">${esc(r.playerName)}</div>
+    ${sold
+      ? `<div class="rv-team">to <b>${esc(r.teamName)}</b></div>
+         <div class="rv-amount">${fmtINR(r.amount)}</div>`
+      : `<div class="rv-team">went unsold</div>`}`;
+}
+
+function resultMini(r) {
+  const sold = r.type === 'SOLD';
+  return `
+    <div class="mini-head">Last ${sold ? 'sold' : 'result'}</div>
+    <div class="mini-badge ${sold ? 'sold' : 'unsold'}">${sold ? 'SOLD' : 'UNSOLD'}</div>
+    <div class="mini-name" title="${esc(r.playerName)}">${esc(r.playerName)}</div>
+    ${sold
+      ? `<div class="mini-team" title="${esc(r.teamName)}">${esc(r.teamName)}</div>
+         <div class="mini-amount">${fmtShort(r.amount)}</div>`
+      : `<div class="mini-team">Unsold</div>`}`;
+}
+
+function showMini(r) {
+  const mini = document.getElementById('last-result-mini');
+  if (!mini) return;
+  mini.innerHTML = resultMini(r);
+  mini.style.display = '';
+  mini.classList.remove('pop');
+  void mini.offsetWidth;   // restart the pop animation
+  mini.classList.add('pop');
+}
+
+function playReveal(r) {
+  const overlay = document.getElementById('reveal-overlay');
+  const card = document.getElementById('reveal-card');
+  if (!overlay || !card) { showMini(r); return; }
+  clearTimeout(revealTimer);
+  clearTimeout(revealCloseTimer);
+
+  card.className = 'reveal-card';
+  overlay.classList.remove('closing');
+  card.innerHTML = resultBig(r);
+  overlay.style.display = '';
+  void card.offsetWidth;          // reflow so the entrance transition runs
+  card.classList.add('enter');
+
+  revealTimer = setTimeout(() => {
+    // Shrink toward the corner and pop the persistent mini card into place.
+    card.classList.add('shrink');
+    overlay.classList.add('closing');
+    showMini(r);
+    revealCloseTimer = setTimeout(() => {
+      overlay.style.display = 'none';
+      card.className = 'reveal-card';
+    }, 650);
+  }, 4000);
+}
+
+function updateLastResult(audit) {
+  const results = (audit || []).filter(a => a.type === 'SOLD' || a.type === 'UNSOLD');
+  const last = results[results.length - 1];
+  const key = last ? last.saleId : null;
+  if (!resultBaselineSet) {
+    // First poll establishes what's "already happened" — seed the corner card
+    // from any pre-existing result, but never replay its reveal on load. Set the
+    // baseline even when there is no result yet, so the NEXT sale is a reveal.
+    resultBaselineSet = true;
+    lastResultKey = key;
+    if (last) showMini(last);
+    return;
+  }
+  if (key && key !== lastResultKey) {
+    lastResultKey = key;
+    playReveal(last);
+  }
 }
 
 (async function init() {
