@@ -57,6 +57,13 @@ spring:
 server:
   # Railway (and most PaaS) inject the public port via $PORT; default to 8082 locally.
   port: ${PORT:8082}
+  servlet:
+    session:
+      cookie:
+        # SameSite=Lax keeps the session cookie off cross-site requests, which is
+        # our CSRF defence (CSRF tokens are disabled — see SecurityConfig).
+        same-site: lax
+        http-only: true
 
 springdoc:
   swagger-ui:
@@ -67,6 +74,16 @@ springdoc:
 # Amounts are whole rupees. Players belong to groups A (top tier) … E (lowest).
 # ============================================================================
 auction:
+  # ------------------------------------------------------------------------
+  # Phase-5 security. The single admin account is authenticated from here, not
+  # the DB. In production set a strong ADMIN_PASSWORD env var (done on Railway);
+  # the default below is only for local runs. Franchise-owner accounts are
+  # self-registered and live in the database (BCrypt-hashed passwords).
+  # ------------------------------------------------------------------------
+  security:
+    admin-username: ${ADMIN_USERNAME:admin}
+    admin-password: ${ADMIN_PASSWORD:change-me-admin}
+
   # Floor used by squad-feasibility and max-affordable-bid calculations.
   # Decision (DESIGN.md 9.2): flat floor = cheapest group's base price.
   min-viable-price: 50000   # ₹50 K (= group-E base)

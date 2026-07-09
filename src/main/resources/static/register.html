@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Create owner account</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .auth-wrap { max-width: 400px; margin: 6vh auto 0; padding: 0 16px; }
+    .auth-wrap h1 { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 4px; }
+    .auth-wrap .card { padding: 22px; }
+    .auth-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .auth-field label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .auth-field input, .auth-field select {
+      padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--card-2); color: var(--text); font-size: 14px;
+    }
+    .auth-field input:focus, .auth-field select:focus { outline: none; border-color: var(--accent); }
+    .auth-field .hint { font-size: 11px; color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: normal; }
+    .auth-wrap button.primary { width: 100%; padding: 11px; margin-top: 4px; }
+    .auth-msg { min-height: 18px; font-size: 13px; margin: 4px 0 10px; }
+    .auth-msg.error { color: var(--red); }
+    .auth-msg.ok { color: var(--green); }
+    .auth-alt { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: center; }
+    .auth-alt a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <h1>🏏 Create owner account</h1>
+  <p class="muted" style="margin:0 0 18px">Register as a franchise owner to follow your team</p>
+  <div class="card">
+    <div id="msg" class="auth-msg"></div>
+    <form id="register-form" autocomplete="on">
+      <div class="auth-field">
+        <label for="displayName">Your name</label>
+        <input id="displayName" name="displayName" type="text" required autofocus autocomplete="name">
+      </div>
+      <div class="auth-field">
+        <label for="teamId">Your franchise / team</label>
+        <select id="teamId" name="teamId" required>
+          <option value="" disabled selected>Loading teams…</option>
+        </select>
+      </div>
+      <div class="auth-field">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" required minlength="3" autocomplete="username">
+        <span class="hint">At least 3 characters.</span>
+      </div>
+      <div class="auth-field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required minlength="6" autocomplete="new-password">
+        <span class="hint">At least 6 characters.</span>
+      </div>
+      <button type="submit" class="primary" id="submit-btn">Create account</button>
+    </form>
+    <p class="auth-alt">Already have an account? <a href="login.html">Sign in</a></p>
+  </div>
+</div>
+<script src="register.js"></script>
+</body>
+</html>

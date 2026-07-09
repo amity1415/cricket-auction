@@ -78,6 +78,17 @@
       </div>
     </section>
 
+    <section class="card">
+      <h2><span class="step">5</span>Franchise owners <span id="owners-count" class="muted"></span></h2>
+      <p class="hint">Franchise owners register themselves at
+        <a href="register.html">/register.html</a> and get a read-only view of their team.
+        Remove an account here to revoke its access.</p>
+      <table class="pool">
+        <thead><tr><th>Owner</th><th>Team</th><th>Joined</th><th></th></tr></thead>
+        <tbody id="owners-body"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </section>
+
     <a class="go-btn" href="auction.html">Start the auction →</a>
   </div>
 </main>
@@ -136,7 +147,9 @@
   </form>
 </dialog>
 
+<script src="auth.js"></script>
 <script src="profile-modal.js"></script>
 <script src="setup.js"></script>
+<script src="owners-admin.js"></script>
 </body>
 </html>

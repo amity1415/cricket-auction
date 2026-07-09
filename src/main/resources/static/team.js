@@ -16,6 +16,7 @@ const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🎯', ALL_ROUNDER: '🔄', WICKET
 
 const teamId = new URLSearchParams(location.search).get('teamId');
 let auctionConfig = null;
+let myTeamId = null; // the logged-in owner's own team, if any (set on init)
 
 async function getJSON(url) {
   const res = await fetch(url);
@@ -27,7 +28,8 @@ async function showPicker() {
   const dash = await getJSON('/api/dashboard');
   document.getElementById('picker').style.display = '';
   document.getElementById('picker-links').innerHTML = dash.teams.map(t =>
-      `<a href="team.html?teamId=${t.teamId}">${esc(t.name)} — ${esc(t.ownerName)}</a>`).join('');
+      `<a href="team.html?teamId=${t.teamId}">${esc(t.name)} — ${esc(t.ownerName)}`
+      + `${t.teamId === myTeamId ? ' ⭐ Your team' : ''}</a>`).join('');
 }
 
 async function refresh() {
@@ -78,7 +80,7 @@ function renderHead(t, squad) {
   const maxRetained = auctionConfig?.retention?.maxPerTeam ?? 3;
   document.getElementById('team-head').innerHTML = `
     <div class="hero-top">
-      <h2>${esc(t.name)} <span class="muted">· ${esc(t.ownerName)}</span></h2>
+      <h2>${esc(t.name)} <span class="muted">· ${esc(t.ownerName)}</span>${teamId === myTeamId ? ' <span class="chip">⭐ Your team</span>' : ''}</h2>
       <span class="live"><i></i>LIVE</span>
     </div>
     <div class="big-purse">${fmtINR(t.remainingPurse)}</div>
@@ -139,9 +141,28 @@ function renderSquad(squad, t) {
       : '<tr><td colspan="5" class="muted">No players bought yet — your signings will appear here live.</td></tr>';
 }
 
-if (!teamId) {
-  showPicker();
-} else {
-  getJSON('/api/config').then(c => { auctionConfig = c; refresh(); }).catch(() => refresh());
-  setInterval(refresh, 3000);
-}
+(async function init() {
+  // Wait for auth.js to resolve the current user so we can scope owners to their team.
+  const me = window.authReady ? await window.authReady : null;
+  myTeamId = me && me.teamId ? me.teamId : null;
+
+  // Give a franchise owner a one-click link back to their own team.
+  if (myTeamId) {
+    const nav = document.querySelector('header nav');
+    if (nav) {
+      const mine = document.createElement('a');
+      mine.href = 'team.html?teamId=' + myTeamId;
+      mine.textContent = '⭐ My team';
+      nav.prepend(mine);
+    }
+  }
+
+  if (!teamId) {
+    // Owners land straight on their own team; others get the picker.
+    if (myTeamId) { location.replace('team.html?teamId=' + myTeamId); return; }
+    showPicker();
+  } else {
+    getJSON('/api/config').then(c => { auctionConfig = c; refresh(); }).catch(() => refresh());
+    setInterval(refresh, 3000);
+  }
+})();
