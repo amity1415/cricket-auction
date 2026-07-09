@@ -152,11 +152,34 @@ class CategoryRulesTest {
         Team team = TestFixtures.team("Reserve", 150_000_000L, 8, Map.of()); // no role minimums
 
         assertEquals(2, feasibility.remainingMandatorySlots(team));
-        // maxAffordableBid = purse − (slots − 1) × minViablePrice (2,000,000 in fixtures)
-        assertEquals(148_000_000L, feasibility.maxAffordableBid(team));
+        // Two group-E signings still owed; each reserved at group E's base price
+        // (₹10L in fixtures). This bid covers one, so ₹10L is reserved for the other:
+        // maxAffordableBid = ₹1500L − ₹10L = ₹1490L.
+        assertEquals(149_000_000L, feasibility.maxAffordableBid(team));
 
         // One group-E player signed → one mandatory slot left.
         squadMember(team, E);
         assertEquals(1, feasibility.remainingMandatorySlots(team));
+    }
+
+    @Test
+    void groupMinimumsAreReservedAtGroupBasePrice() {
+        // A and B each require one signing (base ₹6L + ₹4L = ₹10L). That must stay
+        // in the purse — the old cheapest-slot reserve (2×₹50K) would wrongly allow
+        // a bid that leaves the team unable to buy its mandatory A and B players.
+        Map<PlayerCategory, CategoryRule> rules = Map.of(
+                A, new CategoryRule(4, 1, null, null),
+                B, new CategoryRule(5, 1, null, null),
+                C, new CategoryRule(4, 0, null, null),
+                D, new CategoryRule(4, 0, null, null),
+                E, new CategoryRule(4, 0, null, null));
+        FeasibilityService feasibility = new FeasibilityService(players, TestFixtures.realisticProps(rules));
+        Team team = TestFixtures.team("Mins", 1_100_000L, 3, Map.of()); // ₹11L purse, squad of 3
+
+        Player c = TestFixtures.player("Cee", BATSMAN, C, 200_000L);
+        feasibility.assertCanAcquire(team, c, 50_000L);   // leaves ₹10.5L ≥ ₹10L A+B reserve → OK
+        var ex = assertThrows(AuctionException.class,
+                () -> feasibility.assertCanAcquire(team, c, 300_000L)); // leaves ₹8L < ₹10L → blocked
+        assertEquals("SQUAD_FEASIBILITY_BROKEN", ex.getCode());
     }
 }

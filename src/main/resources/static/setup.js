@@ -74,10 +74,13 @@ async function refresh() {
 const EDITABLE = new Set(['AVAILABLE', 'UNSOLD']);
 
 function renderPlayerManager() {
+  const countEl = document.getElementById('pm-count');
+  if (countEl) countEl.textContent = `· ${lastPlayers.length}`;
+  const body = document.getElementById('pm-body');
+  if (!body) return; // the player list lives on the Players & analysis page now
   const q = pmSearch.trim().toLowerCase();
   const rows = q ? lastPlayers.filter(p => p.name.toLowerCase().includes(q)) : lastPlayers;
-  document.getElementById('pm-count').textContent = `· ${lastPlayers.length}`;
-  document.getElementById('pm-body').innerHTML = rows.map(p => `
+  body.innerHTML = rows.map(p => `
     <tr>
       <td><a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a></td>
       <td>${ROLE_SHORT[p.role] || p.role}</td>
@@ -96,7 +99,7 @@ function renderPlayerManager() {
 }
 
 const pmSearchEl = document.getElementById('pm-search');
-pmSearchEl.oninput = () => { pmSearch = pmSearchEl.value; renderPlayerManager(); };
+if (pmSearchEl) pmSearchEl.oninput = () => { pmSearch = pmSearchEl.value; renderPlayerManager(); };
 
 const playerModal = document.getElementById('player-modal');
 const playerForm = document.getElementById('player-form');
@@ -120,7 +123,8 @@ window.openPlayerModal = playerId => {
   playerModal.showModal();
 };
 
-document.getElementById('pm-add').onclick = () => openPlayerModal(null);
+const pmAddEl = document.getElementById('pm-add');
+if (pmAddEl) pmAddEl.onclick = () => openPlayerModal(null);
 
 playerForm.onsubmit = async e => {
   e.preventDefault();

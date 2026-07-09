@@ -4,6 +4,7 @@ import com.auctiontracker.config.AuctionProperties;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -177,10 +178,11 @@ public class FeasibilityService {
     }
 
     /**
-     * Cheapest cost to fill the team's remaining squad slots (after the pending
-     * purchase) at base price. The remaining quota can exceed the squad room by a
-     * slot or two, so we reserve only for the slots the team can actually still
-     * buy — the cheapest ones — guaranteeing it can always complete a full squad.
+     * Least it can cost to finish a VALID squad after the pending purchase: the
+     * team must still hit every group's minimum (those slots can only be bought
+     * from that group, so they are reserved at that group's base price) and then
+     * fill any leftover room with the cheapest groups that still have space. This
+     * is what guarantees a bid never strands the team's mandatory group signings.
      */
     private long squadCompletionReserve(List<Player> squad, PlayerCategory incoming,
                                         int maxSquadSize, int squadSize) {
@@ -188,31 +190,64 @@ public class FeasibilityService {
         if (roomAfter == 0) {
             return 0L;
         }
-        Map<PlayerCategory, Integer> counts = categoryCounts(squad);
-        List<Long> slotPrices = new ArrayList<>();
+        Map<PlayerCategory, Integer> held = new EnumMap<>(categoryCounts(squad));
+        held.merge(incoming, 1, Integer::sum); // this purchase fills one slot in its group
+        return completionReserve(held, roomAfter);
+    }
+
+    /**
+     * Minimum base-price cost to fill {@code slotsToFill} more squad slots given
+     * the groups already held. Per-group minimums are mandatory and reserved at
+     * that group's base price; the rest is filled with the cheapest groups that
+     * still have room (bounded by their max-per-team quota).
+     */
+    private long completionReserve(Map<PlayerCategory, Integer> held, int slotsToFill) {
+        if (slotsToFill <= 0) {
+            return 0L;
+        }
+        List<Long> mandatory = new ArrayList<>();  // group-minimum slots, priced at group base
+        List<Long> optional = new ArrayList<>();   // spare capacity, cheapest wins
         for (PlayerCategory g : PlayerCategory.values()) {
+            int have = held.getOrDefault(g, 0);
+            int min = props.minPerTeamFor(g);
             Integer max = props.maxPerTeamFor(g);
-            if (max == null) {
-                continue;
-            }
-            int held = counts.get(g) + (g == incoming ? 1 : 0); // this buy fills one slot
+            int cap = max == null ? Integer.MAX_VALUE : max;
             long base = props.basePriceFor(g);
-            for (int i = 0; i < Math.max(0, max - held); i++) {
-                slotPrices.add(base);
+            for (int i = 0; i < Math.max(0, Math.min(min, cap) - have); i++) {
+                mandatory.add(base);
+            }
+            int spare = Math.min(Math.max(0, cap - Math.max(have, min)), slotsToFill);
+            for (int i = 0; i < spare; i++) {
+                optional.add(base);
             }
         }
-        slotPrices.sort(null); // ascending — reserve the cheapest way to finish the squad
+        // Mandatory slots are non-negotiable; keep the costliest if minimums somehow
+        // exceed the room, so the reserve never understates what the team still owes.
+        mandatory.sort(Comparator.reverseOrder());
         long reserve = 0L;
-        for (int i = 0; i < Math.min(roomAfter, slotPrices.size()); i++) {
-            reserve += slotPrices.get(i);
+        int remaining = slotsToFill;
+        for (long price : mandatory) {
+            if (remaining == 0) break;
+            reserve += price;
+            remaining--;
+        }
+        if (remaining > 0) {
+            optional.sort(null); // cheapest first
+            for (int i = 0; i < Math.min(remaining, optional.size()); i++) {
+                reserve += optional.get(i);
+            }
         }
         return reserve;
     }
 
     /**
-     * Advisory dashboard figure (DESIGN.md 5.7):
-     * remainingPurse − (remainingMandatorySlots − 1) × minimumViablePrice,
-     * clamped to [0, remainingPurse]; 0 once the squad is full.
+     * Advisory dashboard figure: the most a team can bid on its next player and
+     * still afford the players it is still OBLIGED to buy. Its unmet group
+     * minimums are priced at that group's base price; role minimums (any group,
+     * so the cheapest) are padded in at the minimum viable price — the two are the
+     * same slots viewed two ways, so we take the larger count. This bid can cover
+     * the priciest of those obligations, so only the rest is reserved. Clamped to
+     * [0, remainingPurse]; 0 once the squad is full.
      */
     public long maxAffordableBid(Team team) {
         return maxAffordableBid(team, squadOf(team));
@@ -223,8 +258,26 @@ public class FeasibilityService {
         if (team.squadSize() >= team.getMaxSquadSize()) {
             return 0;
         }
-        int slots = remainingMandatorySlots(team, squad);
-        long reserve = (long) Math.max(0, slots - 1) * props.minViablePrice();
+        Map<PlayerCategory, Integer> counts = categoryCounts(squad);
+        List<Long> mandatory = new ArrayList<>();
+        for (PlayerCategory g : PlayerCategory.values()) {
+            long base = props.basePriceFor(g);
+            for (int i = 0; i < Math.max(0, props.minPerTeamFor(g) - counts.get(g)); i++) {
+                mandatory.add(base);
+            }
+        }
+        // Role minimums belong to no group and can be filled by the cheapest player,
+        // so top the list up to the role deficit at the minimum viable price.
+        int roleDeficit = roleDeficit(team, roleCounts(squad));
+        while (mandatory.size() < roleDeficit) {
+            mandatory.add(props.minViablePrice());
+        }
+        if (mandatory.isEmpty()) {
+            return team.getRemainingPurse();
+        }
+        mandatory.sort(null);
+        long thisBidCovers = mandatory.get(mandatory.size() - 1); // fills the priciest obligation
+        long reserve = mandatory.stream().mapToLong(Long::longValue).sum() - thisBidCovers;
         return Math.max(0, team.getRemainingPurse() - reserve);
     }
 }

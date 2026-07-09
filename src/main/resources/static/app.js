@@ -18,6 +18,10 @@ const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BWL', ALL_ROUNDER: 'AR', WICKETKEE
 
 let toastTimer = null;
 let auctionConfig = null; // rule book from /api/config (group quotas etc.)
+let poolFilter = 'ALL';
+let poolSearch = '';
+let lastPlayers = [];     // latest poll results, so search re-renders instantly
+let lastTeams = [];
 
 function toast(message, isError) {
   const el = document.getElementById('toast');
@@ -49,12 +53,16 @@ async function post(url, body) {
 
 async function refresh() {
   try {
-    const [dash, audit] = await Promise.all([
+    const [dash, players, audit] = await Promise.all([
       getJSON('/api/dashboard'),
+      getJSON('/api/players'),
       getJSON('/api/admin/audit'),
     ]);
+    lastPlayers = players;
+    lastTeams = dash.teams;
     renderBlock(dash);
     renderTeams(dash);
+    renderPool(players, dash.teams);
     renderAudit(audit);
     if (dash.onTheBlock) renderBidHistory(dash.onTheBlock.playerId);
     else document.getElementById('bid-history').innerHTML = '';
@@ -84,7 +92,7 @@ function renderBlock(dash) {
   const btnUndo = document.getElementById('btn-undo');
 
   if (!block) {
-    content.innerHTML = '<p class="muted">Nobody is under auction yet.</p>';
+    content.innerHTML = '<p class="muted">Nobody is under auction. Pick a player from the pool →</p>';
     buttons.innerHTML = '';
     btnConfirm.disabled = true;
     btnUnsold.disabled = true;
@@ -190,6 +198,55 @@ function renderTeams(dash) {
   }).join('');
 }
 
+function renderPool(players, teams) {
+  const teamName = id => teams.find(t => t.teamId === id)?.name || '?';
+  const filters = ['ALL', 'AVAILABLE', 'UNDER_AUCTION', 'RETAINED', 'SOLD', 'UNSOLD'];
+  document.getElementById('pool-filters').innerHTML = filters.map(f =>
+      `<button class="${f === poolFilter ? 'active' : ''}" onclick="setFilter('${f}')">${f.replace('_', ' ')}</button>`
+  ).join('');
+
+  // Serial numbers follow the full pool listing (stable across status filters).
+  const numbered = players.map((p, i) => ({ ...p, sl: i + 1 }));
+  let rows = numbered.filter(p => poolFilter === 'ALL' || p.status === poolFilter);
+  const q = poolSearch.trim().toLowerCase();
+  if (q) {
+    rows = /^\d+$/.test(q)
+        ? rows.filter(p => p.sl === Number(q))
+        : rows.filter(p => p.name.toLowerCase().includes(q));
+  }
+  document.getElementById('pool-body').innerHTML = rows.map(p => `
+    <tr>
+      <td class="muted">${p.sl}</td>
+      <td><a class="plink" href="player.html?playerId=${p.playerId}" title="Open full profile"><b>${esc(p.name)}</b></a>
+        ${p.status === 'SOLD' || p.status === 'RETAINED'
+          ? `<span class="sold-info">→ ${esc(teamName(p.soldToTeamId))} · ${fmtINR(p.soldPrice)}</span>` : ''}
+      </td>
+      <td>${ROLE_SHORT[p.role] || p.role}</td>
+      <td>${p.category}</td>
+      <td>${fmtShort(p.basePrice)}</td>
+      <td><span class="badge ${p.status}">${p.status.replace('_', ' ')}</span></td>
+      <td>${p.status === 'AVAILABLE'
+          ? `<button class="link-btn" onclick="putOnBlock('${p.playerId}')">On block</button>
+             <button class="link-btn subtle" onclick="withdraw('${p.playerId}')" title="Mark unsold without auctioning">✕</button>`
+          : p.status === 'RETAINED'
+          ? `<button class="link-btn subtle" onclick="releaseRetention('${p.playerId}')" title="Undo retention — refunds the purse">↩ Release</button>`
+          : ''}</td>
+    </tr>`).join('')
+    || `<tr><td colspan="7" class="muted">${q ? `No player matches “${esc(poolSearch.trim())}”.` : 'No players match this filter.'}</td></tr>`;
+}
+
+const poolSearchInput = document.getElementById('pool-search');
+poolSearchInput.oninput = () => {
+  poolSearch = poolSearchInput.value;
+  renderPool(lastPlayers, lastTeams); // instant, no server round-trip
+};
+document.getElementById('pool-search-clear').onclick = () => {
+  poolSearchInput.value = '';
+  poolSearch = '';
+  renderPool(lastPlayers, lastTeams);
+  poolSearchInput.focus();
+};
+
 function renderAudit(entries) {
   const el = document.getElementById('audit');
   if (!entries.length) { el.innerHTML = '<p class="muted">No sales yet.</p>'; return; }
@@ -205,6 +262,8 @@ function renderAudit(entries) {
       <span class="when">${new Date(s.recordedAt).toLocaleTimeString()}</span>
     </div>`).join('');
 }
+
+window.setFilter = f => { poolFilter = f; refresh(); };
 
 window.releaseRetention = async id => {
   const r = await post(`/api/admin/players/${id}/release-retention`);

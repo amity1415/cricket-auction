@@ -815,6 +815,7 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
   font-size: 13px; white-space: nowrap; flex: 0 0 auto;
 }
 .analyse-link:hover { border-color: var(--accent); background: rgba(91,140,255,.08); }
+.pm-actions { margin-top: 12px; }
 
 /* ============================================================================
    Scrollable lists — cap tall lists so they scroll inside their card instead of
