@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Shared validation helper (DESIGN.md 5.6): squad feasibility, overseas quota,
- * purse checks, and the max-affordable-bid dashboard figure. Used hypothetically
- * by place-bid and as the final guard by confirm-sale.
+ * Shared validation helper (DESIGN.md 5.6): squad feasibility, purse checks,
+ * and the max-affordable-bid dashboard figure. Used hypothetically by place-bid
+ * and as the final guard by confirm-sale.
  */
 @Service
 public class FeasibilityService {
@@ -54,10 +54,6 @@ public class FeasibilityService {
         return counts;
     }
 
-    public int overseasCount(List<Player> squad) {
-        return (int) squad.stream().filter(Player::isOverseas).count();
-    }
-
     private List<Player> squadOf(Team team) {
         return players.findBySoldToTeamId(team.getTeamId());
     }
@@ -69,10 +65,6 @@ public class FeasibilityService {
     /** How many squad members the team holds in each group. */
     public Map<PlayerCategory, Integer> categoryCounts(Team team) {
         return categoryCounts(squadOf(team));
-    }
-
-    public int overseasCount(Team team) {
-        return overseasCount(squadOf(team));
     }
 
     private int roleDeficit(Team team, Map<PlayerRole, Integer> counts) {
@@ -134,7 +126,6 @@ public class FeasibilityService {
                             team.getName(), team.squadSize(), team.getMaxSquadSize()),
                     Map.of("teamId", team.getTeamId()));
         }
-        // No overseas quota by design — overseas make-up is informational only.
         PlayerCategory cat = player.getCategory();
         Integer maxInGroup = props.maxPerTeamFor(cat);
         List<Player> squad = players.findBySoldToTeamId(team.getTeamId());

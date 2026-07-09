@@ -35,39 +35,39 @@ class FeasibilityServiceTest {
 
     @Test
     void zeroMandatorySlotsLeftMeansFullPurse() {
-        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of(), 3);
+        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of());
         assertEquals(10_000_000L, feasibility.maxAffordableBid(team));
     }
 
     @Test
     void exactlyOneMandatorySlotMeansFullPurse() {
-        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of(BOWLER, 1), 3);
+        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of(BOWLER, 1));
         assertEquals(10_000_000L, feasibility.maxAffordableBid(team));
     }
 
     @Test
     void twoMandatorySlotsReserveOneMinimumPrice() {
-        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of(BOWLER, 2), 3);
+        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of(BOWLER, 2));
         assertEquals(8_000_000L, feasibility.maxAffordableBid(team));
     }
 
     @Test
     void purseOfZeroMeansZero() {
-        Team team = TestFixtures.team("T", 1L, 8, Map.of(), 3);
+        Team team = TestFixtures.team("T", 1L, 8, Map.of());
         team.setRemainingPurse(0L);
         assertEquals(0L, feasibility.maxAffordableBid(team));
     }
 
     @Test
     void reserveLargerThanPurseClampsToZero() {
-        Team team = TestFixtures.team("T", 3_000_000L, 8, Map.of(BOWLER, 4), 3);
+        Team team = TestFixtures.team("T", 3_000_000L, 8, Map.of(BOWLER, 4));
         // reserve = (4−1) × 2M = 6M > 3M purse
         assertEquals(0L, feasibility.maxAffordableBid(team));
     }
 
     @Test
     void fullSquadMeansZero() {
-        Team team = TestFixtures.team("T", 10_000_000L, 1, Map.of(), 3);
+        Team team = TestFixtures.team("T", 10_000_000L, 1, Map.of());
         Player bought = boughtPlayer(team);
         team.getSquadPlayerIds().add(bought.getPlayerId());
         assertEquals(0L, feasibility.maxAffordableBid(team));
@@ -75,7 +75,7 @@ class FeasibilityServiceTest {
 
     @Test
     void filledRoleMinimumNoLongerReservesPurse() {
-        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of(BATSMAN, 1, BOWLER, 1), 3);
+        Team team = TestFixtures.team("T", 10_000_000L, 8, Map.of(BATSMAN, 1, BOWLER, 1));
         Player bought = boughtPlayer(team); // a batsman — fills the BATSMAN minimum
         team.getSquadPlayerIds().add(bought.getPlayerId());
         // one slot left (BOWLER) → reserve (1−1)×2M = 0 → full purse
@@ -84,7 +84,7 @@ class FeasibilityServiceTest {
     }
 
     private Player boughtPlayer(Team team) {
-        Player p = TestFixtures.player("Bought", BATSMAN, C, 2_000_000L, false);
+        Player p = TestFixtures.player("Bought", BATSMAN, C, 2_000_000L);
         p.setStatus(PlayerStatus.SOLD);
         p.setSoldToTeamId(team.getTeamId());
         p.setSoldPrice(2_000_000L);

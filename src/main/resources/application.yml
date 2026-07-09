@@ -152,8 +152,7 @@ auction:
 
   # Defaults offered when registering a team (data seeder + setup-page prefill).
   # Each team can still override these at registration time.
-  # Note: there is deliberately NO overseas quota and NO role minimum — role
-  # and overseas make-up are shown as information only.
+  # Note: there is deliberately NO role minimum — role make-up is informational.
   team-defaults:
     starting-purse: 15000000    # ₹1.5 Cr
     max-squad-size: 20

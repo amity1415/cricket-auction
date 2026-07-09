@@ -72,7 +72,7 @@ function render(p, current, teams, bids) {
     <section class="card profile-hero">
       <div class="avatar">${initials(p.name)}</div>
       <div class="hero-main">
-        <h2 class="pname">${esc(p.name)} ${p.overseas ? '<span class="chip overseas">✈ Overseas</span>' : ''}</h2>
+        <h2 class="pname">${esc(p.name)}</h2>
         <div class="chips">
           <span class="chip">${ROLE_ICON[p.role] || ''} ${ROLE_NAME[p.role] || p.role}</span>
           <span class="chip">Group ${p.category}</span>

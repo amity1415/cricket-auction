@@ -64,17 +64,17 @@ class SetupServiceTest {
     @Test
     void replaceImportWipesAuctionStateAndLoadsNewPool() {
         // A completed sale: purse deducted, squad filled, audit + bid history written.
-        Team team = teams.save(TestFixtures.team("Chennai Chargers", 150_000_000L, 8, Map.of(), 3));
-        Player old = players.save(TestFixtures.player("Old Player", BATSMAN, B, 5_000_000L, false));
+        Team team = teams.save(TestFixtures.team("Chennai Chargers", 150_000_000L, 8, Map.of()));
+        Player old = players.save(TestFixtures.player("Old Player", BATSMAN, B, 5_000_000L));
         bidding.markUnderAuction(old.getPlayerId());
         bidding.placeBid(old.getPlayerId(), team.getTeamId());
         sale.confirmSale(old.getPlayerId());
         assertEquals(145_000_000L, team.getRemainingPurse());
 
         String csv = """
-                name,role,category,overseas,basePrice,matches,runs,battingAvg,strikeRate,wickets,economy
-                Fresh Batter,BATSMAN,B,false,,120,3400,38.5,135.2,,
-                Quick Bowler,BOWLER,C,true,3000000,80,95,8.5,88.0,102,7.2
+                name,role,category,basePrice,matches,runs,battingAvg,strikeRate,wickets,economy
+                Fresh Batter,BATSMAN,B,,120,3400,38.5,135.2,,
+                Quick Bowler,BOWLER,C,3000000,80,95,8.5,88.0,102,7.2
                 """;
         var imported = setup.replaceImport("players.csv", csv.getBytes(StandardCharsets.UTF_8));
 
@@ -95,11 +95,11 @@ class SetupServiceTest {
 
     @Test
     void replaceImportRejectsBadRowsWithoutWipingAnything() {
-        players.save(TestFixtures.player("Keeper", BATSMAN, B, 5_000_000L, false));
+        players.save(TestFixtures.player("Keeper", BATSMAN, B, 5_000_000L));
 
         var ex = assertThrows(AuctionException.class, () ->
                 setup.replaceImport("players.csv",
-                        "Good,BATSMAN,B,false\nBad,NOT_A_ROLE,B,false".getBytes(StandardCharsets.UTF_8)));
+                        "Good,BATSMAN,B\nBad,NOT_A_ROLE,B".getBytes(StandardCharsets.UTF_8)));
 
         assertEquals("INVALID_IMPORT", ex.getCode());
         assertEquals(1, players.count()); // parse failed before any wipe
@@ -109,7 +109,7 @@ class SetupServiceTest {
     void xlsxImportParsesRowsAndStats() throws Exception {
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("players");
-            String[] header = {"name", "role", "category", "overseas", "basePrice",
+            String[] header = {"name", "role", "category", "basePrice",
                     "matches", "runs", "battingAvg", "strikeRate", "wickets", "economy"};
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < header.length; i++) headerRow.createCell(i).setCellValue(header[i]);
@@ -117,14 +117,13 @@ class SetupServiceTest {
             r1.createCell(0).setCellValue("Excel Star");
             r1.createCell(1).setCellValue("ALL_ROUNDER");
             r1.createCell(2).setCellValue("A");
-            r1.createCell(3).setCellValue("true");
-            r1.createCell(4).setCellValue(12_000_000);
-            r1.createCell(5).setCellValue(95);
-            r1.createCell(6).setCellValue(1800);
-            r1.createCell(7).setCellValue(27.7);
-            r1.createCell(8).setCellValue(132.4);
-            r1.createCell(9).setCellValue(66);
-            r1.createCell(10).setCellValue(8.3);
+            r1.createCell(3).setCellValue(12_000_000);
+            r1.createCell(4).setCellValue(95);
+            r1.createCell(5).setCellValue(1800);
+            r1.createCell(6).setCellValue(27.7);
+            r1.createCell(7).setCellValue(132.4);
+            r1.createCell(8).setCellValue(66);
+            r1.createCell(9).setCellValue(8.3);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
@@ -133,7 +132,6 @@ class SetupServiceTest {
             assertEquals(1, imported.size());
             Player p = players.findAll().get(0);
             assertEquals("Excel Star", p.getName());
-            assertTrue(p.isOverseas());
             assertEquals(12_000_000L, p.getBasePrice());
             assertEquals(95, p.getStats().matches());
             assertEquals(27.7, p.getStats().battingAverage());

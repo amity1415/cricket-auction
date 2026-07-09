@@ -23,7 +23,6 @@ public final class Responses {
             PlayerRole role,
             PlayerCategory category,
             long basePrice,
-            boolean overseas,
             PlayerStats stats,
             PlayerStatus status,
             UUID soldToTeamId,
@@ -32,7 +31,7 @@ public final class Responses {
 
         public static PlayerView from(Player p) {
             return new PlayerView(p.getPlayerId(), p.getName(), p.getRole(), p.getCategory(),
-                    p.getBasePrice(), p.isOverseas(), p.getStats(), p.getStatus(),
+                    p.getBasePrice(), p.getStats(), p.getStatus(),
                     p.getSoldToTeamId(), p.getSoldPrice(), p.getSoldAt());
         }
     }

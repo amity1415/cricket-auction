@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Players &amp; Analysis</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🏏 Cricket Auction Tracker <span class="muted">— Players &amp; Analysis</span></h1>
+  <nav><a href="team.html">← Team dashboard</a></nav>
+</header>
+
+<main class="players-wrap">
+  <section class="card">
+    <div class="controls">
+      <label class="ctl">Show
+        <select id="scope">
+          <option value="all">All players</option>
+        </select>
+      </label>
+      <label class="ctl">Status
+        <select id="status">
+          <option value="ALL">All statuses</option>
+          <option value="AVAILABLE">Available</option>
+          <option value="UNSOLD" selected>Unsold</option>
+          <option value="SOLD">Sold</option>
+          <option value="RETAINED">Retained</option>
+          <option value="UNDER_AUCTION">Under auction</option>
+        </select>
+      </label>
+      <label class="ctl">Role
+        <select id="role">
+          <option value="ALL">All roles</option>
+          <option value="BATSMAN">Batsman</option>
+          <option value="BOWLER">Bowler</option>
+          <option value="ALL_ROUNDER">All-rounder</option>
+          <option value="WICKETKEEPER">Wicketkeeper</option>
+        </select>
+      </label>
+      <label class="ctl">Sort by
+        <select id="sort"></select>
+      </label>
+      <button id="sort-dir" class="ghost" title="Toggle ascending / descending">▼ Desc</button>
+      <label class="ctl">Group by
+        <select id="group">
+          <option value="none">No grouping</option>
+          <option value="category">Group (A–E)</option>
+          <option value="role">Role</option>
+          <option value="status">Status</option>
+        </select>
+      </label>
+      <input id="search" class="search-input" type="search" placeholder="🔍 Search by name…" autocomplete="off">
+    </div>
+    <p id="summary" class="muted" style="margin:10px 2px 0"></p>
+  </section>
+
+  <div id="results"><p class="muted">Loading players…</p></div>
+</main>
+
+<script src="auth.js"></script>
+<script src="profile-modal.js"></script>
+<script src="players.js"></script>
+</body>
+</html>

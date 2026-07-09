@@ -62,12 +62,12 @@ public final class TestFixtures {
     }
 
     public static Team team(String name, long purse, int maxSquad,
-                            Map<PlayerRole, Integer> minPerRole, int maxOverseas) {
-        return Team.register(name, "Owner", purse, maxSquad, minPerRole, maxOverseas);
+                            Map<PlayerRole, Integer> minPerRole) {
+        return Team.register(name, "Owner", purse, maxSquad, minPerRole);
     }
 
     public static Player player(String name, PlayerRole role, PlayerCategory category,
-                                long basePrice, boolean overseas) {
-        return Player.register(name, role, category, basePrice, overseas);
+                                long basePrice) {
+        return Player.register(name, role, category, basePrice);
     }
 }

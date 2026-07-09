@@ -39,7 +39,7 @@ class SetupCrudTest {
 
     @Test
     void updateTeamPreservesSpentAmountWhenPurseChanges() {
-        Team team = teams.save(TestFixtures.team("Old Name", 100_000_000L, 8, Map.of(), 0));
+        Team team = teams.save(TestFixtures.team("Old Name", 100_000_000L, 8, Map.of()));
         team.setRemainingPurse(70_000_000L); // spent 30M
 
         core.updateTeam(team.getTeamId(), "New Name", "New Owner", 120_000_000L, 10);
@@ -52,7 +52,7 @@ class SetupCrudTest {
 
     @Test
     void purseCannotDropBelowSpent() {
-        Team team = teams.save(TestFixtures.team("Spenders", 100_000_000L, 8, Map.of(), 0));
+        Team team = teams.save(TestFixtures.team("Spenders", 100_000_000L, 8, Map.of()));
         team.setRemainingPurse(40_000_000L); // spent 60M
 
         var ex = assertThrows(AuctionException.class, () ->
@@ -62,7 +62,7 @@ class SetupCrudTest {
 
     @Test
     void squadCapCannotDropBelowCurrentSquad() {
-        Team team = teams.save(TestFixtures.team("Full", 100_000_000L, 8, Map.of(), 0));
+        Team team = teams.save(TestFixtures.team("Full", 100_000_000L, 8, Map.of()));
         team.getSquadPlayerIds().add(java.util.UUID.randomUUID());
         team.getSquadPlayerIds().add(java.util.UUID.randomUUID());
 
@@ -73,7 +73,7 @@ class SetupCrudTest {
 
     @Test
     void deleteTeamBlockedWhileSquadNonEmpty() {
-        Team team = teams.save(TestFixtures.team("Keepers", 100_000_000L, 8, Map.of(), 0));
+        Team team = teams.save(TestFixtures.team("Keepers", 100_000_000L, 8, Map.of()));
         team.getSquadPlayerIds().add(java.util.UUID.randomUUID());
 
         var ex = assertThrows(AuctionException.class, () -> core.deleteTeam(team.getTeamId()));
@@ -86,9 +86,9 @@ class SetupCrudTest {
 
     @Test
     void updatePlayerChangesProfileAndRecomputesBasePriceFromGroup() {
-        Player p = players.save(TestFixtures.player("Typo Naem", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Typo Naem", BATSMAN, B, 5_000_000L));
 
-        core.updatePlayer(p.getPlayerId(), "Fixed Name", BOWLER, C, null, true,
+        core.updatePlayer(p.getPlayerId(), "Fixed Name", BOWLER, C, null,
                 new PlayerStats(50, 100, 8.0, 80.0, 60, 7.5));
 
         assertEquals("Fixed Name", p.getName());
@@ -100,18 +100,18 @@ class SetupCrudTest {
 
     @Test
     void editAndDeleteLockedOnceInAuctionFlow() {
-        Player p = players.save(TestFixtures.player("Locked", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Locked", BATSMAN, B, 5_000_000L));
         p.setStatus(PlayerStatus.SOLD);
 
         assertEquals("INVALID_STATE", assertThrows(AuctionException.class, () ->
-                core.updatePlayer(p.getPlayerId(), "X", BATSMAN, B, null, false, null)).getCode());
+                core.updatePlayer(p.getPlayerId(), "X", BATSMAN, B, null, null)).getCode());
         assertEquals("INVALID_STATE", assertThrows(AuctionException.class, () ->
                 core.deletePlayer(p.getPlayerId())).getCode());
     }
 
     @Test
     void deletePlayerRemovesFromPool() {
-        Player p = players.save(TestFixtures.player("Gone", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Gone", BATSMAN, B, 5_000_000L));
         core.deletePlayer(p.getPlayerId());
         assertEquals(0, players.count());
         assertNull(players.findById(p.getPlayerId()).orElse(null));

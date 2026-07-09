@@ -21,7 +21,6 @@ public final class Requests {
             @NotNull PlayerRole role,
             @NotNull PlayerCategory category,
             @Positive Long basePrice, // optional — defaults to the category's configured base price
-            boolean overseas,
             PlayerStats stats) {} // optional career profile
 
     public record RegisterTeamRequest(
@@ -29,8 +28,7 @@ public final class Requests {
             @NotBlank String ownerName,
             @Positive long startingPurse,
             @Min(1) int maxSquadSize,
-            Map<PlayerRole, Integer> minPerRole, // optional
-            @Min(0) int maxOverseasPlayers) {}
+            Map<PlayerRole, Integer> minPerRole) {} // optional
 
     public record UpdateTeamRequest(
             @NotBlank String name,

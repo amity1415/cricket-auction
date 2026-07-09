@@ -31,7 +31,6 @@ public class Player {
     private PlayerCategory category;
 
     private long basePrice;
-    private boolean overseas;
 
     /** Career profile shown to the room while the player is on the block. */
     @Embedded
@@ -51,14 +50,13 @@ public class Player {
     private Instant soldAt;
 
     public static Player register(String name, PlayerRole role, PlayerCategory category,
-                                  long basePrice, boolean overseas) {
+                                  long basePrice) {
         Player p = new Player();
         p.playerId = UUID.randomUUID();
         p.name = name;
         p.role = role;
         p.category = category;
         p.basePrice = basePrice;
-        p.overseas = overseas;
         p.status = PlayerStatus.AVAILABLE;
         return p;
     }
@@ -77,9 +75,6 @@ public class Player {
 
     public long getBasePrice() { return basePrice; }
     public void setBasePrice(long basePrice) { this.basePrice = basePrice; }
-
-    public boolean isOverseas() { return overseas; }
-    public void setOverseas(boolean overseas) { this.overseas = overseas; }
 
     public PlayerStats getStats() { return stats; }
     public void setStats(PlayerStats stats) { this.stats = stats; }

@@ -45,8 +45,7 @@ function setConn(ok) {
 function metaChips(p) {
   return `
     <span class="chip">${ROLE_ICON[p.role] || ''} ${String(p.role || '').replace('_', ' ')}</span>
-    <span class="chip">Group ${p.category}</span>
-    ${p.overseas ? '<span class="chip overseas">✈ Overseas</span>' : ''}`;
+    <span class="chip">Group ${p.category}</span>`;
 }
 
 function statsStrip(stats) {

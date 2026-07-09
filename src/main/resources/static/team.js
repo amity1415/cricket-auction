@@ -96,7 +96,7 @@ function renderBanner(block, team) {
     el.innerHTML = `
       <div class="banner ${leading ? 'leading' : ''}">
         <a class="plink" href="player.html?playerId=${block.playerId}"><b>${esc(block.name)}</b></a>
-        (${ROLE_SHORT[block.role]}, Group ${block.category}${block.overseas ? ', ✈' : ''})
+        (${ROLE_SHORT[block.role]}, Group ${block.category})
         is on the block —
         <span class="bblock-bid">${bannerBidHtml(block, leading)}</span>
         ${profileStats(block.stats)}
@@ -129,7 +129,6 @@ function renderHead(t, squad) {
       <div class="tile"><span class="ticon">🧢</span><b>${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</b><span>Squad</span></div>
       <div class="tile"><span class="ticon">💰</span><b>${fmtShort(t.maxAffordableBid)}</b><span>Max affordable bid</span></div>
       <div class="tile"><span class="ticon">📌</span><b>${retained}/${maxRetained}</b><span>Retained</span></div>
-      <div class="tile"><span class="ticon">✈️</span><b>${t.overseasUsed}</b><span>Overseas (no limit)</span></div>
     </div>`);
 }
 
@@ -172,7 +171,7 @@ function renderSquad(squad, t) {
         <tr>
           <td class="muted">${i + 1}</td>
           <td><a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a>
-              ${p.overseas ? ' ✈' : ''}${p.retained ? '<span class="rtag">RETAINED</span>' : ''}${p.soldPrice === topPrice && squad.length > 1 ? ' 💎' : ''}</td>
+              ${p.retained ? '<span class="rtag">RETAINED</span>' : ''}${p.soldPrice === topPrice && squad.length > 1 ? ' 💎' : ''}</td>
           <td>${ROLE_ICON[p.role] || ''} ${ROLE_SHORT[p.role]}</td>
           <td><span class="chip">${p.category}</span></td>
           <td><b>${fmtINR(p.soldPrice)}</b></td>

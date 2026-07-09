@@ -66,7 +66,7 @@ public class AdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public PlayerView registerPlayer(@Valid @RequestBody RegisterPlayerRequest request) {
         Player player = core.registerPlayer(request.name(), request.role(), request.category(),
-                request.basePrice(), request.overseas(), request.stats());
+                request.basePrice(), request.stats());
         return PlayerView.from(player);
     }
 
@@ -92,7 +92,7 @@ public class AdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public Team registerTeam(@Valid @RequestBody RegisterTeamRequest request) {
         return core.registerTeam(request.name(), request.ownerName(), request.startingPurse(),
-                request.maxSquadSize(), request.minPerRole(), request.maxOverseasPlayers());
+                request.maxSquadSize(), request.minPerRole());
     }
 
     // --- Setup-screen CRUD -------------------------------------------------
@@ -102,7 +102,7 @@ public class AdminController {
     public PlayerView updatePlayer(@PathVariable("id") UUID playerId,
                                    @Valid @RequestBody RegisterPlayerRequest request) {
         return PlayerView.from(core.updatePlayer(playerId, request.name(), request.role(),
-                request.category(), request.basePrice(), request.overseas(), request.stats()));
+                request.category(), request.basePrice(), request.stats()));
     }
 
     /** Remove a player (AVAILABLE/UNSOLD only). */
