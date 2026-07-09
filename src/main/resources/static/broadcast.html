@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Live Broadcast</title>
+  <link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="broadcast-mode">
+<header>
+  <h1>🏏 Cricket Auction <span class="muted">— Live Broadcast</span></h1>
+  <nav>
+    <span id="conn-status" class="conn-status ok" title="Connection to the auction server">● live</span>
+    <a href="auction.html">← Admin console</a>
+  </nav>
+</header>
+
+<main class="broadcast-wrap">
+  <!-- State 1: nothing happening yet. VISIBLE BY DEFAULT so the screen is never
+       blank even before JS runs or if a script fails to load on a slow laptop. -->
+  <div id="idle-state" class="broadcast-idle">
+    <div class="idle-card">
+      <h2 id="idle-title">⏳ Connecting to the auction…</h2>
+      <p class="muted" id="idle-sub">Loading the live board.</p>
+    </div>
+  </div>
+
+  <!-- State 2: a player is on the block, bidding live -->
+  <div id="live-state" style="display:none">
+    <section class="broadcast-player">
+      <div class="player-card">
+        <div class="player-avatar" id="bc-avatar"></div>
+        <div class="player-main">
+          <h2 id="bc-name">Player Name</h2>
+          <div class="player-meta" id="bc-meta"></div>
+          <div class="player-status" id="bc-status"></div>
+        </div>
+      </div>
+
+      <div class="bid-display">
+        <div class="bid-amount">
+          <span class="bid-label">Current Bid</span>
+          <span class="bid-value" id="bc-current-bid">₹ —</span>
+          <span class="bid-team" id="bc-leading-team">—</span>
+        </div>
+        <div class="bid-amount next">
+          <span class="bid-label">Next Bid</span>
+          <span class="bid-value" id="bc-next-bid">₹ —</span>
+        </div>
+      </div>
+
+      <div class="bid-info" id="bc-bid-count"></div>
+    </section>
+  </div>
+
+  <!-- State 3: the last player was sold — celebrate until the next one is up -->
+  <div id="sold-state" style="display:none">
+    <section class="broadcast-sold">
+      <div class="sold-stamp">SOLD</div>
+      <div class="player-card">
+        <div class="player-avatar" id="sold-avatar"></div>
+        <div class="player-main">
+          <h2 id="sold-name"></h2>
+          <div class="player-meta" id="sold-meta"></div>
+          <div class="player-status" id="sold-stats"></div>
+        </div>
+      </div>
+      <div class="sold-deal">
+        <div class="sold-block">
+          <span class="bid-label">Sold To</span>
+          <span class="sold-team" id="sold-team"></span>
+        </div>
+        <div class="sold-block price">
+          <span class="bid-label">Winning Bid</span>
+          <span class="sold-amount" id="sold-amount"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Shared: team purses, shown under both the live and sold panels -->
+  <section id="teams-section" class="broadcast-teams" style="display:none">
+    <h2>Team Purses</h2>
+    <div class="teams-broadcast" id="bc-teams"></div>
+  </section>
+</main>
+
+<script src="profile-modal.js?v=11"></script>
+<script src="broadcast.js?v=11"></script>
+</body>
+</html>

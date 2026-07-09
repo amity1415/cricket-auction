@@ -1,0 +1,66 @@
+package com.auctiontracker.dashboard;
+
+import com.auctiontracker.core.PlayerCategory;
+import com.auctiontracker.core.PlayerRole;
+import com.auctiontracker.core.PlayerStats;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/** Read-side view records served by the dashboard module. */
+public final class DashboardViews {
+
+    private DashboardViews() {}
+
+    public record TeamSnapshot(
+            UUID teamId,
+            String name,
+            String ownerName,
+            long startingPurse,
+            long remainingPurse,
+            int squadFilled,
+            int squadOpenSlots,
+            long maxAffordableBid,
+            int remainingMandatorySlots,
+            int overseasUsed,
+            int maxOverseasPlayers,
+            Map<PlayerRole, Integer> roleCounts,
+            Map<PlayerRole, Integer> minPerRole,
+            Map<PlayerCategory, Integer> categoryCounts) {}
+
+    public record OnTheBlockView(
+            UUID playerId,
+            String name,
+            PlayerRole role,
+            PlayerCategory category,
+            long basePrice,
+            boolean overseas,
+            PlayerStats stats,
+            Long currentBidAmount,
+            UUID currentLeadingTeamId,
+            String currentLeadingTeamName,
+            long nextBidAmount,
+            int bidCount) {}
+
+    public record DashboardView(
+            OnTheBlockView onTheBlock,
+            List<TeamSnapshot> teams,
+            Instant lastUpdated) {}
+
+    public record SquadMemberView(
+            UUID playerId,
+            String name,
+            PlayerRole role,
+            PlayerCategory category,
+            boolean overseas,
+            boolean retained,
+            Long soldPrice,
+            Instant soldAt) {}
+
+    public record TeamDetailView(
+            TeamSnapshot team,
+            List<SquadMemberView> squad,
+            Instant lastUpdated) {}
+}

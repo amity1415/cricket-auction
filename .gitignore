@@ -1,0 +1,8 @@
+target/
+.idea/
+*.iml
+.DS_Store
+.mvn/wrapper/maven-wrapper.jar
+run-neon.sh
+
+.claude/settings.local.json

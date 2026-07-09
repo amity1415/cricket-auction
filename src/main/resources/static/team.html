@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Team Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🏏 Cricket Auction Tracker <span class="muted">— Team Dashboard</span></h1>
+  <nav><a href="auction.html">← Admin console</a></nav>
+</header>
+
+<main class="owner-wrap">
+  <div id="picker" class="card picker" style="display:none">
+    <h2>Choose your team</h2>
+    <div id="picker-links"></div>
+  </div>
+
+  <div id="dashboard" style="display:none">
+    <div id="block-banner"></div>
+
+    <section class="card hero">
+      <div id="team-head"></div>
+    </section>
+
+    <section class="card">
+      <h2>Squad requirements</h2>
+      <div id="composition"></div>
+    </section>
+
+    <section class="card">
+      <h2>Squad <span id="squad-summary" class="muted"></span></h2>
+      <table class="pool">
+        <thead><tr><th></th><th>Player</th><th>Role</th><th>Group</th><th>Price</th></tr></thead>
+        <tbody id="squad-body"></tbody>
+      </table>
+    </section>
+  </div>
+</main>
+
+<script src="profile-modal.js"></script>
+<script src="team.js"></script>
+</body>
+</html>

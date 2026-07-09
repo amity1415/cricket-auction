@@ -1,0 +1,145 @@
+spring:
+  application:
+    name: cricket-auction
+
+  # Defaults to an embedded H2 database (Postgres compatibility mode) so the app
+  # runs with zero setup. Point DATABASE_URL at a real Postgres (e.g. Neon) to
+  # persist across restarts:
+  #   DATABASE_URL=jdbc:postgresql://<host>/<db>?sslmode=require
+  #   DATABASE_USERNAME=... DATABASE_PASSWORD=...
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:auction;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      # Several laptops poll the read APIs continuously; a 10-connection pool
+      # (the default) saturates against a remote Neon instance and every
+      # request then queues 30s for a connection. Give it real headroom.
+      maximum-pool-size: 30
+      minimum-idle: 5
+      # Fail fast instead of hanging the UI for 30s if the pool is ever busy.
+      connection-timeout: 10000
+      # Recycle idle/aged connections so Neon's server-side idle timeout can't
+      # hand us a dead socket.
+      idle-timeout: 60000
+      max-lifetime: 300000
+      keepalive-time: 30000
+      # Log a stack trace if any connection is held longer than 20s — surfaces
+      # a genuine leak immediately rather than as a mystery hang.
+      leak-detection-threshold: 20000
+  jpa:
+    hibernate:
+      # Creates/evolves the schema automatically — fine for v1; switch to
+      # Flyway migrations before a real event.
+      ddl-auto: update
+    properties:
+      hibernate:
+        # Team has EAGER element collections (squadPlayerIds, minPerRole). Without
+        # batching, loading N teams fires a separate collection SELECT per team per
+        # collection — a round-trip storm against the remote DB. Batch them into a
+        # single IN(...) query so the whole dashboard is a couple of round-trips.
+        default_batch_fetch_size: 64
+    # OFF by design: controllers return fully-materialised DTO records and the
+    # entity collections are EAGER, so nothing lazy-loads during JSON
+    # serialization. Keeping OSIV on only pinned a DB connection for the whole
+    # request (query + serialization), which exhausted the pool under
+    # multi-viewer polling. Releasing it right after the service call fixes that.
+    open-in-view: false
+
+  # Make browsers revalidate static assets (JS/CSS) on every load so UI
+  # updates appear on plain refresh instead of being stuck in cache.
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+
+server:
+  # Railway (and most PaaS) inject the public port via $PORT; default to 8082 locally.
+  port: ${PORT:8082}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# ============================================================================
+# Auction rule book — every rule-based number lives here, not in code.
+# Amounts are whole rupees. Players belong to groups A (top tier) … E (lowest).
+# ============================================================================
+auction:
+  # Floor used by squad-feasibility and max-affordable-bid calculations.
+  # Decision (DESIGN.md 9.2): flat floor = cheapest group's base price.
+  min-viable-price: 50000   # ₹50 K (= group-E base)
+
+  # Base price per group (DESIGN.md 3.1 — "derived from category (configurable)").
+  # Sized to a ₹1.5 Cr team purse (see team-defaults.starting-purse).
+  base-prices:
+    A: 600000     # ₹6 L
+    B: 400000     # ₹4 L
+    C: 200000     # ₹2 L
+    D: 100000     # ₹1 L
+    E: 50000      # ₹50 K
+
+  # Bid increment bands (DESIGN.md section 4). Upper bounds are INCLUSIVE:
+  # a current price of exactly 1,00,000 still gets the 10,000 step.
+  increment-rules:
+    - up-to: 100000     # up to ₹1,00,000
+      increment: 10000   # +₹10,000
+    - up-to: 500000     # ₹1,00,000 – ₹5,00,000
+      increment: 25000   # +₹25,000
+    - up-to: 2000000    # ₹5,00,000 – ₹20,00,000
+      increment: 50000   # +₹50,000
+    - up-to: 10000000   # ₹20,00,000 – ₹1,00,00,000
+      increment: 100000  # +₹1,00,000
+  # Above the last band (₹1,00,00,000+): +₹2,50,000
+  default-increment: 250000
+
+  # Per-team squad composition per group.
+  #  - max-per-team: hard-blocked at bid AND sale time.
+  #  - min-per-team: feeds the mandatory-slot purse reserve (protects budget).
+  #  - budget (RULE 1, Group A only): a HARD ceiling on total group-A spend. Within
+  #    it, a bid must still leave the remaining allowed A slots buyable at
+  #    reserve-per-slot. So max group-A bid = budget − spent-in-A −
+  #    (remaining A slots after this buy) × reserve-per-slot. E.g. 1st group-A
+  #    player = ₹50L − 0 − 3×₹6L = ₹32L, then ₹38L, ₹44L, ₹50L cumulative.
+  #  - reserve-per-slot: per-slot reserve used by the group-A ceiling (defaults to
+  #    base price when omitted).
+  # B/C/D/E have NO ceiling — their spend is bounded only by the shared purse and
+  # the squad-completion reserve (see min-viable / base-prices): every bid must
+  # leave enough purse to still fill the team's remaining squad slots at base
+  # price. So money not spent on Group A flows freely to the other groups.
+  category-rules:
+    A: { max-per-team: 4, min-per-team: 0, reserve-per-slot: 600000, budget: 5000000 }  # hard ₹50L group-A ceiling
+    B: { max-per-team: 5, min-per-team: 0 }
+    C: { max-per-team: 4, min-per-team: 0 }
+    D: { max-per-team: 4, min-per-team: 0 }
+    E: { max-per-team: 4, min-per-team: 0 }
+
+  # Unsold rule: a player marked unsold while under auction drops one group
+  # (A→B→…→E), takes the lower group's base price, and returns to the pool as
+  # AVAILABLE for re-auction. A group-E player can't drop further and becomes
+  # terminally UNSOLD. Withdrawing a never-auctioned player is always terminal.
+  demote-unsold-players: true
+
+  # Pre-auction retention: each team may retain up to max-per-team players
+  # before the auction — at most max-from-group-a of them from group A and at
+  # most max-from-lower-groups from groups B–E. RULE 2: a retention costs a FLAT
+  # fee (cost-group-a for a group-A player, cost-other-groups for B–E), deducted
+  # from the purse; releasing refunds it.
+  retention:
+    max-per-team: 3
+    max-from-group-a: 2
+    max-from-lower-groups: 1
+    cost-group-a: 1200000       # ₹12 L
+    cost-other-groups: 600000   # ₹6 L
+
+  # Defaults offered when registering a team (data seeder + setup-page prefill).
+  # Each team can still override these at registration time.
+  # Note: there is deliberately NO overseas quota and NO role minimum — role
+  # and overseas make-up are shown as information only.
+  team-defaults:
+    starting-purse: 15000000    # ₹1.5 Cr
+    max-squad-size: 20
+
+  # Seed demo teams/players at startup when the database is empty.
+  seed-demo-data: true

@@ -1,0 +1,8 @@
+target/
+.idea/
+*.iml
+.DS_Store
+.git/
+run-neon.sh
+docs/
+README.md

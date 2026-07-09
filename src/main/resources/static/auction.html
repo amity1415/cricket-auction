@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Admin Console</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🏏 Cricket Auction Tracker <span class="muted">— Admin Console</span></h1>
+  <nav><a href="index.html">← Setup</a> <a href="team.html">Team-owner view →</a> <a href="swagger-ui.html">API docs</a></nav>
+</header>
+
+<div id="toast" class="toast hidden"></div>
+
+<main class="layout">
+  <div class="col">
+    <section class="card block-card">
+      <h2>On the Block</h2>
+      <div id="block-content"><p class="muted">Nobody is under auction. Pick a player from the pool →</p></div>
+      <div id="bid-buttons" class="bid-buttons"></div>
+      <div class="actions">
+        <button id="btn-confirm" class="primary" disabled>Confirm Sale</button>
+        <button id="btn-unsold" class="danger" disabled>Mark Unsold</button>
+        <button id="btn-undo" class="warn" disabled title="Pop the last bid — it never reached the database">↶ Undo Bid</button>
+      </div>
+      <div id="bid-history"></div>
+    </section>
+
+    <section class="card">
+      <h2>Teams</h2>
+      <div id="teams" class="teams-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Audit Log</h2>
+      <div id="audit" class="audit"><p class="muted">No sales yet.</p></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card">
+      <div class="pool-header">
+        <h2>Player Pool</h2>
+        <div id="pool-filters" class="filters"></div>
+      </div>
+      <div class="pool-search-row">
+        <input id="pool-search" type="search" placeholder="🔍 Search by sl. no or name…" autocomplete="off">
+        <button id="pool-search-clear" class="link-btn subtle" title="Clear search">✕</button>
+      </div>
+      <table class="pool">
+        <thead>
+        <tr><th>#</th><th>Player</th><th>Role</th><th>Cat</th><th>Base</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody id="pool-body"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Setup</h2>
+      <details>
+        <summary>Register player</summary>
+        <form id="form-player" class="form">
+          <input name="name" placeholder="Name" required>
+          <select name="role">
+            <option>BATSMAN</option><option>BOWLER</option>
+            <option>ALL_ROUNDER</option><option>WICKETKEEPER</option>
+          </select>
+          <select name="category">
+            <option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option>
+          </select>
+          <label class="check"><input type="checkbox" name="overseas"> Overseas</label>
+          <input name="basePrice" type="number" placeholder="Base price (optional)" min="1">
+          <button class="primary">Add player</button>
+        </form>
+      </details>
+      <details>
+        <summary>Register team</summary>
+        <form id="form-team" class="form">
+          <input name="name" placeholder="Team name" required>
+          <input name="ownerName" placeholder="Owner name" required>
+          <input name="startingPurse" type="number" placeholder="Starting purse (₹)" required min="1">
+          <input name="maxSquadSize" type="number" placeholder="Max squad size" required min="1" value="20">
+          <button class="primary">Add team</button>
+        </form>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script src="profile-modal.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
