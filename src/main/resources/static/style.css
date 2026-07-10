@@ -87,6 +87,8 @@ header nav .nav-sep {
 
 /* --- Dropdown menu (built by auth.js) --------------------------------- */
 header nav { position: relative; }
+/* Groups the broadcast connection pill with its dropdown on the right. */
+.header-actions { display: flex; align-items: center; gap: 12px; }
 /* Hide any page's inline links (except the broadcast screen, which keeps its
    own simple nav) — the dropdown built by auth.js is the single source of nav. */
 body:not(.broadcast-mode) header nav > a,

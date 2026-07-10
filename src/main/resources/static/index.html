@@ -77,9 +77,17 @@
 
     <section class="card">
       <h2><span class="step">5</span>Franchise owners <span id="owners-count" class="muted"></span></h2>
-      <p class="hint">Franchise owners register themselves at
-        <a href="register.html">/register.html</a> and get a read-only view of their team.
-        Remove an account here to revoke its access.</p>
+      <p class="hint">Create a franchise-owner login below — they get a read-only view of their team
+        (players &amp; analysis, team dashboards). Remove an account to revoke its access.</p>
+      <form id="owner-form" class="form">
+        <input name="displayName" placeholder="Owner name" required>
+        <input name="username" placeholder="Username" required minlength="3">
+        <input name="password" type="password" placeholder="Password (min 6)" required minlength="6">
+        <select name="teamId" required>
+          <option value="" disabled selected>Choose team…</option>
+        </select>
+        <button class="primary">＋ Create owner</button>
+      </form>
       <div class="table-scroll list-scroll owners-scroll">
         <table class="pool">
           <thead><tr><th>Owner</th><th>Team</th><th>Joined</th><th></th></tr></thead>

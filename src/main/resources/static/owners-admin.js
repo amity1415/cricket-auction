@@ -1,6 +1,6 @@
-/* Admin-only: list franchise-owner accounts and remove them. Renders into the
- * #owners-body table on the setup page. Loaded after setup.js, so it reuses that
- * page's toast() helper when present. */
+/* Admin-only: create, list, and remove franchise-owner accounts. Renders into
+ * the #owners-body table on the setup page. Loaded after setup.js, so it reuses
+ * that page's toast() helper when present. */
 
 (function () {
   const body = document.getElementById('owners-body');
@@ -10,6 +10,51 @@
   const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g,
       c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const notify = (m, err) => (window.toast ? window.toast(m, err) : (err ? alert(m) : null));
+
+  const form = document.getElementById('owner-form');
+  const teamSel = form ? form.querySelector('select[name="teamId"]') : null;
+
+  // Fill the team dropdown; teams that already have an owner are shown disabled.
+  async function loadTeams() {
+    if (!teamSel) return;
+    let teams = [];
+    try { teams = await fetch('/api/auth/teams').then(r => r.json()); } catch (e) { /* ignore */ }
+    teamSel.innerHTML = '<option value="" disabled selected>Choose team…</option>'
+      + teams.map(t => t.claimed
+          ? `<option value="${t.teamId}" disabled>${escapeHtml(t.name)} — has owner</option>`
+          : `<option value="${t.teamId}">${escapeHtml(t.name)}</option>`).join('');
+  }
+
+  if (form) {
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const f = new FormData(form);
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            displayName: f.get('displayName').trim(),
+            username: f.get('username').trim(),
+            password: f.get('password'),
+            teamId: f.get('teamId'),
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { notify(data.message || data.error || 'Could not create owner', true); return; }
+        notify(`Created owner ${data.username}`);
+        form.reset();
+        loadTeams();
+        load();
+      } catch (err) {
+        notify('Could not reach the server', true);
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  }
 
   async function load() {
     let owners;
@@ -29,7 +74,7 @@
           <td class="muted">${new Date(o.createdAt).toLocaleDateString()}</td>
           <td style="text-align:right"><button class="danger owner-del" data-id="${o.id}" data-name="${escapeHtml(o.displayName)}">Remove</button></td>
         </tr>`).join('')
-      : '<tr><td colspan="4" class="muted">No franchise owners have registered yet.</td></tr>';
+      : '<tr><td colspan="4" class="muted">No franchise owners created yet.</td></tr>';
 
     body.querySelectorAll('.owner-del').forEach(btn => btn.addEventListener('click', () => remove(btn)));
   }
@@ -55,4 +100,5 @@
   }
 
   load();
+  loadTeams();
 })();

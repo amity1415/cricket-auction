@@ -26,8 +26,11 @@
         { href: 'team.html', label: '👥 Browse teams' },
         { href: 'broadcast.html', label: '📺 Live broadcast' },
       );
-    } else { // guest
-      items.push({ href: 'broadcast.html', label: '📺 Live broadcast' });
+    } else { // guest — only the public read-only screens
+      items.push(
+        { href: 'team.html', label: '👥 Team dashboards' },
+        { href: 'broadcast.html', label: '📺 Live broadcast' },
+      );
     }
     return items;
   }
