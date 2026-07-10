@@ -64,9 +64,62 @@ function showState(which) {
   setDisp('live-state', which === 'live' ? '' : 'none');
   setDisp('sold-state', which === 'sold' ? '' : 'none');
   setDisp('teams-section', which === 'idle' ? 'none' : '');
+  fitToScreen();
 }
 
+// Broadcast is shown on a big TV — it must fit on one screen with no scroll.
+// Measure the content's natural height and, if it exceeds the space below the
+// header, scale the whole board down uniformly so everything stays visible.
+let fitTimer = null;
+function fitToScreen() {
+  const wrap = document.querySelector('.broadcast-wrap');
+  if (!wrap) return;
+  wrap.style.transform = 'none';                       // reset to measure natural size
+  // Only fit-to-screen on TV / desktop-sized displays; small screens scroll
+  // normally (scaling a full board down on a phone would make it unreadable).
+  if (window.innerWidth < 900) return;
+  const headerH = document.querySelector('header')?.offsetHeight || 0;
+  const avail = window.innerHeight - headerH;
+  const natural = wrap.scrollHeight;
+  const scale = natural > avail && natural > 0 ? avail / natural : 1;
+  wrap.style.transformOrigin = 'top center';
+  wrap.style.transform = scale < 1 ? `scale(${scale})` : 'none';
+}
+
+// Lay out the team cards so every row is full — no lopsided last row. The column
+// count is always a divisor of the team count (so N/cols is a whole number), and
+// we pick the largest such count whose cards still meet a minimum width for the
+// current screen. This keeps the grid symmetrical at any screen size.
+let lastTeamCount = 0;
+
+function layoutTeams(n) {
+  const el = document.getElementById('bc-teams');
+  if (!el || !n) return;
+  const gap = 14, minCard = 150;
+  const width = el.clientWidth || el.parentElement?.clientWidth || window.innerWidth;
+  let cols = 1;
+  for (let d = 1; d <= n; d++) {
+    if (n % d === 0 && (width - gap * (d - 1)) / d >= minCard) cols = d;
+  }
+  el.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+}
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { layoutTeams(lastTeamCount); fitToScreen(); }, 120);
+});
+
+// Refit whenever the board's content size changes (new player, teams loaded,
+// async stats arriving). Transform doesn't alter the observed box, so no loop.
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.querySelector('.broadcast-wrap');
+  if (wrap && window.ResizeObserver) new ResizeObserver(() => fitToScreen()).observe(wrap);
+  fitToScreen();
+});
+
 function renderTeams(teams, highlightTeamId) {
+  lastTeamCount = (teams || []).length;
   setHTML('bc-teams', (teams || []).map(t => {
     const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
     const hot = t.teamId === highlightTeamId;
@@ -80,6 +133,7 @@ function renderTeams(teams, highlightTeamId) {
         ${hot ? '<div class="leading-badge">👑</div>' : ''}
       </div>`;
   }).join(''));
+  layoutTeams(lastTeamCount);
 }
 
 function renderLive(player, teams) {

@@ -554,7 +554,9 @@ a.modal-x { text-decoration: none; font-size: 15px; }
 }
 
 /* --- Broadcast/Spectator Dashboard ----------------------------------------- */
-body.broadcast-mode { background: var(--bg); }
+/* Broadcast fills exactly one screen and never scrolls — it's shown on a TV.
+   broadcast.js scales the content down to fit when needed. */
+body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
 .broadcast-wrap { max-width: 1600px; margin: 0 auto; padding: 20px 26px; }
 .broadcast-idle {
   display: flex; align-items: center; justify-content: center;
@@ -702,7 +704,15 @@ body.broadcast-mode { background: var(--bg); }
 
 @media (max-width: 1200px) {
   .bid-display, .sold-deal { grid-template-columns: 1fr; }
-  .teams-broadcast { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  /* team columns are set symmetrically by broadcast.js (layoutTeams). */
+}
+@media (max-width: 640px) {
+  .broadcast-wrap { padding: 14px 12px; }
+  .broadcast-teams { padding: 16px 14px; }
+}
+/* Small screens scroll normally; only TV/desktop is locked to one screen. */
+@media (max-width: 899px) {
+  body.broadcast-mode { height: auto; overflow: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

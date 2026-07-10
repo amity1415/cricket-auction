@@ -133,7 +133,6 @@ function tableHtml(list) {
 
 function render() {
   const rows = filtered();
-  const total = rows.length;
 
   if (state.group === 'none') {
     $('results').innerHTML = `<section class="card">${tableHtml(sortPlayers(rows))}</section>`;
@@ -149,18 +148,6 @@ function render() {
         ${tableHtml(sortPlayers(buckets[k]))}
       </section>`).join('') || '<section class="card"><p class="muted">No players match these filters.</p></section>';
   }
-
-  const scopeTxt = state.scope === 'mine' ? 'your squad' : 'all players';
-  const statusTxt = state.statuses.size
-      ? [...state.statuses].map(s => STATUS_LABEL[s] || s).join(', ')
-      : 'all statuses';
-  const roleTxt = state.roles.size
-      ? [...state.roles].map(r => ROLE_NAME[r] || r).join(', ')
-      : 'all roles';
-  $('summary').textContent =
-      `${total} player${total === 1 ? '' : 's'} · ${scopeTxt} · ${statusTxt} · ${roleTxt}`
-      + ` · sorted by ${SORTS[state.sort].label.toLowerCase()} (${state.sortDir})`
-      + (state.group !== 'none' ? ` · grouped by ${state.group}` : '');
 }
 
 async function load() {
