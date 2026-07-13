@@ -16,10 +16,10 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
 
 const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BWL', ALL_ROUNDER: 'AR', WICKETKEEPER: 'WK' };
 
-let poolFilter = 'ALL';
-let poolSearch = '';
 let toastTimer = null;
 let auctionConfig = null; // rule book from /api/config (group quotas etc.)
+let poolFilter = 'ALL';
+let poolSearch = '';
 let lastPlayers = [];     // latest poll results, so search re-renders instantly
 let lastTeams = [];
 
@@ -107,7 +107,6 @@ function renderBlock(dash) {
       <span>
         <span class="chip">${ROLE_SHORT[block.role] || block.role}</span>
         <span class="chip">${block.category}</span>
-        ${block.overseas ? '<span class="chip overseas">✈ Overseas</span>' : ''}
       </span>
     </div>
     ${profileStats(block.stats)}
@@ -192,7 +191,6 @@ function renderTeams(dash) {
         <div class="purse">${fmtShort(t.remainingPurse)}</div>
         <div class="bar"><i style="width:${pct}%"></i></div>
         <div class="meta">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}
-          · ✈ ${t.overseasUsed}
           · Max bid ${fmtShort(t.maxAffordableBid)}</div>
         ${roles ? `<div class="roles">${roles}</div>` : ''}
         ${groups ? `<div class="roles">Groups: ${groups}</div>` : ''}
@@ -219,7 +217,7 @@ function renderPool(players, teams) {
   document.getElementById('pool-body').innerHTML = rows.map(p => `
     <tr>
       <td class="muted">${p.sl}</td>
-      <td><a class="plink" href="player.html?playerId=${p.playerId}" title="Open full profile"><b>${esc(p.name)}</b></a>${p.overseas ? ' ✈' : ''}
+      <td><a class="plink" href="player.html?playerId=${p.playerId}" title="Open full profile"><b>${esc(p.name)}</b></a>
         ${p.status === 'SOLD' || p.status === 'RETAINED'
           ? `<span class="sold-info">→ ${esc(teamName(p.soldToTeamId))} · ${fmtINR(p.soldPrice)}</span>` : ''}
       </td>
@@ -265,13 +263,13 @@ function renderAudit(entries) {
     </div>`).join('');
 }
 
+window.setFilter = f => { poolFilter = f; refresh(); };
+
 window.releaseRetention = async id => {
   const r = await post(`/api/admin/players/${id}/release-retention`);
   if (r) toast(`↩ Released ${r.player.name} — purse refunded`);
   refresh();
 };
-
-window.setFilter = f => { poolFilter = f; refresh(); };
 
 window.putOnBlock = async id => {
   const r = await post(`/api/admin/players/${id}/mark-under-auction`);
@@ -299,7 +297,6 @@ document.getElementById('form-player').onsubmit = async e => {
     name: f.get('name'),
     role: f.get('role'),
     category: f.get('category'),
-    overseas: f.get('overseas') === 'on',
     basePrice: f.get('basePrice') ? Number(f.get('basePrice')) : null,
   });
   if (r) { toast(`Registered ${r.name}`); e.target.reset(); refresh(); }
@@ -313,7 +310,6 @@ document.getElementById('form-team').onsubmit = async e => {
     ownerName: f.get('ownerName'),
     startingPurse: Number(f.get('startingPurse')),
     maxSquadSize: Number(f.get('maxSquadSize')),
-    maxOverseasPlayers: 0, // informational only — no overseas rule
   });
   if (r) { toast(`Registered ${r.name}`); e.target.reset(); refresh(); }
 };

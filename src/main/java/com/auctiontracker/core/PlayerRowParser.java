@@ -10,7 +10,7 @@ import java.util.Locale;
 /**
  * Parses tabular player rows into {@link Player}s — shared by the CSV bulk
  * import and the .xlsx setup import. Column layout, header row optional:
- * <pre>name,role,category,overseas[,basePrice][,matches,runs,battingAvg,strikeRate,wickets,economy]</pre>
+ * <pre>name,role,category[,basePrice][,matches,runs,battingAvg,strikeRate,wickets,economy]</pre>
  * basePrice blank = the category's configured default; stats blank = not shown.
  * All-or-nothing: any bad row rejects the whole import with every error listed.
  */
@@ -66,23 +66,21 @@ public class PlayerRowParser {
     }
 
     private Player parseFields(String[] parts) {
-        if (parts.length < 4) {
+        if (parts.length < 3) {
             throw new IllegalArgumentException(
-                    "expected name,role,category,overseas[,basePrice,matches,runs,battingAvg,strikeRate,wickets,economy]");
+                    "expected name,role,category[,basePrice,matches,runs,battingAvg,strikeRate,wickets,economy]");
         }
         String name = parts[0].trim();
         if (name.isEmpty()) throw new IllegalArgumentException("name is blank");
         PlayerRole role = PlayerRole.valueOf(parts[1].trim().toUpperCase(Locale.ROOT));
         PlayerCategory category = PlayerCategory.valueOf(parts[2].trim().toUpperCase(Locale.ROOT));
-        String overseasRaw = parts[3].trim().toLowerCase(Locale.ROOT);
-        boolean overseas = overseasRaw.equals("true") || overseasRaw.equals("yes") || overseasRaw.equals("1");
-        long basePrice = hasValue(parts, 4) ? Long.parseLong(parts[4].trim()) : props.basePriceFor(category);
+        long basePrice = hasValue(parts, 3) ? Long.parseLong(parts[3].trim()) : props.basePriceFor(category);
         if (basePrice <= 0) throw new IllegalArgumentException("base price must be positive");
 
-        Player player = Player.register(name, role, category, basePrice, overseas);
+        Player player = Player.register(name, role, category, basePrice);
         PlayerStats stats = new PlayerStats(
-                intAt(parts, 5), intAt(parts, 6), doubleAt(parts, 7),
-                doubleAt(parts, 8), intAt(parts, 9), doubleAt(parts, 10));
+                intAt(parts, 4), intAt(parts, 5), doubleAt(parts, 6),
+                doubleAt(parts, 7), intAt(parts, 8), doubleAt(parts, 9));
         player.setStats(stats.allNull() ? null : stats);
         return player;
     }

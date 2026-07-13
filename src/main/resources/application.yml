@@ -125,12 +125,17 @@ auction:
   # the squad-completion reserve (see min-viable / base-prices): every bid must
   # leave enough purse to still fill the team's remaining squad slots at base
   # price. So money not spent on Group A flows freely to the other groups.
+  # min-per-team forces each team to sign at least this many from the group. Those
+  # mandatory slots are reserved at the group's BASE PRICE when computing how much
+  # a team may bid, so a big buy can never leave it unable to complete the squad.
+  # Tune these numbers to your competition; their sum must be ≤ max-squad-size and
+  # each min ≤ that group's max-per-team.
   category-rules:
-    A: { max-per-team: 4, min-per-team: 0, reserve-per-slot: 600000, budget: 5000000 }  # hard ₹50L group-A ceiling
-    B: { max-per-team: 5, min-per-team: 0 }
-    C: { max-per-team: 4, min-per-team: 0 }
-    D: { max-per-team: 4, min-per-team: 0 }
-    E: { max-per-team: 4, min-per-team: 0 }
+    A: { max-per-team: 4, min-per-team: 1, reserve-per-slot: 600000, budget: 5000000 }  # hard ₹50L group-A ceiling
+    B: { max-per-team: 5, min-per-team: 2 }
+    C: { max-per-team: 4, min-per-team: 2 }
+    D: { max-per-team: 4, min-per-team: 2 }
+    E: { max-per-team: 4, min-per-team: 1 }
 
   # Unsold rule: a player marked unsold while under auction drops one group
   # (A→B→…→E), takes the lower group's base price, and returns to the pool as
@@ -152,8 +157,7 @@ auction:
 
   # Defaults offered when registering a team (data seeder + setup-page prefill).
   # Each team can still override these at registration time.
-  # Note: there is deliberately NO overseas quota and NO role minimum — role
-  # and overseas make-up are shown as information only.
+  # Note: there is deliberately NO role minimum — role make-up is informational.
   team-defaults:
     starting-purse: 15000000    # ₹1.5 Cr
     max-squad-size: 20

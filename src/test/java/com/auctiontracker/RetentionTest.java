@@ -52,11 +52,11 @@ class RetentionTest {
     }
 
     private Team saveTeam() {
-        return teams.save(TestFixtures.team("Chennai Chargers", 150_000_000L, 8, Map.of(), 0));
+        return teams.save(TestFixtures.team("Chennai Chargers", 150_000_000L, 8, Map.of()));
     }
 
     private Player savePlayer(String name, PlayerCategory category, long basePrice) {
-        return players.save(TestFixtures.player(name, BATSMAN, category, basePrice, false));
+        return players.save(TestFixtures.player(name, BATSMAN, category, basePrice));
     }
 
     @Test
@@ -137,7 +137,7 @@ class RetentionTest {
     @Test
     void retainedPlayerCannotGoUnderAuctionOrBeRetainedTwice() {
         Team team = saveTeam();
-        Team rival = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of(), 0));
+        Team rival = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of()));
         Player p = savePlayer("Star", A, 20_000_000L);
         sale.retainPlayer(team.getTeamId(), p.getPlayerId());
 
@@ -145,16 +145,5 @@ class RetentionTest {
                 assertThrows(AuctionException.class, () -> bidding.markUnderAuction(p.getPlayerId())).getCode());
         assertEquals("INVALID_STATE",
                 assertThrows(AuctionException.class, () -> sale.retainPlayer(rival.getTeamId(), p.getPlayerId())).getCode());
-    }
-
-    @Test
-    void overseasPlayersHaveNoQuotaAnymore() {
-        // Team registered with 0 overseas slots; overseas players sign freely.
-        Team team = saveTeam(); // maxOverseas = 0
-        Player overseas = players.save(TestFixtures.player("Import", BATSMAN, C, 2_000_000L, true));
-        bidding.markUnderAuction(overseas.getPlayerId());
-        bidding.placeBid(overseas.getPlayerId(), team.getTeamId()); // must not throw
-        sale.confirmSale(overseas.getPlayerId());
-        assertEquals(PlayerStatus.SOLD, overseas.getStatus());
     }
 }

@@ -31,7 +31,7 @@ public class CoreService {
 
     @Transactional
     public Player registerPlayer(String name, PlayerRole role, PlayerCategory category,
-                                 Long basePriceOverride, boolean overseas, PlayerStats stats) {
+                                 Long basePriceOverride, PlayerStats stats) {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Player name must not be blank");
         }
@@ -39,7 +39,7 @@ public class CoreService {
         if (basePrice <= 0) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Base price must be positive");
         }
-        Player player = Player.register(name.trim(), role, category, basePrice, overseas);
+        Player player = Player.register(name.trim(), role, category, basePrice);
         if (stats != null && !stats.allNull()) {
             player.setStats(stats);
         }
@@ -48,7 +48,7 @@ public class CoreService {
 
     @Transactional
     public Team registerTeam(String name, String ownerName, long startingPurse, int maxSquadSize,
-                             Map<PlayerRole, Integer> minPerRole, int maxOverseasPlayers) {
+                             Map<PlayerRole, Integer> minPerRole) {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_TEAM", "Team name must not be blank");
         }
@@ -65,7 +65,7 @@ public class CoreService {
                     "Role minimums (" + mandatorySlots + ") exceed max squad size (" + maxSquadSize + ")");
         }
         return teams.save(Team.register(name.trim(), ownerName, startingPurse, maxSquadSize,
-                minPerRole, maxOverseasPlayers));
+                minPerRole));
     }
 
     /**
@@ -102,7 +102,7 @@ public class CoreService {
      */
     @Transactional
     public Player updatePlayer(UUID playerId, String name, PlayerRole role, PlayerCategory category,
-                               Long basePriceOverride, boolean overseas, PlayerStats stats) {
+                               Long basePriceOverride, PlayerStats stats) {
         Player player = getPlayer(playerId);
         requireEditable(player, "edited");
         if (name == null || name.isBlank()) {
@@ -116,7 +116,6 @@ public class CoreService {
         player.setRole(role);
         player.setCategory(category);
         player.setBasePrice(basePrice);
-        player.setOverseas(overseas);
         player.setStats(stats != null && !stats.allNull() ? stats : null);
         return players.save(player);
     }

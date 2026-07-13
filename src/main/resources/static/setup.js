@@ -74,12 +74,15 @@ async function refresh() {
 const EDITABLE = new Set(['AVAILABLE', 'UNSOLD']);
 
 function renderPlayerManager() {
+  const countEl = document.getElementById('pm-count');
+  if (countEl) countEl.textContent = `· ${lastPlayers.length}`;
+  const body = document.getElementById('pm-body');
+  if (!body) return; // the player list lives on the Players & analysis page now
   const q = pmSearch.trim().toLowerCase();
   const rows = q ? lastPlayers.filter(p => p.name.toLowerCase().includes(q)) : lastPlayers;
-  document.getElementById('pm-count').textContent = `· ${lastPlayers.length}`;
-  document.getElementById('pm-body').innerHTML = rows.map(p => `
+  body.innerHTML = rows.map(p => `
     <tr>
-      <td><a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a>${p.overseas ? ' ✈' : ''}</td>
+      <td><a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a></td>
       <td>${ROLE_SHORT[p.role] || p.role}</td>
       <td>${p.category}</td>
       <td>${fmtShort(p.basePrice)}</td>
@@ -96,7 +99,7 @@ function renderPlayerManager() {
 }
 
 const pmSearchEl = document.getElementById('pm-search');
-pmSearchEl.oninput = () => { pmSearch = pmSearchEl.value; renderPlayerManager(); };
+if (pmSearchEl) pmSearchEl.oninput = () => { pmSearch = pmSearchEl.value; renderPlayerManager(); };
 
 const playerModal = document.getElementById('player-modal');
 const playerForm = document.getElementById('player-form');
@@ -113,7 +116,6 @@ window.openPlayerModal = playerId => {
     playerForm.role.value = p.role;
     playerForm.category.value = p.category;
     playerForm.basePrice.value = p.basePrice;
-    playerForm.overseas.checked = p.overseas;
     for (const key of ['matches', 'runs', 'battingAverage', 'strikeRate', 'wickets', 'economyRate']) {
       playerForm[key].value = p.stats?.[key] ?? '';
     }
@@ -121,7 +123,8 @@ window.openPlayerModal = playerId => {
   playerModal.showModal();
 };
 
-document.getElementById('pm-add').onclick = () => openPlayerModal(null);
+const pmAddEl = document.getElementById('pm-add');
+if (pmAddEl) pmAddEl.onclick = () => openPlayerModal(null);
 
 playerForm.onsubmit = async e => {
   e.preventDefault();
@@ -132,7 +135,6 @@ playerForm.onsubmit = async e => {
     role: f.role.value,
     category: f.category.value,
     basePrice: num('basePrice'),
-    overseas: f.overseas.checked,
     stats: {
       matches: num('matches'), runs: num('runs'), battingAverage: num('battingAverage'),
       strikeRate: num('strikeRate'), wickets: num('wickets'), economyRate: num('economyRate'),
@@ -213,7 +215,6 @@ document.getElementById('form-team').onsubmit = async e => {
     ownerName: f.get('ownerName'),
     startingPurse: Number(f.get('startingPurse')),
     maxSquadSize: Number(f.get('maxSquadSize')),
-    maxOverseasPlayers: 0, // informational only — no overseas rule
   });
   if (r) { toast(`Registered ${r.name}`); e.target.reset(); refresh(); }
 };
@@ -321,12 +322,12 @@ window.releaseRetention = async playerId => {
 /* --- Sample CSV + boot --- */
 
 const SAMPLE = [
-  'name,role,category,overseas,basePrice,matches,runs,battingAvg,strikeRate,wickets,economy',
-  'Rohit Verma,BATSMAN,A,false,20000000,150,5100,42.5,139.8,,',
-  'James Wood,BOWLER,B,true,10000000,95,120,8.9,90.5,115,7.6',
-  'Aman Singh,ALL_ROUNDER,C,false,,70,1100,24.4,128.0,52,8.3',
-  'Ryan Cole,WICKETKEEPER,D,true,,40,860,26.1,124.5,,',
-  'Sunil Yadav,BOWLER,E,false,,15,20,6.0,70.0,18,7.9',
+  'name,role,category,basePrice,matches,runs,battingAvg,strikeRate,wickets,economy',
+  'Rohit Verma,BATSMAN,A,20000000,150,5100,42.5,139.8,,',
+  'James Wood,BOWLER,B,10000000,95,120,8.9,90.5,115,7.6',
+  'Aman Singh,ALL_ROUNDER,C,,70,1100,24.4,128.0,52,8.3',
+  'Ryan Cole,WICKETKEEPER,D,,40,860,26.1,124.5,,',
+  'Sunil Yadav,BOWLER,E,,15,20,6.0,70.0,18,7.9',
 ].join('\n');
 document.getElementById('sample').href =
     URL.createObjectURL(new Blob([SAMPLE], { type: 'text/csv' }));

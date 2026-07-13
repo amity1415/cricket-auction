@@ -42,8 +42,6 @@ public class Team {
     @Column(name = "min_count")
     private Map<PlayerRole, Integer> minPerRole = new EnumMap<>(PlayerRole.class);
 
-    private int maxOverseasPlayers;
-
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "team_squad", joinColumns = @JoinColumn(name = "team_id"))
     @Column(name = "player_id")
@@ -53,7 +51,7 @@ public class Team {
     private long version;
 
     public static Team register(String name, String ownerName, long startingPurse, int maxSquadSize,
-                                Map<PlayerRole, Integer> minPerRole, int maxOverseasPlayers) {
+                                Map<PlayerRole, Integer> minPerRole) {
         Team t = new Team();
         t.teamId = UUID.randomUUID();
         t.name = name;
@@ -64,7 +62,6 @@ public class Team {
         if (minPerRole != null) {
             t.minPerRole.putAll(minPerRole);
         }
-        t.maxOverseasPlayers = maxOverseasPlayers;
         return t;
     }
 
@@ -92,9 +89,6 @@ public class Team {
 
     public Map<PlayerRole, Integer> getMinPerRole() { return minPerRole; }
     public void setMinPerRole(Map<PlayerRole, Integer> minPerRole) { this.minPerRole = minPerRole; }
-
-    public int getMaxOverseasPlayers() { return maxOverseasPlayers; }
-    public void setMaxOverseasPlayers(int maxOverseasPlayers) { this.maxOverseasPlayers = maxOverseasPlayers; }
 
     public List<UUID> getSquadPlayerIds() { return squadPlayerIds; }
     public void setSquadPlayerIds(List<UUID> squadPlayerIds) { this.squadPlayerIds = squadPlayerIds; }

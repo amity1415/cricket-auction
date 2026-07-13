@@ -24,8 +24,6 @@ public final class DashboardViews {
             int squadOpenSlots,
             long maxAffordableBid,
             int remainingMandatorySlots,
-            int overseasUsed,
-            int maxOverseasPlayers,
             Map<PlayerRole, Integer> roleCounts,
             Map<PlayerRole, Integer> minPerRole,
             Map<PlayerCategory, Integer> categoryCounts) {}
@@ -36,7 +34,6 @@ public final class DashboardViews {
             PlayerRole role,
             PlayerCategory category,
             long basePrice,
-            boolean overseas,
             PlayerStats stats,
             Long currentBidAmount,
             UUID currentLeadingTeamId,
@@ -54,7 +51,6 @@ public final class DashboardViews {
             String name,
             PlayerRole role,
             PlayerCategory category,
-            boolean overseas,
             boolean retained,
             Long soldPrice,
             Instant soldAt) {}

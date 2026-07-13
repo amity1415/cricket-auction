@@ -49,12 +49,14 @@
         <input id="pool-search" type="search" placeholder="🔍 Search by sl. no or name…" autocomplete="off">
         <button id="pool-search-clear" class="link-btn subtle" title="Clear search">✕</button>
       </div>
-      <table class="pool">
-        <thead>
-        <tr><th>#</th><th>Player</th><th>Role</th><th>Cat</th><th>Base</th><th>Status</th><th></th></tr>
-        </thead>
-        <tbody id="pool-body"></tbody>
-      </table>
+      <div class="table-scroll list-scroll pm-scroll">
+        <table class="pool">
+          <thead>
+          <tr><th>#</th><th>Player</th><th>Role</th><th>Cat</th><th>Base</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="pool-body"></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="card">
@@ -70,7 +72,6 @@
           <select name="category">
             <option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option>
           </select>
-          <label class="check"><input type="checkbox" name="overseas"> Overseas</label>
           <input name="basePrice" type="number" placeholder="Base price (optional)" min="1">
           <button class="primary">Add player</button>
         </form>

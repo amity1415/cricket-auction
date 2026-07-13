@@ -82,7 +82,6 @@
             <div class="chips">
               <span class="chip">${ROLE_ICON[p.role] || ''} ${ROLE_NAME[p.role] || p.role}</span>
               <span class="chip">Group ${p.category}</span>
-              ${p.overseas ? '<span class="chip overseas">✈ Overseas</span>' : ''}
               <span class="badge ${p.status}">${p.status.replace('_', ' ')}</span>
             </div>
             <div class="status-line">${statusLine(p, current, teamName)}</div>

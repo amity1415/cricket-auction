@@ -64,7 +64,7 @@ public class DashboardService {
         List<SquadMemberView> squad = squadPlayers.stream()
                 .sorted(Comparator.comparing(Player::getSoldAt))
                 .map(p -> new SquadMemberView(p.getPlayerId(), p.getName(), p.getRole(),
-                        p.getCategory(), p.isOverseas(), p.getStatus() == PlayerStatus.RETAINED,
+                        p.getCategory(), p.getStatus() == PlayerStatus.RETAINED,
                         p.getSoldPrice(), p.getSoldAt()))
                 .toList();
         return new TeamDetailView(snapshot(team, squadPlayers), squad, Instant.now());
@@ -87,8 +87,6 @@ public class DashboardService {
                 Math.max(0, team.getMaxSquadSize() - team.squadSize()),
                 feasibility.maxAffordableBid(team, squad),
                 feasibility.remainingMandatorySlots(team, squad),
-                feasibility.overseasCount(squad),
-                team.getMaxOverseasPlayers(),
                 feasibility.roleCounts(squad),
                 team.getMinPerRole(),
                 feasibility.categoryCounts(squad));
@@ -113,7 +111,6 @@ public class DashboardService {
                 player.getRole(),
                 player.getCategory(),
                 player.getBasePrice(),
-                player.isOverseas(),
                 player.getStats(),
                 currentAmount,
                 leadingTeamId,

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Players &amp; Analysis</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🏏 Cricket Auction Tracker <span class="muted">— Players &amp; Analysis</span></h1>
+  <nav><a href="team.html">← Team dashboard</a></nav>
+</header>
+
+<main class="players-wrap">
+  <section class="card">
+    <div class="controls">
+      <div class="ctl-group">
+        <span class="ctl-label">Status</span>
+        <div class="chip-filter" id="status-chips"></div>
+      </div>
+      <div class="ctl-group">
+        <span class="ctl-label">Role</span>
+        <div class="chip-filter" id="role-chips"></div>
+      </div>
+      <label class="ctl"><span class="ctl-label">Sort by</span>
+        <select id="sort"></select>
+      </label>
+      <button id="sort-dir" class="ghost" title="Toggle ascending / descending">▼ Desc</button>
+      <label class="ctl"><span class="ctl-label">Group by</span>
+        <select id="group">
+          <option value="none">No grouping</option>
+          <option value="category">Group (A–E)</option>
+          <option value="role">Role</option>
+          <option value="status">Status</option>
+        </select>
+      </label>
+      <input id="search" class="search-input" type="search" placeholder="🔍 Search by name…" autocomplete="off">
+    </div>
+  </section>
+
+  <div id="results"><p class="muted">Loading players…</p></div>
+</main>
+
+<script src="auth.js"></script>
+<script src="profile-modal.js"></script>
+<script src="players.js"></script>
+</body>
+</html>

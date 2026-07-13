@@ -51,11 +51,11 @@ class SaleServiceTest {
     }
 
     private Team saveTeam() {
-        return teams.save(TestFixtures.team("Chennai Chargers", 150_000_000L, 8, Map.of(), 3));
+        return teams.save(TestFixtures.team("Chennai Chargers", 150_000_000L, 8, Map.of()));
     }
 
     private Player biddedPlayer(Team team) {
-        Player p = players.save(TestFixtures.player("Arjun", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Arjun", BATSMAN, B, 5_000_000L));
         bidding.markUnderAuction(p.getPlayerId());
         bidding.placeBid(p.getPlayerId(), team.getTeamId());
         return p;
@@ -88,7 +88,7 @@ class SaleServiceTest {
 
     @Test
     void confirmSaleWithNoBidsRejected() {
-        Player p = players.save(TestFixtures.player("Nobody", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Nobody", BATSMAN, B, 5_000_000L));
         bidding.markUnderAuction(p.getPlayerId());
 
         var ex = assertThrows(AuctionException.class, () -> sale.confirmSale(p.getPlayerId()));
@@ -113,7 +113,7 @@ class SaleServiceTest {
 
     @Test
     void confirmSaleOnAvailablePlayerRejected() {
-        Player p = players.save(TestFixtures.player("Idle", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Idle", BATSMAN, B, 5_000_000L));
 
         var ex = assertThrows(AuctionException.class, () -> sale.confirmSale(p.getPlayerId()));
         assertEquals("INVALID_STATE", ex.getCode());
@@ -146,7 +146,7 @@ class SaleServiceTest {
 
     @Test
     void markUnsoldAtLowestGroupStaysAvailableForReauction() {
-        Player p = players.save(TestFixtures.player("Fringe", BATSMAN, PlayerCategory.E, 1_000_000L, false));
+        Player p = players.save(TestFixtures.player("Fringe", BATSMAN, PlayerCategory.E, 1_000_000L));
         bidding.markUnderAuction(p.getPlayerId());
 
         sale.markUnsold(p.getPlayerId());
@@ -163,7 +163,7 @@ class SaleServiceTest {
     @Test
     void markUnsoldDirectlyFromAvailableIsAllowed() {
         // Player withdrawn pre-auction (DESIGN.md section 7 note) — terminal, never demoted.
-        Player p = players.save(TestFixtures.player("Withdrawn", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Withdrawn", BATSMAN, B, 5_000_000L));
 
         sale.markUnsold(p.getPlayerId());
 

@@ -50,11 +50,11 @@ class BiddingServiceTest {
     }
 
     private Team saveTeam(long purse) {
-        return teams.save(TestFixtures.team("Chennai Chargers", purse, 8, Map.of(), 3));
+        return teams.save(TestFixtures.team("Chennai Chargers", purse, 8, Map.of()));
     }
 
     private Player saveUnderAuction(long basePrice) {
-        Player p = players.save(TestFixtures.player("Arjun", BATSMAN, B, basePrice, false));
+        Player p = players.save(TestFixtures.player("Arjun", BATSMAN, B, basePrice));
         bidding.markUnderAuction(p.getPlayerId());
         return p;
     }
@@ -79,7 +79,7 @@ class BiddingServiceTest {
     @Test
     void subsequentBidAddsCurrentBandIncrement() {
         Team t1 = saveTeam(150_000_000L);
-        Team t2 = teams.save(TestFixtures.team("Mumbai Mavericks", 150_000_000L, 8, Map.of(), 3));
+        Team t2 = teams.save(TestFixtures.team("Mumbai Mavericks", 150_000_000L, 8, Map.of()));
         Player p = saveUnderAuction(5_000_000L);
 
         bidding.placeBid(p.getPlayerId(), t1.getTeamId());
@@ -103,7 +103,7 @@ class BiddingServiceTest {
     @Test
     void bidOnPlayerNotUnderAuctionRejected() {
         Team team = saveTeam(150_000_000L);
-        Player p = players.save(TestFixtures.player("Idle", BATSMAN, B, 5_000_000L, false));
+        Player p = players.save(TestFixtures.player("Idle", BATSMAN, B, 5_000_000L));
 
         var ex = assertThrows(AuctionException.class,
                 () -> bidding.placeBid(p.getPlayerId(), team.getTeamId()));
@@ -137,12 +137,12 @@ class BiddingServiceTest {
 
     @Test
     void squadFullRejected() {
-        Team team = teams.save(TestFixtures.team("Tiny", 150_000_000L, 1, Map.of(), 3));
+        Team team = teams.save(TestFixtures.team("Tiny", 150_000_000L, 1, Map.of()));
         Player first = saveUnderAuction(2_000_000L);
         bidding.placeBid(first.getPlayerId(), team.getTeamId());
         sale.confirmSale(first.getPlayerId()); // squad now 1/1
 
-        Player second = players.save(TestFixtures.player("Next", BATSMAN, C, 2_000_000L, false));
+        Player second = players.save(TestFixtures.player("Next", BATSMAN, C, 2_000_000L));
         bidding.markUnderAuction(second.getPlayerId());
 
         var ex = assertThrows(AuctionException.class,
@@ -156,7 +156,7 @@ class BiddingServiceTest {
         Player first = saveUnderAuction(5_000_000L);
         bidding.placeBid(first.getPlayerId(), team.getTeamId());
 
-        Player second = players.save(TestFixtures.player("Next", BATSMAN, B, 5_000_000L, false));
+        Player second = players.save(TestFixtures.player("Next", BATSMAN, B, 5_000_000L));
         bidding.markUnderAuction(second.getPlayerId());
 
         assertEquals(PlayerStatus.AVAILABLE, first.getStatus());
@@ -181,7 +181,7 @@ class BiddingServiceTest {
     void rapidFireBiddingKeepsPriceAndCountConsistent() {
         // DESIGN.md 8.4: 10+ bids in quick succession — final price and count must match.
         Team t1 = saveTeam(150_000_000L);
-        Team t2 = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of(), 3));
+        Team t2 = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of()));
         Player p = saveUnderAuction(2_000_000L); // category C base
 
         for (int i = 0; i < 12; i++) {
@@ -198,7 +198,7 @@ class BiddingServiceTest {
     @Test
     void undoBidPopsLastBidAndReopensThePrice() {
         Team t1 = saveTeam(150_000_000L);
-        Team t2 = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of(), 3));
+        Team t2 = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of()));
         Player p = saveUnderAuction(5_000_000L);
         bidding.placeBid(p.getPlayerId(), t1.getTeamId()); // 5M
         bidding.placeBid(p.getPlayerId(), t2.getTeamId()); // 6M
@@ -231,7 +231,7 @@ class BiddingServiceTest {
     @Test
     void confirmSaleFlushesTheLiveTrailToTheDatabase() {
         Team t1 = saveTeam(150_000_000L);
-        Team t2 = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of(), 3));
+        Team t2 = teams.save(TestFixtures.team("Rival", 150_000_000L, 8, Map.of()));
         Player p = saveUnderAuction(5_000_000L);
         bidding.placeBid(p.getPlayerId(), t1.getTeamId());
         bidding.placeBid(p.getPlayerId(), t2.getTeamId());

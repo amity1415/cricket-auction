@@ -51,21 +51,95 @@ button, input, select { font-family: inherit; }
 /* --- Header ---------------------------------------------------------- */
 header {
   position: sticky; top: 0; z-index: 20;
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 14px 26px;
-  background: rgba(10, 14, 26, .78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(18, 24, 44, .92), rgba(10, 14, 26, .80));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 30px -18px rgba(0, 0, 0, .8);
 }
-header h1 { font-size: 17px; font-weight: 800; letter-spacing: -.01em; margin: 0; }
-header nav { display: flex; gap: 4px; flex-wrap: wrap; }
+/* Gradient accent hairline along the bottom edge. */
+header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(91,140,255,.55), rgba(139,92,246,.5), transparent);
+}
+header h1 {
+  font-size: 16px; font-weight: 800; letter-spacing: -.015em; margin: 0;
+  display: inline-flex; align-items: baseline; gap: 7px; white-space: nowrap;
+}
+header nav { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
 header nav a {
-  color: var(--muted); text-decoration: none; font-weight: 600; font-size: 13px;
-  padding: 6px 12px; border-radius: 8px; margin-left: 0;
-  transition: color .15s, background .15s;
+  position: relative; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 13px;
+  padding: 7px 13px; border-radius: 9px; margin-left: 0;
+  transition: color .16s ease, background .16s ease, box-shadow .16s ease;
 }
-header nav a:hover { color: var(--text); background: rgba(148,163,205,.10); }
+header nav a:hover { color: var(--text); background: rgba(148,163,205,.12); }
+header nav a.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(91,140,255,.24), rgba(139,92,246,.20));
+  box-shadow: inset 0 0 0 1px rgba(91,140,255,.4);
+}
+/* Thin divider between the page links and the user/logout chrome. */
+header nav .nav-sep {
+  width: 1px; height: 22px; margin: 0 4px; background: var(--border-strong); border-radius: 1px;
+}
+
+/* --- Dropdown menu (built by auth.js) --------------------------------- */
+header nav { position: relative; }
+/* Groups the broadcast connection pill with its dropdown on the right. */
+.header-actions { display: flex; align-items: center; gap: 12px; }
+/* Hide any page's inline links (except the broadcast screen, which keeps its
+   own simple nav) — the dropdown built by auth.js is the single source of nav. */
+body:not(.broadcast-mode) header nav > a,
+body:not(.broadcast-mode) header nav > .nav-sep,
+body:not(.broadcast-mode) header nav > .auth-badge,
+body:not(.broadcast-mode) header nav > .auth-logout { display: none; }
+
+.menu-btn {
+  display: inline-flex; flex-direction: column; justify-content: center; gap: 4px;
+  width: 42px; height: 38px; padding: 0 11px; cursor: pointer;
+  background: rgba(148,163,205,.08); border: 1px solid var(--border); border-radius: 10px;
+  transition: background .16s, border-color .16s;
+}
+.menu-btn span { display: block; height: 2px; width: 100%; background: var(--text); border-radius: 2px; transition: transform .2s, opacity .2s; }
+.menu-btn:hover { background: rgba(148,163,205,.14); }
+header nav.open .menu-btn { background: rgba(91,140,255,.16); border-color: rgba(91,140,255,.4); }
+header nav.open .menu-btn span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+header nav.open .menu-btn span:nth-child(2) { opacity: 0; }
+header nav.open .menu-btn span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.menu-panel {
+  display: none; position: absolute; top: calc(100% + 10px); right: 0;
+  width: 256px; max-width: calc(100vw - 28px); padding: 8px;
+  background: var(--card-solid); border: 1px solid var(--border-strong);
+  border-radius: 14px; box-shadow: var(--shadow); z-index: 60;
+}
+header nav.open .menu-panel { display: block; animation: menuIn .16s ease; }
+@keyframes menuIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.menu-user {
+  display: flex; align-items: center; gap: 10px; padding: 6px 10px 11px;
+  border-bottom: 1px solid var(--border); margin-bottom: 6px;
+}
+.menu-avatar { font-size: 22px; line-height: 1; }
+.menu-uinfo { display: flex; flex-direction: column; gap: 2px; line-height: 1.2; }
+.menu-uinfo b { font-size: 14px; }
+.menu-role { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.menu-role.muted { color: var(--muted); }
+
+.menu-item {
+  display: block; width: 100%; box-sizing: border-box; text-align: left;
+  padding: 10px 12px; border-radius: 9px; color: var(--text) !important; text-decoration: none;
+  font-size: 14px; font-weight: 600; background: transparent; border: 0; cursor: pointer;
+  transition: background .14s;
+}
+.menu-item:hover { background: rgba(148,163,205,.12); }
+.menu-item.active { color: #fff !important; background: linear-gradient(135deg, rgba(91,140,255,.26), rgba(139,92,246,.2)); }
+.menu-foot { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
+.menu-logout { color: var(--red) !important; }
+.menu-login { color: var(--accent) !important; }
+
 .muted { color: var(--muted); font-weight: normal; }
 
 /* --- Layout & cards --------------------------------------------------- */
@@ -105,7 +179,6 @@ header nav a:hover { color: var(--text); background: rgba(148,163,205,.10); }
   background: var(--card-2); border: 1px solid var(--border);
   font-size: 11.5px; font-weight: 600; margin-left: 6px; white-space: nowrap;
 }
-.chip.overseas { border-color: rgba(245,185,66,.5); color: var(--amber); background: rgba(245,185,66,.08); }
 .bid-line { margin: 14px 0 4px; font-size: 15px; }
 .bid-line .amount {
   font-size: 30px; font-weight: 800; color: var(--green);
@@ -481,7 +554,9 @@ a.modal-x { text-decoration: none; font-size: 15px; }
 }
 
 /* --- Broadcast/Spectator Dashboard ----------------------------------------- */
-body.broadcast-mode { background: var(--bg); }
+/* Broadcast fills exactly one screen and never scrolls — it's shown on a TV.
+   broadcast.js scales the content down to fit when needed. */
+body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
 .broadcast-wrap { max-width: 1600px; margin: 0 auto; padding: 20px 26px; }
 .broadcast-idle {
   display: flex; align-items: center; justify-content: center;
@@ -502,40 +577,47 @@ body.broadcast-mode { background: var(--bg); }
 }
 
 .player-card {
-  display: flex; gap: 24px; align-items: center; margin-bottom: 28px;
-  padding-bottom: 28px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 36px; align-items: center; margin-bottom: 26px;
+  padding-bottom: 26px; border-bottom: 1px solid var(--border);
 }
+/* Photo placeholder — a real player photo can be dropped in later via
+   background-image (it's set to cover). Initials show until then. */
 .player-avatar {
-  width: 100px; height: 100px; border-radius: 50%;
+  width: 200px; height: 200px; border-radius: 22px; flex: 0 0 auto;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background-size: cover; background-position: center;
   display: flex; align-items: center; justify-content: center;
-  font-size: 40px; font-weight: 800; color: #fff;
-  box-shadow: 0 12px 28px -8px rgba(91,140,255,.55);
+  font-size: 72px; font-weight: 800; color: #fff;
+  box-shadow: 0 16px 38px -10px rgba(91,140,255,.55);
 }
 .player-main { flex: 1; min-width: 0; }
-.player-main h2 { margin: 0 0 8px; font-size: 32px; letter-spacing: -.02em; }
-.player-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.player-meta .chip { padding: 6px 14px; }
-.player-status { font-size: 15px; color: var(--muted); }
+.player-main h2 { margin: 0 0 16px; font-size: 52px; letter-spacing: -.02em; line-height: 1.05; }
+.player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.player-meta .chip { font-size: 24px; padding: 10px 22px; }
+.player-status { color: var(--muted); }
+/* Bigger, evenly-spread career stats for the TV. */
+.player-status .pstats { gap: 12px 30px; padding: 20px 26px; justify-content: space-between; }
+.player-status .pstat b { font-size: 38px; }
+.player-status .pstat span { font-size: 16px; }
 
 .bid-display {
   display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;
 }
 .bid-amount {
   background: rgba(10,14,26,.5); border: 1px solid var(--border);
-  border-radius: 12px; padding: 18px;
-  display: flex; flex-direction: column; gap: 6px;
+  border-radius: 14px; padding: 24px 26px;
+  display: flex; flex-direction: column; gap: 10px;
 }
 .bid-amount.next { background: rgba(45,212,143,.06); border-color: rgba(45,212,143,.4); }
 .bid-label {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .1em; color: var(--muted);
+  font-size: 22px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted);
 }
 .bid-value {
-  font-size: 36px; font-weight: 800; color: var(--green);
+  font-size: 54px; font-weight: 800; color: var(--green);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
-.bid-team { font-size: 13px; color: var(--text); font-weight: 600; }
+.bid-team { font-size: 22px; color: var(--text); font-weight: 600; }
 .bid-amount.next .bid-value { color: var(--accent); }
 
 .bid-info { display: flex; gap: 12px; align-items: center; }
@@ -629,7 +711,15 @@ body.broadcast-mode { background: var(--bg); }
 
 @media (max-width: 1200px) {
   .bid-display, .sold-deal { grid-template-columns: 1fr; }
-  .teams-broadcast { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  /* team columns are set symmetrically by broadcast.js (layoutTeams). */
+}
+@media (max-width: 640px) {
+  .broadcast-wrap { padding: 14px 12px; }
+  .broadcast-teams { padding: 16px 14px; }
+}
+/* Small screens scroll normally; only TV/desktop is locked to one screen. */
+@media (max-width: 899px) {
+  body.broadcast-mode { height: auto; overflow: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -638,12 +728,167 @@ body.broadcast-mode { background: var(--bg); }
 
 /* Auth chrome injected into the header nav by auth.js. */
 .auth-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-left: 8px; padding: 4px 10px; border-radius: 8px;
-  background: rgba(148,163,205,.10); font-size: 13px; font-weight: 600; color: var(--text);
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px 5px 11px; border-radius: 20px;
+  background: rgba(148,163,205,.10); border: 1px solid var(--border);
+  font-size: 13px; font-weight: 600; color: var(--text);
 }
 .auth-role {
   font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
-  color: var(--accent); background: rgba(91,140,255,.14); padding: 2px 6px; border-radius: 5px;
+  color: var(--accent); background: rgba(91,140,255,.16); padding: 2px 7px; border-radius: 20px;
 }
-button.ghost.auth-logout { padding: 6px 12px; font-size: 13px; }
+button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20px; }
+
+/* ---- Sold / unsold result reveal (team dashboard) ---- */
+.reveal-overlay {
+  position: fixed; inset: 0; z-index: 3000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4, 8, 18, .72); backdrop-filter: blur(4px);
+  transition: background .6s ease, backdrop-filter .6s ease;
+}
+.reveal-overlay.closing { background: rgba(4, 8, 18, 0); backdrop-filter: blur(0); }
+
+.reveal-card {
+  width: min(90vw, 380px); padding: 34px 28px; border-radius: 22px; text-align: center;
+  background: var(--card-solid); border: 1px solid var(--border-strong); box-shadow: var(--shadow);
+  transform: scale(.6); opacity: 0;
+  transition: transform .55s cubic-bezier(.2, .8, .2, 1), opacity .55s ease;
+  will-change: transform, opacity;
+}
+.reveal-card.enter  { transform: scale(1); opacity: 1; }
+/* Defined after .enter so it wins while both classes are present: fly to corner. */
+.reveal-card.shrink { transform: translate(40vw, 42vh) scale(.1); opacity: 0; }
+
+.rv-badge {
+  display: inline-block; font-size: 13px; font-weight: 800; letter-spacing: .08em;
+  padding: 5px 14px; border-radius: 999px; margin-bottom: 16px;
+}
+.rv-badge.sold   { color: #04150d; background: linear-gradient(180deg, #35dd97, #1fae72); }
+.rv-badge.unsold { color: #fff; background: linear-gradient(180deg, #f4695e, #d9453a); }
+.rv-avatar {
+  width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 800; color: var(--text);
+  background: linear-gradient(180deg, var(--card-2), var(--card-solid));
+  border: 1px solid var(--border-strong);
+}
+.rv-name { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.rv-team { color: var(--muted); margin-top: 6px; font-size: 15px; }
+.rv-team b { color: var(--text); }
+.rv-amount { margin-top: 10px; font-size: 30px; font-weight: 800; color: var(--green); }
+
+.last-result-mini {
+  position: fixed; right: 16px; bottom: 16px; z-index: 3500;
+  width: 151px; height: 151px; padding: 12px 12px 14px;   /* ~4cm × 4cm */
+  border-radius: 16px; overflow: hidden;
+  background: var(--card-solid); border: 1px solid var(--border-strong); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
+}
+.last-result-mini.pop { animation: miniPop .45s cubic-bezier(.2, .8, .2, 1); }
+@keyframes miniPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.mini-head { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.mini-badge { font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 2px 8px; border-radius: 6px; }
+.mini-badge.sold   { color: #04150d; background: var(--green); }
+.mini-badge.unsold { color: #fff; background: var(--red); }
+.mini-name {
+  font-size: 14px; font-weight: 800; line-height: 1.15; margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mini-team { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.mini-amount { font-size: 16px; font-weight: 800; color: var(--green); margin-top: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-card, .last-result-mini.pop { transition: none; animation: none; }
+}
+
+/* ---- Players & analysis page ---- */
+.nav-cta {
+  color: #dbe7ff !important; font-weight: 700;
+  background: linear-gradient(135deg, rgba(91,140,255,.22), rgba(139,92,246,.18));
+  box-shadow: inset 0 0 0 1px rgba(91,140,255,.34);
+}
+.nav-cta:hover { color: #fff !important; box-shadow: inset 0 0 0 1px rgba(91,140,255,.55); }
+.players-wrap { max-width: 1200px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-start; }
+.controls .ctl { display: flex; flex-direction: column; gap: 7px; }
+.ctl-group { display: flex; flex-direction: column; gap: 8px; }
+/* Highlighted control labels — bigger, bolder, brighter, with an accent bar. */
+.ctl-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text);
+}
+.ctl-label::before {
+  content: ""; width: 4px; height: 15px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+.ctl-hint { font-weight: 500; text-transform: none; letter-spacing: 0; opacity: .8; }
+.chip-filter { display: flex; flex-wrap: wrap; gap: 8px; max-width: 380px; }
+/* Status / Role options as distinct blocks (not pills). */
+.fchip {
+  padding: 9px 15px; border-radius: 8px; border: 1px solid var(--border-strong);
+  background: var(--card-2); color: var(--text); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: color .14s, background .14s, border-color .14s, box-shadow .14s;
+  white-space: nowrap;
+}
+.fchip:hover { border-color: var(--accent); }
+.fchip.active {
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 4px 14px -4px rgba(91,140,255,.5);
+}
+.controls select, .controls .search-input {
+  padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--card-2); color: var(--text); font-size: 13px; font-weight: 500;
+  text-transform: none; letter-spacing: 0;
+}
+.controls select:focus, .controls .search-input:focus { outline: none; border-color: var(--accent); }
+.controls .search-input { flex: 1 1 180px; min-width: 160px; }
+#sort-dir { padding: 8px 12px; font-size: 13px; align-self: flex-end; }
+
+.table-scroll { overflow: auto; max-height: 68vh; }
+.players-table { width: 100%; min-width: 860px; }
+.players-table th, .players-table td { white-space: nowrap; }
+.players-table .numc { text-align: right; }
+.group-block { padding-top: 14px; }
+.group-head { margin: 0 2px 10px; font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
+.analyse-link {
+  display: inline-flex; align-items: center; padding: 0 14px; border-radius: 10px;
+  border: 1px solid var(--border-strong); color: var(--accent); font-weight: 700;
+  font-size: 13px; white-space: nowrap; flex: 0 0 auto;
+}
+.analyse-link:hover { border-color: var(--accent); background: rgba(91,140,255,.08); }
+.pm-actions { margin-top: 12px; }
+
+/* ============================================================================
+   Scrollable lists — cap tall lists so they scroll inside their card instead of
+   stretching the page, keeping headers/controls in view. Table headers stick.
+   ============================================================================ */
+
+/* Wrap a <table class="pool"> in this to make its rows scroll under a pinned head. */
+.list-scroll { overflow-y: auto; }
+.list-scroll.pm-scroll     { max-height: 56vh; }   /* setup: player pool        */
+.list-scroll.owners-scroll { max-height: 40vh; }   /* setup: franchise owners   */
+.list-scroll.squad-scroll  { max-height: 56vh; }   /* team dashboard: squad     */
+
+/* Pinned header row for any scrollable pool table. */
+.list-scroll table.pool thead th,
+.table-scroll table.pool thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--card-solid);
+}
+
+/* Div-based lists get a capped, scrollable height too. */
+.team-list  { max-height: 40vh; overflow-y: auto; padding-right: 4px; }
+.ret-list   { max-height: 32vh; overflow-y: auto; padding-right: 4px; }
+.picker     { max-height: 62vh; overflow-y: auto; }
+#teams.teams-grid { max-height: 62vh; overflow-y: auto; padding: 2px 4px 2px 2px; }
+#bid-history { max-height: 220px; overflow-y: auto; }
+
+/* Nicer, slimmer scrollbars for the inner scroll areas. */
+.list-scroll::-webkit-scrollbar, .table-scroll::-webkit-scrollbar,
+.team-list::-webkit-scrollbar, .ret-list::-webkit-scrollbar,
+.picker::-webkit-scrollbar, .teams-grid::-webkit-scrollbar,
+.audit::-webkit-scrollbar, #bid-history::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4568; }

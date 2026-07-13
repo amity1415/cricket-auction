@@ -51,12 +51,17 @@ public class SecurityConfig {
                 .requestMatchers("/*.js", "/*.css", "/*.ico",
                         "/*.png", "/*.svg", "/*.woff2", "/*.map").permitAll()
 
-                // Public pages: the login/register screens and the live broadcast.
-                .requestMatchers("/login.html", "/register.html", "/broadcast.html").permitAll()
+                // Public pages (guest access): login, the live broadcast, and the
+                // read-only player list + analysis + profile + team dashboards.
+                .requestMatchers("/login.html", "/broadcast.html", "/players.html",
+                        "/player.html", "/team.html").permitAll()
 
-                // Public auth endpoints (login/register/self-lookup/logout + team list).
-                .requestMatchers("/api/auth/login", "/api/auth/register",
-                        "/api/auth/teams", "/api/auth/me", "/api/auth/logout").permitAll()
+                // Public auth endpoints (login/self-lookup/logout + team list).
+                .requestMatchers("/api/auth/login", "/api/auth/teams",
+                        "/api/auth/me", "/api/auth/logout").permitAll()
+
+                // Creating a franchise-owner account is admin-only (no self-signup).
+                .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
 
                 // Read APIs the public broadcast screen depends on. Note the audit
                 // GET lives under /api/admin but is read-only and needed by broadcast.
