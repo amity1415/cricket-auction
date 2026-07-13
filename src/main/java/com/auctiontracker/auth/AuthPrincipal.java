@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -20,25 +21,39 @@ public class AuthPrincipal implements UserDetails {
     private final String passwordHash;
     private final String displayName;
     private final Role role;
-    private final UUID teamId;      // null for the admin
+    private final UUID teamId;      // null for the admin / tournament admins
+    private final Set<UUID> adminTournamentIds;  // auctions a tournament-admin may run
 
     public AuthPrincipal(UUID userId, String username, String passwordHash,
-                         String displayName, Role role, UUID teamId) {
+                         String displayName, Role role, UUID teamId, Set<UUID> adminTournamentIds) {
         this.userId = userId;
         this.username = username;
         this.passwordHash = passwordHash;
         this.displayName = displayName;
         this.role = role;
         this.teamId = teamId;
+        this.adminTournamentIds = adminTournamentIds == null ? Set.of() : Set.copyOf(adminTournamentIds);
     }
 
     static AuthPrincipal admin(String username, String passwordHash) {
-        return new AuthPrincipal(null, username, passwordHash, "Administrator", Role.ADMIN, null);
+        return new AuthPrincipal(null, username, passwordHash, "Administrator", Role.ADMIN, null, Set.of());
     }
 
     static AuthPrincipal of(UserAccount account) {
         return new AuthPrincipal(account.getId(), account.getUsername(), account.getPasswordHash(),
-                account.getDisplayName(), account.getRole(), account.getTeamId());
+                account.getDisplayName(), account.getRole(), account.getTeamId(),
+                account.getAdminTournamentIds());
+    }
+
+    /** The app admin runs every auction; a tournament admin only its granted ones. */
+    public boolean canAdminTournament(UUID tournamentId) {
+        return role == Role.ADMIN
+                || (role == Role.TOURNAMENT_ADMIN && tournamentId != null
+                    && adminTournamentIds.contains(tournamentId));
+    }
+
+    public Set<UUID> adminTournamentIds() {
+        return adminTournamentIds;
     }
 
     public UUID userId() {

@@ -52,6 +52,7 @@ public class TournamentBootstrap implements CommandLineRunner {
         // Runs on its OWN JDBC connection (isolated from this transaction) so a
         // failure/no-op on H2 can't poison the bootstrap below.
         migrateLobRulesJson();
+        relaxUserAccountTeamId();
 
         if (tournaments.count() > 0) {
             // A tournament already exists — make sure RuleBook knows the active one.
@@ -112,6 +113,26 @@ public class TournamentBootstrap implements CommandLineRunner {
             }
         } catch (Exception e) {
             log.warn("rules_json large-object migration skipped: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Tournament-admin accounts own no team, so {@code user_account.team_id} must
+     * be nullable. {@code ddl-auto=update} never relaxes an existing NOT NULL, so
+     * do it once here (Postgres only; {@code DROP NOT NULL} is a no-op if already
+     * nullable). On H2 the fresh schema is already nullable, so we skip.
+     */
+    private void relaxUserAccountTeamId() {
+        try (Connection c = dataSource.getConnection()) {
+            String product = c.getMetaData().getDatabaseProductName();
+            if (product == null || !product.toLowerCase().contains("postgre")) {
+                return;
+            }
+            try (Statement st = c.createStatement()) {
+                st.executeUpdate("ALTER TABLE user_account ALTER COLUMN team_id DROP NOT NULL");
+            }
+        } catch (Exception e) {
+            log.warn("user_account.team_id NOT NULL relax skipped: {}", e.getMessage());
         }
     }
 

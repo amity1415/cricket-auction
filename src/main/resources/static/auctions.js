@@ -45,8 +45,14 @@ async function send(method, url, body) {
 
 // ---- list -----------------------------------------------------------------
 
-let IS_ADMIN = false;   // set from /api/auth/me on load; gates create/edit/delete
-let ALL = [];           // full auction list, filtered client-side by the search box
+let IS_APP_ADMIN = false;   // the config app admin — can create/delete auctions + manage users
+let GRANTS = new Set();      // auction ids a tournament-admin may run
+let ALL = [];               // full auction list, filtered client-side by the search box
+
+/** Can the current user run this auction as an admin (app admin, or granted)? */
+function canAdmin(id) {
+  return IS_APP_ADMIN || GRANTS.has(id);
+}
 
 async function loadList() {
   const box = document.getElementById('tournament-list');
@@ -63,7 +69,7 @@ function render() {
   const q = (document.getElementById('search').value || '').trim().toLowerCase();
   if (!ALL.length) {
     box.innerHTML = '<p class="muted">No auctions yet'
-      + (IS_ADMIN ? ' — create one to get started.' : '.') + '</p>';
+      + (IS_APP_ADMIN ? ' — create one to get started.' : '.') + '</p>';
     return;
   }
   const list = q ? ALL.filter(t => t.name.toLowerCase().includes(q)) : ALL;
@@ -77,10 +83,13 @@ function render() {
 
 function card(t) {
   const el = document.createElement('div');
+  const admin = canAdmin(t.id);
   el.className = 'team-card' + (t.active ? ' active-tournament' : '');
-  const adminBtns = IS_ADMIN ? `
-      <button class="ghost" data-act="edit" data-id="${t.id}">Edit rules</button>
-      <button class="ghost tt-del" data-act="del" data-id="${t.id}">Delete</button>` : '';
+  // Edit rules: any admin of this auction. Delete: app admin only.
+  const editBtn = admin
+    ? `<button class="ghost" data-act="edit" data-id="${t.id}">Edit rules</button>` : '';
+  const delBtn = IS_APP_ADMIN
+    ? `<button class="ghost tt-del" data-act="del" data-id="${t.id}">Delete</button>` : '';
   el.innerHTML = `
     <div class="tt-head">
       <div>
@@ -90,12 +99,14 @@ function card(t) {
       <span class="muted tt-counts">${t.playerCount} player(s) · ${t.teamCount} team(s)</span>
     </div>
     <div class="tt-actions">
-      <button class="primary" data-act="open" data-id="${t.id}">${IS_ADMIN ? '⚙️ Open →' : '👁 View →'}</button>
-      ${adminBtns}
+      <button class="primary" data-act="open" data-id="${t.id}">${admin ? '⚙️ Open →' : '👁 View →'}</button>
+      ${editBtn}${delBtn}
     </div>`;
   el.querySelector('[data-act="open"]').addEventListener('click', () => openAuction(t.id));
-  if (IS_ADMIN) {
+  if (admin) {
     el.querySelector('[data-act="edit"]').addEventListener('click', () => openEditor(t.id));
+  }
+  if (IS_APP_ADMIN) {
     el.querySelector('[data-act="del"]').addEventListener('click', () => deleteAuction(t.id, t.name));
   }
   return el;
@@ -103,11 +114,11 @@ function card(t) {
 
 /**
  * Each auction is its own space — opening one navigates with its id so every
- * screen scopes to it. Admins land on setup; everyone else on the (read-only)
- * team dashboards.
+ * screen scopes to it. Admins of the auction land on setup; everyone else on
+ * the (read-only) team dashboards.
  */
 function openAuction(id) {
-  const page = IS_ADMIN ? 'index.html' : 'team.html';
+  const page = canAdmin(id) ? 'index.html' : 'team.html';
   location.href = page + '?tournamentId=' + encodeURIComponent(id);
 }
 
@@ -283,12 +294,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('form-editor').addEventListener('submit', submitEditor);
   $('search').addEventListener('input', render);
 
-  // Only admins get create / edit / delete; guests and owners get a read-only list.
+  // The app admin gets create / delete + can run every auction; a tournament
+  // admin can run only its granted auctions; guests and owners get a read-only
+  // list. Only the app admin sees "New auction".
   try {
     const me = window.authReady ? await window.authReady : null;
-    IS_ADMIN = !!(me && me.role === 'ADMIN');
+    IS_APP_ADMIN = !!(me && me.role === 'ADMIN');
+    GRANTS = new Set(me && Array.isArray(me.adminTournamentIds) ? me.adminTournamentIds : []);
   } catch (e) { /* treat as guest */ }
-  if (IS_ADMIN) $('btn-new').classList.remove('hidden');
+  if (IS_APP_ADMIN) $('btn-new').classList.remove('hidden');
 
   loadList();
 });
