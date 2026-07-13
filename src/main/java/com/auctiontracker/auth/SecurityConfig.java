@@ -51,10 +51,11 @@ public class SecurityConfig {
                 .requestMatchers("/*.js", "/*.css", "/*.ico",
                         "/*.png", "/*.svg", "/*.woff2", "/*.map").permitAll()
 
-                // Public pages (guest access): login, the live broadcast, and the
+                // Public pages (guest access): login, the auctions hub (everyone
+                // lands here and picks an auction), the live broadcast, and the
                 // read-only player list + analysis + profile + team dashboards.
-                .requestMatchers("/login.html", "/broadcast.html", "/players.html",
-                        "/player.html", "/team.html").permitAll()
+                .requestMatchers("/login.html", "/auctions.html", "/broadcast.html",
+                        "/players.html", "/player.html", "/team.html").permitAll()
 
                 // Public auth endpoints (login/self-lookup/logout + team list).
                 .requestMatchers("/api/auth/login", "/api/auth/teams",
@@ -66,10 +67,11 @@ public class SecurityConfig {
                 // Read APIs the public broadcast screen depends on. Note the audit
                 // GET lives under /api/admin but is read-only and needed by broadcast.
                 .requestMatchers(HttpMethod.GET, "/api/dashboard/**", "/api/players/**",
-                        "/api/config", "/api/admin/audit", "/api/tournaments/current").permitAll()
+                        "/api/config", "/api/admin/audit",
+                        "/api/tournaments", "/api/tournaments/**").permitAll()
 
-                // Admin-only pages: the auctions list, setup (also "/") and the console.
-                .requestMatchers("/", "/index.html", "/auction.html", "/auctions.html").hasRole("ADMIN")
+                // Admin-only pages: setup (also the "/" welcome page) and the console.
+                .requestMatchers("/", "/index.html", "/auction.html").hasRole("ADMIN")
 
                 // Admin-only APIs: every write and user-management call.
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -103,7 +105,8 @@ public class SecurityConfig {
             UserDetails principal = (UserDetails) authentication.getPrincipal();
             boolean admin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals(Role.ADMIN.authority()));
-            String redirect = admin ? "/auctions.html" : "/team.html";
+            // Everyone lands on the auctions hub and picks which auction to enter.
+            String redirect = "/auctions.html";
             writeJson(response, HttpServletResponse.SC_OK,
                     "{\"username\":\"" + escape(principal.getUsername())
                             + "\",\"role\":\"" + (admin ? "ADMIN" : "FRANCHISE_OWNER")

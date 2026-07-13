@@ -11,10 +11,13 @@
   // Menu entries per role. Everyone gets the players analysis; the rest depends
   // on what that role is allowed to reach (the server enforces it regardless).
   function menuFor(role, me) {
-    const items = [{ href: 'players.html', label: '📊 Players & analysis' }];
+    // Everyone starts at the auctions hub, then the players analysis.
+    const items = [
+      { href: 'auctions.html', label: '🏆 Auctions' },
+      { href: 'players.html', label: '📊 Players & analysis' },
+    ];
     if (role === 'ADMIN') {
       items.push(
-        { href: 'auctions.html', label: '🏆 Auctions' },
         { href: 'index.html', label: '⚙️ Setup' },
         { href: 'auction.html', label: '🔨 Auction console' },
         { href: 'team.html', label: '👥 Team dashboards' },

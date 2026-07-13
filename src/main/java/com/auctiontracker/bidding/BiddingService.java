@@ -227,6 +227,15 @@ public class BiddingService {
         }
     }
 
+    /** Drops a tournament's in-memory live session entirely (used when it is deleted). */
+    public void forgetTournament(UUID tournamentId) {
+        synchronized (lock) {
+            if (tournamentId != null) {
+                sessions.remove(tournamentId);
+            }
+        }
+    }
+
     /** Setup-time wipe (players are being replaced); not used mid-auction. */
     @Transactional
     public void deleteAllBidEvents() {

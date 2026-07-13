@@ -45,47 +45,87 @@ async function send(method, url, body) {
 
 // ---- list -----------------------------------------------------------------
 
+let IS_ADMIN = false;   // set from /api/auth/me on load; gates create/edit/delete
+let ALL = [];           // full auction list, filtered client-side by the search box
+
 async function loadList() {
   const box = document.getElementById('tournament-list');
   try {
-    const list = await getJSON('/api/admin/tournaments');
-    if (!list.length) {
-      box.innerHTML = '<p class="muted">No tournaments yet — create one to get started.</p>';
-      return;
-    }
-    box.innerHTML = '';
-    list.forEach(t => box.appendChild(card(t)));
+    ALL = await getJSON('/api/tournaments');
+    render();
   } catch (e) {
-    box.innerHTML = '<p class="muted">Could not load tournaments.</p>';
+    box.innerHTML = '<p class="muted">Could not load auctions.</p>';
   }
+}
+
+function render() {
+  const box = document.getElementById('tournament-list');
+  const q = (document.getElementById('search').value || '').trim().toLowerCase();
+  if (!ALL.length) {
+    box.innerHTML = '<p class="muted">No auctions yet'
+      + (IS_ADMIN ? ' — create one to get started.' : '.') + '</p>';
+    return;
+  }
+  const list = q ? ALL.filter(t => t.name.toLowerCase().includes(q)) : ALL;
+  if (!list.length) {
+    box.innerHTML = '<p class="muted">No auctions match “' + esc(q) + '”.</p>';
+    return;
+  }
+  box.innerHTML = '';
+  list.forEach(t => box.appendChild(card(t)));
 }
 
 function card(t) {
   const el = document.createElement('div');
   el.className = 'team-card' + (t.active ? ' active-tournament' : '');
+  const adminBtns = IS_ADMIN ? `
+      <button class="ghost" data-act="edit" data-id="${t.id}">Edit rules</button>
+      <button class="ghost tt-del" data-act="del" data-id="${t.id}">Delete</button>` : '';
   el.innerHTML = `
     <div class="tt-head">
       <div>
         <b class="tt-name">${esc(t.name)}</b>
-        ${t.active ? '<span class="tt-badge">● Active</span>' : ''}
+        ${t.active ? '<span class="tt-badge" title="Shown when a screen names no auction">★ Default</span>' : ''}
       </div>
       <span class="muted tt-counts">${t.playerCount} player(s) · ${t.teamCount} team(s)</span>
     </div>
     <div class="tt-actions">
-      ${t.active
-        ? '<a class="go-btn" href="index.html">⚙️ Open setup →</a>'
-        : `<button class="primary" data-act="load" data-id="${t.id}">Load this auction</button>`}
-      <button class="ghost" data-act="edit" data-id="${t.id}">Edit rules</button>
+      <button class="primary" data-act="open" data-id="${t.id}">${IS_ADMIN ? '⚙️ Open →' : '👁 View →'}</button>
+      ${adminBtns}
     </div>`;
-  el.querySelector('[data-act="edit"]').addEventListener('click', () => openEditor(t.id));
-  const load = el.querySelector('[data-act="load"]');
-  if (load) load.addEventListener('click', () => activate(t.id));
+  el.querySelector('[data-act="open"]').addEventListener('click', () => openAuction(t.id));
+  if (IS_ADMIN) {
+    el.querySelector('[data-act="edit"]').addEventListener('click', () => openEditor(t.id));
+    el.querySelector('[data-act="del"]').addEventListener('click', () => deleteAuction(t.id, t.name));
+  }
   return el;
 }
 
-async function activate(id) {
-  const r = await send('POST', `/api/admin/tournaments/${id}/activate`);
-  if (r) { toast('Loaded ' + r.name); location.href = 'index.html'; }
+/**
+ * Each auction is its own space — opening one navigates with its id so every
+ * screen scopes to it. Admins land on setup; everyone else on the (read-only)
+ * team dashboards.
+ */
+function openAuction(id) {
+  const page = IS_ADMIN ? 'index.html' : 'team.html';
+  location.href = page + '?tournamentId=' + encodeURIComponent(id);
+}
+
+/** Delete needs the admin password re-entered so a stray click can't wipe an auction. */
+async function deleteAuction(id, name) {
+  const password = prompt(
+    `Delete "${name}" and ALL of its players, teams, sales and owner accounts?\n`
+    + `This cannot be undone.\n\nEnter the admin password to confirm:`);
+  if (password === null) return;            // cancelled
+  if (!password.trim()) { toast('Password required to delete', true); return; }
+  const res = await fetch('/api/admin/tournaments/' + id, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  if (res.status === 204) { toast('Deleted “' + name + '”'); loadList(); return; }
+  const data = await res.json().catch(() => ({}));
+  toast(data.message || data.error || ('Delete failed (' + res.status + ')'), true);
 }
 
 // ---- editor ---------------------------------------------------------------
@@ -231,15 +271,24 @@ async function submitEditor(e) {
     if (r) { toast('Saved ' + r.name); showEditor(false); loadList(); }
   } else {
     const r = await send('POST', '/api/admin/tournaments', body);
-    if (r) { toast('Created ' + r.name); location.href = 'index.html'; }
+    if (r) { toast('Created ' + r.name); location.href = 'index.html?tournamentId=' + encodeURIComponent(r.id); }
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   buildStaticInputs();
   $('btn-new').addEventListener('click', openNew);
   $('btn-cancel').addEventListener('click', () => showEditor(false));
   $('add-band').addEventListener('click', () => $('incrementRules').appendChild(bandRow('', '')));
   $('form-editor').addEventListener('submit', submitEditor);
+  $('search').addEventListener('input', render);
+
+  // Only admins get create / edit / delete; guests and owners get a read-only list.
+  try {
+    const me = window.authReady ? await window.authReady : null;
+    IS_ADMIN = !!(me && me.role === 'ADMIN');
+  } catch (e) { /* treat as guest */ }
+  if (IS_ADMIN) $('btn-new').classList.remove('hidden');
+
   loadList();
 });

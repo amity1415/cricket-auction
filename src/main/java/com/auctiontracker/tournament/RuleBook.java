@@ -45,8 +45,18 @@ public class RuleBook {
         return new RuleBook(null, rules, null);
     }
 
-    /** Id of the active tournament, or null before any exists (bootstrap / tests). */
+    /**
+     * The tournament this request operates in: the per-request
+     * {@link TournamentContext} if one is bound (the normal case — every screen
+     * carries its auction id), otherwise the default (active) tournament so
+     * id-less callers (bootstrap, some public views) still work. Null only
+     * before any tournament exists (bootstrap / tests).
+     */
     public UUID activeTournamentId() {
+        UUID ctx = TournamentContext.get();
+        if (ctx != null) {
+            return ctx;
+        }
         if (tournaments == null) {
             return null;
         }

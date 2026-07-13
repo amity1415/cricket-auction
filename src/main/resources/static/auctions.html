@@ -23,12 +23,14 @@
   <section class="card">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
       <div>
-        <h2 style="margin:0;">Tournaments</h2>
-        <p class="muted" style="margin:.25rem 0 0;">Each tournament has its own players, teams and rules.
-          The one marked <b>Active</b> is what the setup, console and broadcast operate on.</p>
+        <h2 style="margin:0;">Auctions</h2>
+        <p class="muted" style="margin:.25rem 0 0;">Each auction has its own players, teams and rules and runs
+          independently — <b>open</b> any one to work on it. The <b>★ Default</b> is the one a screen shows when it
+          names no auction.</p>
       </div>
-      <button id="btn-new" class="primary">＋ New auction</button>
+      <button id="btn-new" class="primary hidden">＋ New auction</button>
     </div>
+    <input id="search" type="search" class="auction-search" placeholder="🔍 Search auctions by name…" autocomplete="off">
     <div id="tournament-list" class="team-list" style="margin-top:1rem;">
       <p class="muted">Loading…</p>
     </div>

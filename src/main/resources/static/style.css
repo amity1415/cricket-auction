@@ -944,3 +944,23 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
 #form-editor input { flex: 0 0 auto; }
 #form-editor .rules-group { flex: 1 1 100%; }
 #form-editor > .field { flex: 1 1 100%; }
+
+/* Auction-context header pill (which auction this screen is bound to). */
+.auction-pill {
+  display: inline-block; margin-left: .6rem; padding: .1rem .55rem;
+  font-size: .62em; font-weight: 600; vertical-align: middle;
+  color: var(--accent); background: rgba(91,140,255,.12);
+  border: 1px solid var(--border-strong); border-radius: 999px; white-space: nowrap;
+}
+.tt-del { color: var(--red); border-color: rgba(240,86,74,.35); }
+.tt-del:hover { background: rgba(240,86,74,.12); border-color: var(--red); }
+
+/* Auctions hub search box. */
+.auction-search {
+  width: 100%; margin-top: 1rem; padding: 10px 14px;
+  background: rgba(10,14,26,.5); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.auction-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.18); }
+.auction-search::placeholder { color: var(--muted); }
