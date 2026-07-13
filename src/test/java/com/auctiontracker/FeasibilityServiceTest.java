@@ -1,5 +1,7 @@
 package com.auctiontracker;
 
+import com.auctiontracker.tournament.RuleBook;
+
 import com.auctiontracker.core.FeasibilityService;
 import com.auctiontracker.core.InMemoryPlayerRepository;
 import com.auctiontracker.core.Player;
@@ -30,7 +32,7 @@ class FeasibilityServiceTest {
     @BeforeEach
     void setUp() {
         players = new InMemoryPlayerRepository();
-        feasibility = new FeasibilityService(players, TestFixtures.props());
+        feasibility = new FeasibilityService(players, RuleBook.fixed(TestFixtures.props()));
     }
 
     @Test

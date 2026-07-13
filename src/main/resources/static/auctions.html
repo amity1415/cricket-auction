@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Auctions</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🏏 Cricket Auction Tracker <span class="muted">— Auctions</span></h1>
+  <nav>
+    <a href="index.html" class="nav-cta">⚙️ Setup current →</a>
+    <a href="auction.html">Auction console</a>
+    <a href="players.html">Players &amp; analysis</a>
+    <a href="team.html">Team-owner view</a>
+  </nav>
+</header>
+
+<div id="toast" class="toast hidden"></div>
+
+<main class="layout" style="display:block; max-width:1000px; margin:0 auto;">
+  <section class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0;">Tournaments</h2>
+        <p class="muted" style="margin:.25rem 0 0;">Each tournament has its own players, teams and rules.
+          The one marked <b>Active</b> is what the setup, console and broadcast operate on.</p>
+      </div>
+      <button id="btn-new" class="primary">＋ New auction</button>
+    </div>
+    <div id="tournament-list" class="team-list" style="margin-top:1rem;">
+      <p class="muted">Loading…</p>
+    </div>
+  </section>
+
+  <!-- Create / edit rules editor (hidden until opened) -->
+  <section id="editor" class="card hidden">
+    <h2 id="editor-title">New auction</h2>
+    <form id="form-editor" class="form" style="gap:1rem;">
+      <input type="hidden" id="edit-id">
+
+      <label class="field">
+        <span>Tournament name</span>
+        <input id="f-name" placeholder="e.g. KCPL Season 2" required>
+      </label>
+
+      <fieldset class="rules-group">
+        <legend>Team defaults</legend>
+        <div class="grid2">
+          <label class="field"><span>Starting purse (₹)</span><input id="f-startingPurse" type="number" min="1" required></label>
+          <label class="field"><span>Max squad size</span><input id="f-maxSquadSize" type="number" min="1" required></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="rules-group">
+        <legend>Base price per group (₹)</legend>
+        <div class="grid5" id="basePrices"></div>
+      </fieldset>
+
+      <fieldset class="rules-group">
+        <legend>Per-group squad rules</legend>
+        <p class="hint" style="margin:.1rem 0 .6rem;">max / min players per team in the group; reserve-per-slot and budget are optional
+          (blank = none). Budget is a hard group spend ceiling (Group A in KCPL).</p>
+        <div class="cat-rules-head">
+          <span>Group</span><span>Max</span><span>Min</span><span>Reserve/slot</span><span>Budget</span>
+        </div>
+        <div id="categoryRules"></div>
+      </fieldset>
+
+      <fieldset class="rules-group">
+        <legend>Bid increments (₹)</legend>
+        <p class="hint" style="margin:.1rem 0 .6rem;">Each band: prices up to <b>upTo</b> step by <b>increment</b>. Above the last band, the default increment applies.</p>
+        <div id="incrementRules"></div>
+        <button type="button" id="add-band" class="ghost" style="margin-top:.4rem;">＋ Add band</button>
+        <label class="field" style="margin-top:.6rem; max-width:280px;">
+          <span>Default increment (above last band)</span>
+          <input id="f-defaultIncrement" type="number" min="1" required>
+        </label>
+        <label class="field" style="max-width:280px;">
+          <span>Min viable price (feasibility floor)</span>
+          <input id="f-minViablePrice" type="number" min="1" required>
+        </label>
+      </fieldset>
+
+      <fieldset class="rules-group">
+        <legend>Retention</legend>
+        <div class="grid3">
+          <label class="field"><span>Max per team</span><input id="f-ret-maxPerTeam" type="number" min="0" required></label>
+          <label class="field"><span>Max from group A</span><input id="f-ret-maxFromGroupA" type="number" min="0" required></label>
+          <label class="field"><span>Max from B–E</span><input id="f-ret-maxFromLowerGroups" type="number" min="0" required></label>
+          <label class="field"><span>Cost — group A (₹)</span><input id="f-ret-costGroupA" type="number" min="0" required></label>
+          <label class="field"><span>Cost — B–E (₹)</span><input id="f-ret-costOtherGroups" type="number" min="0" required></label>
+        </div>
+      </fieldset>
+
+      <label class="check-row">
+        <input type="checkbox" id="f-demote"> <span>Demote unsold players one group and return them to the pool</span>
+      </label>
+
+      <div class="editor-actions">
+        <button type="submit" class="primary" id="btn-save">Create &amp; load</button>
+        <button type="button" class="ghost" id="btn-cancel">Cancel</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script src="auth.js"></script>
+<script src="auctions.js"></script>
+</body>
+</html>

@@ -2,6 +2,7 @@ package com.auctiontracker.sale;
 
 import com.auctiontracker.bidding.BiddingService;
 import com.auctiontracker.config.AuctionProperties;
+import com.auctiontracker.tournament.RuleBook;
 import com.auctiontracker.core.AuctionException;
 import com.auctiontracker.core.AuctionLock;
 import com.auctiontracker.core.FeasibilityService;
@@ -34,18 +35,18 @@ public class SaleService {
     private final SaleRepository sales;
     private final FeasibilityService feasibility;
     private final AuctionLock lock;
-    private final AuctionProperties props;
+    private final RuleBook ruleBook;
     private final BiddingService bidding;
 
     public SaleService(PlayerRepository players, TeamRepository teams, SaleRepository sales,
-                       FeasibilityService feasibility, AuctionLock lock, AuctionProperties props,
+                       FeasibilityService feasibility, AuctionLock lock, RuleBook ruleBook,
                        BiddingService bidding) {
         this.players = players;
         this.teams = teams;
         this.sales = sales;
         this.feasibility = feasibility;
         this.lock = lock;
-        this.props = props;
+        this.ruleBook = ruleBook;
         this.bidding = bidding;
     }
 
@@ -127,11 +128,11 @@ public class SaleService {
             // Persist the live bid trail (if any) for the audit replay, then drop the session.
             bidding.flushLiveBids(playerId);
 
-            if (wasUnderAuction && props.demoteUnsoldPlayers()) {
+            if (wasUnderAuction && ruleBook.current().demoteUnsoldPlayers()) {
                 PlayerCategory lowerGroup = player.getCategory().nextLower();
                 if (lowerGroup != null) {
                     player.setCategory(lowerGroup);
-                    player.setBasePrice(props.basePriceFor(lowerGroup));
+                    player.setBasePrice(ruleBook.current().basePriceFor(lowerGroup));
                 }
                 // Demoted one group, or already at the lowest group — either way the
                 // player goes back into the pool AVAILABLE so it can be put on the
@@ -166,7 +167,7 @@ public class SaleService {
                                 .formatted(player.getName(), player.getStatus()));
             }
 
-            AuctionProperties.Retention rules = props.retention();
+            AuctionProperties.Retention rules = ruleBook.current().retention();
             List<Player> retained = players.findBySoldToTeamId(teamId).stream()
                     .filter(p -> p.getStatus() == PlayerStatus.RETAINED)
                     .toList();
@@ -192,7 +193,7 @@ public class SaleService {
 
             // RULE 2: retention costs a flat fee by group (A vs. any lower group),
             // not the player's base price.
-            long price = props.retentionCostFor(player.getCategory());
+            long price = ruleBook.current().retentionCostFor(player.getCategory());
             // Same purse / squad-size / group-quota guards as buying at auction.
             feasibility.assertCanAcquire(team, player, price);
 

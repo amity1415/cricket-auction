@@ -24,6 +24,10 @@ public class Sale {
     @Id
     private UUID saleId;
 
+    /** Which tournament this audit row belongs to (nullable for old rows; backfilled). */
+    @Column(name = "tournament_id")
+    private UUID tournamentId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "sale_type", nullable = false)
     private Type type;
@@ -87,6 +91,8 @@ public class Sale {
     }
 
     public UUID getSaleId() { return saleId; }
+    public UUID getTournamentId() { return tournamentId; }
+    public void setTournamentId(UUID tournamentId) { this.tournamentId = tournamentId; }
     public Type getType() { return type; }
     public UUID getPlayerId() { return playerId; }
     public String getPlayerName() { return playerName; }

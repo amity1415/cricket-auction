@@ -1,6 +1,6 @@
 package com.auctiontracker.core;
 
-import com.auctiontracker.config.AuctionProperties;
+import com.auctiontracker.tournament.RuleBook;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -20,10 +20,10 @@ public class PlayerRowParser {
     /** One raw row plus its 1-based position in the source file (for error messages). */
     public record Row(int number, String[] fields) {}
 
-    private final AuctionProperties props;
+    private final RuleBook ruleBook;
 
-    public PlayerRowParser(AuctionProperties props) {
-        this.props = props;
+    public PlayerRowParser(RuleBook ruleBook) {
+        this.ruleBook = ruleBook;
     }
 
     public List<Player> parseCsv(String csv) {
@@ -74,7 +74,7 @@ public class PlayerRowParser {
         if (name.isEmpty()) throw new IllegalArgumentException("name is blank");
         PlayerRole role = PlayerRole.valueOf(parts[1].trim().toUpperCase(Locale.ROOT));
         PlayerCategory category = PlayerCategory.valueOf(parts[2].trim().toUpperCase(Locale.ROOT));
-        long basePrice = hasValue(parts, 3) ? Long.parseLong(parts[3].trim()) : props.basePriceFor(category);
+        long basePrice = hasValue(parts, 3) ? Long.parseLong(parts[3].trim()) : ruleBook.current().basePriceFor(category);
         if (basePrice <= 0) throw new IllegalArgumentException("base price must be positive");
 
         Player player = Player.register(name, role, category, basePrice);

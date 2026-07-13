@@ -22,6 +22,10 @@ public class UserAccount {
     @Id
     private UUID id;
 
+    /** Which tournament this owner belongs to (nullable for old rows; backfilled). */
+    @Column(name = "tournament_id")
+    private UUID tournamentId;
+
     @Column(nullable = false, unique = true)
     private String username;
 
@@ -63,6 +67,14 @@ public class UserAccount {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getTournamentId() {
+        return tournamentId;
+    }
+
+    public void setTournamentId(UUID tournamentId) {
+        this.tournamentId = tournamentId;
     }
 
     public String getUsername() {

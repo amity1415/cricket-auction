@@ -19,6 +19,10 @@ public class Player {
     @Id
     private UUID playerId;
 
+    /** Which tournament this player belongs to (nullable for old rows; backfilled). */
+    @Column(name = "tournament_id")
+    private UUID tournamentId;
+
     @Column(nullable = false)
     private String name;
 
@@ -63,6 +67,9 @@ public class Player {
 
     public UUID getPlayerId() { return playerId; }
     public void setPlayerId(UUID playerId) { this.playerId = playerId; }
+
+    public UUID getTournamentId() { return tournamentId; }
+    public void setTournamentId(UUID tournamentId) { this.tournamentId = tournamentId; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

@@ -892,3 +892,55 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
 .picker::-webkit-scrollbar, .teams-grid::-webkit-scrollbar,
 .audit::-webkit-scrollbar, #bid-history::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a4568; }
+
+/* ---- Auctions page (tournament list + full rules editor) ---------------- */
+#tournament-list { max-height: none; overflow: visible; display: grid; gap: .75rem; }
+.team-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--card-solid); padding: .85rem 1rem;
+}
+.team-card.active-tournament { border-color: var(--green); box-shadow: 0 0 0 1px var(--green-deep); }
+.tt-head { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.tt-name { font-size: 1.05rem; }
+.tt-badge { color: var(--green); font-weight: 600; font-size: .8rem; margin-left: .5rem; }
+.tt-counts { font-size: .85rem; }
+.tt-actions { display: flex; gap: .5rem; margin-top: .7rem; flex-wrap: wrap; }
+
+.rules-group { border: 1px solid var(--border); border-radius: var(--radius); padding: .8rem 1rem 1rem; margin: 0; }
+.rules-group > legend { padding: 0 .4rem; color: var(--accent); font-weight: 600; font-size: .9rem; }
+.field { display: flex; flex-direction: column; gap: .25rem; font-size: .82rem; color: var(--muted); }
+.field > span { font-size: .78rem; }
+.field input { width: 100%; }
+.grid2, .grid3, .grid5 { display: grid; gap: .6rem; }
+.grid2 { grid-template-columns: repeat(2, 1fr); }
+.grid3 { grid-template-columns: repeat(3, 1fr); }
+.grid5 { grid-template-columns: repeat(5, 1fr); }
+
+.cat-rules-head, .cat-rules-row { display: grid; grid-template-columns: 44px repeat(4, 1fr); gap: .5rem; align-items: center; }
+.cat-rules-head { font-size: .74rem; color: var(--muted); margin-bottom: .35rem; padding: 0 .1rem; }
+.cat-rules-row { margin-bottom: .4rem; }
+.cat-rules-row input { width: 100%; }
+.cat-tag { font-weight: 700; color: var(--accent); text-align: center; }
+
+.band-row { display: flex; gap: .6rem; align-items: center; margin-bottom: .45rem; flex-wrap: wrap; }
+.band-row label { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem; color: var(--muted); }
+.band-row input { width: 130px; }
+.band-del { padding: .2rem .55rem; }
+
+.check-row { display: flex; align-items: center; gap: .5rem; font-size: .88rem; }
+.editor-actions { display: flex; gap: .6rem; margin-top: .3rem; }
+
+@media (max-width: 640px) {
+  .grid2, .grid3, .grid5 { grid-template-columns: 1fr 1fr; }
+  .cat-rules-head { display: none; }
+  .cat-rules-row { grid-template-columns: 44px 1fr 1fr; }
+}
+
+/* Generic hidden helper (previously only .toast.hidden existed). */
+.hidden { display: none !important; }
+
+/* Editor inputs sit inside column-flex .field wrappers, so the .form input
+   `flex: 1 1 150px` would become a 150px HEIGHT. Pin them to auto height. */
+#form-editor input { flex: 0 0 auto; }
+#form-editor .rules-group { flex: 1 1 100%; }
+#form-editor > .field { flex: 1 1 100%; }

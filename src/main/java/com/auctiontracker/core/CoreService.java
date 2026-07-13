@@ -1,6 +1,6 @@
 package com.auctiontracker.core;
 
-import com.auctiontracker.config.AuctionProperties;
+import com.auctiontracker.tournament.RuleBook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,14 +18,14 @@ public class CoreService {
 
     private final PlayerRepository players;
     private final TeamRepository teams;
-    private final AuctionProperties props;
+    private final RuleBook ruleBook;
     private final PlayerRowParser parser;
 
-    public CoreService(PlayerRepository players, TeamRepository teams, AuctionProperties props,
+    public CoreService(PlayerRepository players, TeamRepository teams, RuleBook ruleBook,
                        PlayerRowParser parser) {
         this.players = players;
         this.teams = teams;
-        this.props = props;
+        this.ruleBook = ruleBook;
         this.parser = parser;
     }
 
@@ -35,7 +35,7 @@ public class CoreService {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Player name must not be blank");
         }
-        long basePrice = basePriceOverride != null ? basePriceOverride : props.basePriceFor(category);
+        long basePrice = basePriceOverride != null ? basePriceOverride : ruleBook.current().basePriceFor(category);
         if (basePrice <= 0) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Base price must be positive");
         }
@@ -108,7 +108,7 @@ public class CoreService {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Player name must not be blank");
         }
-        long basePrice = basePriceOverride != null ? basePriceOverride : props.basePriceFor(category);
+        long basePrice = basePriceOverride != null ? basePriceOverride : ruleBook.current().basePriceFor(category);
         if (basePrice <= 0) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Base price must be positive");
         }

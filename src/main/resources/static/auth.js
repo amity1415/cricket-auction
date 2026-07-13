@@ -14,6 +14,7 @@
     const items = [{ href: 'players.html', label: '📊 Players & analysis' }];
     if (role === 'ADMIN') {
       items.push(
+        { href: 'auctions.html', label: '🏆 Auctions' },
         { href: 'index.html', label: '⚙️ Setup' },
         { href: 'auction.html', label: '🔨 Auction console' },
         { href: 'team.html', label: '👥 Team dashboards' },

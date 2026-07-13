@@ -1,5 +1,7 @@
 package com.auctiontracker;
 
+import com.auctiontracker.tournament.RuleBook;
+
 import com.auctiontracker.bidding.BiddingService;
 import com.auctiontracker.bidding.InMemoryBidEventRepository;
 import com.auctiontracker.bidding.IncrementRuleEngine;
@@ -51,13 +53,13 @@ class SetupServiceTest {
         bidEvents = new InMemoryBidEventRepository();
         sales = new InMemorySaleRepository();
         var props = TestFixtures.props();
-        var parser = new PlayerRowParser(props);
-        var feasibility = new FeasibilityService(players, props);
+        var parser = new PlayerRowParser(RuleBook.fixed(props));
+        var feasibility = new FeasibilityService(players, RuleBook.fixed(props));
         var lock = new AuctionLock();
-        core = new CoreService(players, teams, props, parser);
+        core = new CoreService(players, teams, RuleBook.fixed(props), parser);
         bidding = new BiddingService(players, teams, bidEvents,
-                new IncrementRuleEngine(props), feasibility, lock);
-        sale = new SaleService(players, teams, sales, feasibility, lock, props, bidding);
+                new IncrementRuleEngine(RuleBook.fixed(props)), feasibility, lock, RuleBook.fixed(props));
+        sale = new SaleService(players, teams, sales, feasibility, lock, RuleBook.fixed(props), bidding);
         setup = new SetupService(core, bidding, sale, parser, lock);
     }
 

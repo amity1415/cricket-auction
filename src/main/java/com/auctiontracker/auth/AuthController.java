@@ -72,8 +72,10 @@ public class AuthController {
                     "That team already has an owner account");
         }
         String hash = passwordEncoder.encode(req.password());
-        UserAccount saved = accounts.save(
-                UserAccount.franchiseOwner(username, hash, req.displayName().trim(), team.getTeamId()));
+        UserAccount account = UserAccount.franchiseOwner(username, hash, req.displayName().trim(),
+                team.getTeamId());
+        account.setTournamentId(team.getTournamentId()); // owner belongs to its team's tournament
+        UserAccount saved = accounts.save(account);
         return new RegisterResponse(saved.getUsername(), saved.getTeamId());
     }
 
