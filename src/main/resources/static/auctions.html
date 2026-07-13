@@ -9,28 +9,27 @@
 <body>
 <header>
   <h1>🏏 Cricket Auction Tracker <span class="muted">— Auctions</span></h1>
-  <nav>
-    <a href="index.html" class="nav-cta">⚙️ Setup current →</a>
-    <a href="auction.html">Auction console</a>
-    <a href="players.html">Players &amp; analysis</a>
-    <a href="team.html">Team-owner view</a>
-  </nav>
+  <nav></nav>
 </header>
 
 <div id="toast" class="toast hidden"></div>
 
 <main class="layout" style="display:block; max-width:1000px; margin:0 auto;">
+  <section class="auctions-hero">
+    <div class="hero-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="hero-content">
+      <div class="hero-trophy" aria-hidden="true">🏆</div>
+      <h2 class="hero-title">Choose your auction</h2>
+      <p class="hero-sub">Every auction is its own arena — its own players, teams, purse and rules.
+        <b>Open</b> one to step in. The <b>★ Default</b> is what a screen shows when it names no auction.</p>
+    </div>
+  </section>
+
   <section class="card">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
-      <div>
-        <h2 style="margin:0;">Auctions</h2>
-        <p class="muted" style="margin:.25rem 0 0;">Each auction has its own players, teams and rules and runs
-          independently — <b>open</b> any one to work on it. The <b>★ Default</b> is the one a screen shows when it
-          names no auction.</p>
-      </div>
+    <div class="auctions-bar">
+      <input id="search" type="search" class="auction-search" placeholder="🔍 Search auctions by name…" autocomplete="off">
       <button id="btn-new" class="primary hidden">＋ New auction</button>
     </div>
-    <input id="search" type="search" class="auction-search" placeholder="🔍 Search auctions by name…" autocomplete="off">
     <div id="tournament-list" class="team-list" style="margin-top:1rem;">
       <p class="muted">Loading…</p>
     </div>

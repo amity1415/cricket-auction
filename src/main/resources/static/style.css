@@ -965,3 +965,73 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
 }
 .auction-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.18); }
 .auction-search::placeholder { color: var(--muted); }
+
+/* ---- Auctions hub: animated hero + livelier cards ----------------------- */
+.auctions-hero {
+  position: relative; overflow: hidden; text-align: center;
+  padding: 2.6rem 1.5rem 2.3rem; margin-bottom: 1.1rem;
+  border: 1px solid var(--border-strong); border-radius: 18px;
+  background:
+    radial-gradient(130% 150% at 50% -30%, rgba(139,92,246,.22), transparent 60%),
+    linear-gradient(160deg, rgba(91,140,255,.16), rgba(139,92,246,.05) 55%, transparent),
+    var(--card-solid);
+  box-shadow: var(--shadow);
+  animation: rise .5s ease both;
+}
+.hero-content { position: relative; z-index: 1; }
+.hero-trophy {
+  font-size: 3rem; line-height: 1; display: inline-block;
+  filter: drop-shadow(0 8px 20px rgba(245,185,66,.4));
+  animation: trophyFloat 3.6s ease-in-out infinite;
+}
+@keyframes trophyFloat {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50%      { transform: translateY(-11px) rotate(5deg); }
+}
+.hero-title {
+  margin: .55rem 0 .4rem; font-size: 1.95rem; font-weight: 800; letter-spacing: -.02em;
+  background: linear-gradient(92deg, #dbe4ff, #a7c0f4 45%, #c1a8f7);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-sub { margin: 0 auto; max-width: 36rem; color: var(--muted); font-size: .95rem; line-height: 1.5; }
+.hero-sub b { color: var(--text); }
+
+/* Soft drifting colour orbs behind the hero copy. */
+.hero-orbs span {
+  position: absolute; border-radius: 50%; filter: blur(34px); opacity: .55;
+  animation: orbDrift 10s ease-in-out infinite;
+}
+.hero-orbs span:nth-child(1) { width: 170px; height: 170px; left: -34px;  top: -46px;    background: rgba(91,140,255,.55); }
+.hero-orbs span:nth-child(2) { width: 140px; height: 140px; right: -24px; top: 6px;       background: rgba(139,92,246,.5);  animation-delay: -3.3s; }
+.hero-orbs span:nth-child(3) { width: 120px; height: 120px; left: 42%;    bottom: -56px;  background: rgba(45,212,143,.38);  animation-delay: -6.6s; }
+@keyframes orbDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(22px, 16px) scale(1.14); }
+  66%      { transform: translate(-16px, 10px) scale(.9); }
+}
+
+.auctions-bar { display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; }
+.auctions-bar .auction-search { flex: 1 1 240px; margin-top: 0; }
+.auctions-bar .primary { flex: 0 0 auto; white-space: nowrap; }
+
+/* Cards animate in (staggered via inline delay in auctions.js) and lift on hover. */
+#tournament-list .team-card {
+  position: relative; overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  animation: cardIn .45s cubic-bezier(.2,.85,.25,1) both;
+}
+#tournament-list .team-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(91,140,255,.5);
+  box-shadow: 0 16px 32px -16px rgba(91,140,255,.55);
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(14px); } }
+
+/* The active/default auction gets a gentle sweeping shimmer along its top edge. */
+.team-card.active-tournament::after {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2.8s linear infinite;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
