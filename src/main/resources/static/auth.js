@@ -16,14 +16,19 @@
       { href: 'auctions.html', label: '🏆 Auctions' },
       { href: 'players.html', label: '📊 Players & analysis' },
     ];
-    if (role === 'ADMIN') {
+    if (role === 'ADMIN' || role === 'TOURNAMENT_ADMIN') {
       items.push(
         { href: 'index.html', label: '⚙️ Setup' },
         { href: 'auction.html', label: '🔨 Auction console' },
         { href: 'team.html', label: '👥 Team dashboards' },
         { href: 'broadcast.html', label: '📺 Live broadcast' },
-        { href: 'swagger-ui.html', label: '📖 API docs' },
       );
+      if (role === 'ADMIN') {
+        items.push(
+          { href: 'users.html', label: '👤 Users & access' },
+          { href: 'swagger-ui.html', label: '📖 API docs' },
+        );
+      }
     } else if (role === 'FRANCHISE_OWNER') {
       items.push(
         { href: me && me.teamId ? 'team.html?teamId=' + me.teamId : 'team.html', label: '⭐ My team' },
@@ -66,7 +71,8 @@
     head.innerHTML = me
       ? `<span class="menu-avatar">👤</span><span class="menu-uinfo">
            <b>${esc(me.displayName || me.username)}</b>
-           <span class="menu-role">${role === 'ADMIN' ? 'Admin' : 'Owner'}</span></span>`
+           <span class="menu-role">${role === 'ADMIN' ? 'Admin'
+             : role === 'TOURNAMENT_ADMIN' ? 'Auction admin' : 'Owner'}</span></span>`
       : `<span class="menu-avatar">👁</span><span class="menu-uinfo">
            <b>Guest</b><span class="menu-role muted">read-only</span></span>`;
     panel.appendChild(head);

@@ -18,6 +18,9 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
     /** Owners registered in one tournament (for the admin owner list). */
     List<UserAccount> findByTournamentId(UUID tournamentId);
 
+    /** All accounts of a role, e.g. every tournament admin (for the users page). */
+    List<UserAccount> findByRole(Role role);
+
     /** Removes all owner accounts of a tournament (used when it is deleted). */
     void deleteByTournamentId(UUID tournamentId);
 }

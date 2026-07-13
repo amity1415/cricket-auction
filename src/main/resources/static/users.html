@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Users &amp; access</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🏏 Cricket Auction Tracker <span class="muted">— Users &amp; access</span></h1>
+</header>
+
+<div id="toast" class="toast hidden"></div>
+
+<main class="layout" style="display:block; max-width:1000px; margin:0 auto;">
+  <section class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0;">Auction admins</h2>
+        <p class="muted" style="margin:.25rem 0 0;">An auction admin runs one or more specific auctions —
+          full setup and live-bidding access <b>within those auctions</b>, but they can't create or delete
+          auctions or manage other users. Grant or revoke which auctions each one can run below.</p>
+      </div>
+      <button id="btn-new" class="primary">＋ New auction admin</button>
+    </div>
+    <div id="user-list" class="team-list" style="margin-top:1rem;">
+      <p class="muted">Loading…</p>
+    </div>
+  </section>
+
+  <!-- Create / edit-access editor (hidden until opened) -->
+  <section id="editor" class="card hidden">
+    <h2 id="editor-title">New auction admin</h2>
+    <form id="form-editor" class="form" style="gap:1rem;">
+      <input type="hidden" id="edit-id">
+
+      <div id="create-fields" style="display:contents;">
+        <div class="grid2" style="width:100%;">
+          <label class="field"><span>Display name</span>
+            <input id="f-displayName" placeholder="e.g. Priya (KCPL organiser)" required></label>
+          <label class="field"><span>Username</span>
+            <input id="f-username" placeholder="3–40 characters" autocomplete="off" required></label>
+        </div>
+        <label class="field" style="max-width:340px;"><span>Password</span>
+          <input id="f-password" type="password" placeholder="at least 6 characters"
+                 autocomplete="new-password" required></label>
+      </div>
+
+      <fieldset class="rules-group" style="width:100%;">
+        <legend>Auctions this admin can run</legend>
+        <div id="grant-list" class="check-list">
+          <p class="muted">Loading auctions…</p>
+        </div>
+      </fieldset>
+
+      <div class="editor-actions">
+        <button type="submit" class="primary" id="btn-save">Create admin</button>
+        <button type="button" class="ghost" id="btn-cancel">Cancel</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script src="auth.js"></script>
+<script src="users.js"></script>
+</body>
+</html>
