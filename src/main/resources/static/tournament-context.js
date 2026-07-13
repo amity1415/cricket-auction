@@ -9,7 +9,16 @@
 (function () {
   const id = new URLSearchParams(location.search).get('tournamentId');
   window.TOURNAMENT_ID = id || null;
-  if (!id) return;
+
+  // This script loads only on tournament-scoped screens (never on the Auctions
+  // hub or the Users & access page). Reaching one without an auction selected is
+  // not allowed — bounce the user back to the hub to pick one first. replace()
+  // keeps the back button from landing straight back on this dead page.
+  if (!id) {
+    document.documentElement.style.visibility = 'hidden';
+    location.replace('auctions.html');
+    return;
+  }
 
   // (a) Attach the auction id to every API call.
   const origFetch = window.fetch.bind(window);
@@ -28,7 +37,7 @@
   };
 
   // (b) Keep the id on internal navigation. The hub and login are context-free.
-  const SKIP = new Set(['login.html', 'auctions.html', '']);
+  const SKIP = new Set(['login.html', 'auctions.html', 'users.html', '']);
   function rewriteLinks() {
     document.querySelectorAll('a[href]').forEach(a => {
       const href = a.getAttribute('href');

@@ -78,7 +78,11 @@ function render() {
     return;
   }
   box.innerHTML = '';
-  list.forEach(t => box.appendChild(card(t)));
+  list.forEach((t, i) => {
+    const el = card(t);
+    el.style.animationDelay = Math.min(i * 0.05, 0.4) + 's';  // staggered entrance
+    box.appendChild(el);
+  });
 }
 
 function card(t) {
