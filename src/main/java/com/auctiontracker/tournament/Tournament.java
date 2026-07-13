@@ -3,7 +3,6 @@ package com.auctiontracker.tournament;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -31,8 +30,12 @@ public class Tournament {
     @Column(nullable = false, unique = true)
     private String slug;
 
-    /** The tournament's rule book — a serialized AuctionProperties (see RuleBook). */
-    @Lob
+    /**
+     * The tournament's rule book — a serialized AuctionProperties (see RuleBook).
+     * Plain TEXT, NOT {@code @Lob}: on Postgres {@code @Lob String} becomes a large
+     * object (OID) that can't be read outside a transaction, which 500s every
+     * non-transactional read (see TournamentBootstrap's one-time migration).
+     */
     @Column(nullable = false, columnDefinition = "text")
     private String rulesJson;
 

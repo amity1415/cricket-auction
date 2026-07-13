@@ -10,6 +10,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.UUID;
 
 /**
@@ -31,18 +34,25 @@ public class TournamentBootstrap implements CommandLineRunner {
 
     private final TournamentRepository tournaments;
     private final RuleBook ruleBook;
+    private final DataSource dataSource;
 
     @PersistenceContext
     private EntityManager em;
 
-    public TournamentBootstrap(TournamentRepository tournaments, RuleBook ruleBook) {
+    public TournamentBootstrap(TournamentRepository tournaments, RuleBook ruleBook,
+                               DataSource dataSource) {
         this.tournaments = tournaments;
         this.ruleBook = ruleBook;
+        this.dataSource = dataSource;
     }
 
     @Override
     @Transactional
     public void run(String... args) {
+        // Runs on its OWN JDBC connection (isolated from this transaction) so a
+        // failure/no-op on H2 can't poison the bootstrap below.
+        migrateLobRulesJson();
+
         if (tournaments.count() > 0) {
             // A tournament already exists — make sure RuleBook knows the active one.
             tournaments.findFirstByActiveTrue()
@@ -65,6 +75,44 @@ public class TournamentBootstrap implements CommandLineRunner {
         log.info("Bootstrapped default tournament KCPL ({}) and backfilled tournament_id — "
                 + "players={}, teams={}, sales={}, bidEvents={}, owners={}",
                 id, players, teams, sales, bids, owners);
+    }
+
+    /**
+     * One-time repair for rows written by the earlier {@code @Lob} mapping: on
+     * Postgres that stored {@code rules_json} as a large object, leaving an OID
+     * (a bare integer) in the text column — unreadable outside a transaction, so
+     * every list/read 500s. Convert any such OID back to inline JSON text. The
+     * {@code ~} regex and {@code lo_get} are Postgres-only; on H2 the query throws
+     * and we skip (H2 rows are already inline text). Idempotent — only bare-integer
+     * values match, and after conversion they no longer do.
+     */
+    private void migrateLobRulesJson() {
+        try (Connection c = dataSource.getConnection()) {
+            String product = c.getMetaData().getDatabaseProductName();
+            if (product == null || !product.toLowerCase().contains("postgre")) {
+                return; // large-object storage is a Postgres-only artifact
+            }
+            // lo_get needs a real transaction (large objects can't be read in
+            // auto-commit mode) — hence the explicit commit on our own connection.
+            boolean prevAutoCommit = c.getAutoCommit();
+            c.setAutoCommit(false);
+            try (Statement st = c.createStatement()) {
+                int n = st.executeUpdate(
+                        "UPDATE tournament SET rules_json = convert_from(lo_get(rules_json::oid), 'UTF8') "
+                                + "WHERE rules_json ~ '^[0-9]+$'");
+                c.commit();
+                if (n > 0) {
+                    log.info("Migrated {} tournament(s) from large-object rules_json to inline text", n);
+                }
+            } catch (Exception e) {
+                c.rollback();
+                throw e;
+            } finally {
+                c.setAutoCommit(prevAutoCommit);
+            }
+        } catch (Exception e) {
+            log.warn("rules_json large-object migration skipped: {}", e.getMessage());
+        }
     }
 
     /** Bulk-assigns the tournament to every row of the entity that has none yet. */
