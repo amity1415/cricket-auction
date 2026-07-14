@@ -50,12 +50,12 @@
     <section class="card">
       <h2><span class="step">3</span>Teams</h2>
       <div id="team-list" class="team-list"><p class="muted">Loading…</p></div>
-      <form id="form-team" class="form">
-        <input name="name" placeholder="Team name" required>
-        <input name="ownerName" placeholder="Owner name" required>
-        <input name="startingPurse" type="number" placeholder="Starting purse (₹)" required min="1" value="150000000">
-        <input name="maxSquadSize" type="number" placeholder="Max squad size" required min="1" value="20">
-        <button class="primary">Add team</button>
+      <form id="form-team" class="field-form">
+        <label>Team name <input name="name" placeholder="e.g. Chennai Chargers" required></label>
+        <label>Owner name <input name="ownerName" placeholder="e.g. R. Mehta" required></label>
+        <label>Starting purse (₹) <input name="startingPurse" type="number" required min="1" value="150000000"></label>
+        <label>Max squad size <input name="maxSquadSize" type="number" required min="1" value="20"></label>
+        <div class="submit-row"><button class="primary">＋ Add team</button></div>
       </form>
     </section>
 
@@ -79,14 +79,16 @@
       <h2><span class="step">5</span>Franchise owners <span id="owners-count" class="muted"></span></h2>
       <p class="hint">Create a franchise-owner login below — they get a read-only view of their team
         (players &amp; analysis, team dashboards). Remove an account to revoke its access.</p>
-      <form id="owner-form" class="form">
-        <input name="displayName" placeholder="Owner name" required>
-        <input name="username" placeholder="Username" required minlength="3">
-        <input name="password" type="password" placeholder="Password (min 6)" required minlength="6">
-        <select name="teamId" required>
-          <option value="" disabled selected>Choose team…</option>
-        </select>
-        <button class="primary">＋ Create owner</button>
+      <form id="owner-form" class="field-form">
+        <label>Owner name <input name="displayName" placeholder="Full name" required></label>
+        <label>Username <input name="username" placeholder="login username" required minlength="3"></label>
+        <label>Password <input name="password" type="password" placeholder="min 6 characters" required minlength="6"></label>
+        <label>Team
+          <select name="teamId" required>
+            <option value="" disabled selected>Choose team…</option>
+          </select>
+        </label>
+        <div class="submit-row"><button class="primary">＋ Create owner</button></div>
       </form>
       <div class="table-scroll list-scroll owners-scroll">
         <table class="pool">

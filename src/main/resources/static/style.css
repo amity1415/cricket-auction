@@ -89,6 +89,16 @@ header nav .nav-sep {
 header nav { position: relative; }
 /* Groups the broadcast connection pill with its dropdown on the right. */
 .header-actions { display: flex; align-items: center; gap: 12px; }
+
+/* Phones: the title has white-space:nowrap, so a long heading + auction pill
+   would shove the menu/status off the right edge (horizontal overflow). Trim the
+   "— Section" suffix, shrink the title, and cap the pill so the row always fits. */
+@media (max-width: 640px) {
+  header { padding: 10px 14px; gap: 10px; }
+  header h1 { font-size: 15px; min-width: 0; }
+  header h1 > .muted { display: none; }
+  .auction-pill { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
+}
 /* Hide any page's inline links (except the broadcast screen, which keeps its
    own simple nav) — the dropdown built by auth.js is the single source of nav. */
 body:not(.broadcast-mode) header nav > a,
@@ -714,8 +724,40 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   /* team columns are set symmetrically by broadcast.js (layoutTeams). */
 }
 @media (max-width: 640px) {
-  .broadcast-wrap { padding: 14px 12px; }
+  /* The board is built for a big TV; scale its oversized type and photo down so
+     it fits a phone without spilling off the side. It then scrolls vertically. */
+  body.broadcast-mode { overflow-x: hidden; }
+  .broadcast-wrap { padding: 14px 12px; max-width: 100%; }
+  .broadcast-player, .broadcast-sold { padding: 16px; margin-bottom: 16px; }
+
+  /* Stack the photo above the details and centre them. */
+  .player-card {
+    flex-direction: column; align-items: center; text-align: center;
+    gap: 14px; margin-bottom: 16px; padding-bottom: 16px;
+  }
+  .player-avatar { width: 96px; height: 96px; border-radius: 16px; font-size: 36px; }
+  .player-main { width: 100%; }
+  .player-main h2 { font-size: 26px; margin-bottom: 10px; word-break: break-word; }
+  .player-meta { justify-content: center; gap: 8px; margin-bottom: 12px; }
+  .player-meta .chip { font-size: 13px; padding: 5px 12px; }
+  .player-status .pstats { gap: 8px 16px; padding: 12px 14px; }
+  .player-status .pstat b { font-size: 20px; }
+  .player-status .pstat span { font-size: 12px; }
+
+  .bid-amount { padding: 14px 16px; }
+  .bid-label { font-size: 13px; }
+  .bid-value { font-size: 30px; }
+  .bid-team { font-size: 15px; }
+
   .broadcast-teams { padding: 16px 14px; }
+  .broadcast-teams h2 { font-size: 13px; margin-bottom: 12px; }
+  .purse-amount { font-size: 18px; }
+
+  .sold-stamp { font-size: 20px; top: 12px; right: 12px; padding: 3px 12px; }
+  .sold-deal { margin-top: 16px; padding-top: 16px; gap: 14px; }
+  .sold-block { padding: 14px; }
+  .sold-team { font-size: 20px; }
+  .sold-amount { font-size: 26px; }
 }
 /* Small screens scroll normally; only TV/desktop is locked to one screen. */
 @media (max-width: 899px) {
@@ -1035,3 +1077,108 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
   animation: shimmer 2.8s linear infinite;
 }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ============================================================================
+   Team-dashboard & setup polish — richer surfaces, motion, and labelled forms.
+   Appended last so these refinements win over the base rules; reduced-motion
+   still disables the animations via the global !important rule above.
+   ========================================================================== */
+
+/* ---- Team dashboard: showcase hero ---- */
+.owner-wrap .hero.card {
+  position: relative; overflow: hidden;
+  border-color: rgba(91,140,255,.45);
+  background:
+    radial-gradient(120% 170% at 100% -40%, rgba(139,92,246,.20), transparent 55%),
+    linear-gradient(160deg, rgba(91,140,255,.15), rgba(139,92,246,.04) 55%, transparent),
+    var(--card-solid);
+}
+.owner-wrap .hero.card::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(55% 80% at 12% -10%, rgba(91,140,255,.16), transparent 60%);
+}
+.owner-wrap .hero.card > * { position: relative; }
+.big-purse {
+  background: linear-gradient(92deg, #4ff0a8, #2dd48f 55%, #7ee9c2);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Animated sheen sweeping across the purse bar's filled portion. */
+.purse-bar i { position: relative; overflow: hidden; }
+.purse-bar i::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.4) 50%, transparent 70%);
+  background-size: 220% 100%; animation: sheen 2.6s linear infinite;
+}
+@keyframes sheen { from { background-position: 220% 0; } to { background-position: -220% 0; } }
+
+/* Stat tiles: lift + glow on hover, playful icon, staggered entrance. */
+.tile-row .tile {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, rgba(31,40,64,.92), rgba(23,30,48,.92));
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  animation: tilePop .42s cubic-bezier(.2,.8,.25,1) both;
+}
+.tile-row .tile:nth-child(2) { animation-delay: .07s; }
+.tile-row .tile:nth-child(3) { animation-delay: .14s; }
+.tile-row .tile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(91,140,255,.5);
+  box-shadow: 0 14px 30px -16px rgba(91,140,255,.65);
+}
+.tile-row .tile .ticon { font-size: 20px; transition: transform .18s ease; }
+.tile-row .tile:hover .ticon { transform: scale(1.16) rotate(-5deg); }
+.tile-row .tile b { font-size: 20px; }
+@keyframes tilePop { from { opacity: 0; transform: translateY(10px); } }
+
+/* Role chips: lift + accent wash on hover, gradient count. */
+.role-chips .rchip { transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.role-chips .rchip:hover {
+  transform: translateY(-2px); border-color: rgba(91,140,255,.5);
+  background: linear-gradient(160deg, rgba(91,140,255,.14), transparent), var(--card-2);
+}
+.role-chips .rchip b {
+  background: linear-gradient(92deg, #dbe4ff, #a7c0f4);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Requirement meters: sheen on the filled bar. */
+.req .meter i { position: relative; overflow: hidden; }
+.req .meter i::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255,255,255,.28) 50%, transparent 65%);
+  background-size: 220% 100%; animation: sheen 3s linear infinite;
+}
+
+/* Squad table: subtle accent row-hover. */
+.squad-scroll table.pool tbody tr { transition: background .15s ease; }
+.squad-scroll table.pool tbody tr:hover { background: rgba(91,140,255,.07); }
+
+/* ---- Setup page: bolder step badges + labelled forms ---- */
+.setup-wrap .card h2 { display: flex; align-items: center; gap: 4px; }
+.setup-wrap .step {
+  width: 26px; height: 26px; border-radius: 9px; font-size: 13px;
+  box-shadow: 0 6px 16px -6px rgba(91,140,255,.7); vertical-align: middle;
+}
+
+/* Labelled field form used by the team + owner setup forms. */
+.field-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; padding: 14px 0 4px; }
+.field-form .full { grid-column: 1 / -1; }
+.field-form label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 10.5px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .07em; font-weight: 700;
+}
+.field-form input, .field-form select {
+  background: rgba(10,14,26,.5); border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 400;
+  letter-spacing: 0; text-transform: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field-form input::placeholder { color: var(--muted); opacity: .7; }
+.field-form input:focus, .field-form select:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.18);
+}
+.field-form .submit-row { grid-column: 1 / -1; margin-top: 2px; }
+.field-form .submit-row button { width: 100%; }
+@media (max-width: 560px) { .field-form { grid-template-columns: 1fr; } }
