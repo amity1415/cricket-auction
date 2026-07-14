@@ -118,11 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
   fitToScreen();
 });
 
-function renderTeams(teams, highlightTeamId) {
+function renderTeams(teams, highlightTeamId, block) {
   lastTeamCount = (teams || []).length;
   setHTML('bc-teams', (teams || []).map(t => {
     const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
     const hot = t.teamId === highlightTeamId;
+    const mbCan = block && t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount;
+    const maxBidHtml = block
+      ? `<div class="bc-maxbid${mbCan ? '' : ' none'}"><span>🔨 Max next bid</span><b>${mbCan ? fmtShort(t.maxBidForBlockPlayer) : "Can't bid"}</b></div>`
+      : '';
     return `
       <div class="team-broadcast ${hot ? 'leading' : ''}">
         <h3>${esc(t.name)}</h3>
@@ -130,6 +134,7 @@ function renderTeams(teams, highlightTeamId) {
         <div class="purse-amount">${fmtShort(t.remainingPurse)}</div>
         <div class="purse-detail">${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)}</div>
         <div class="squad-info">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</div>
+        ${maxBidHtml}
         ${hot ? '<div class="leading-badge">👑</div>' : ''}
       </div>`;
   }).join(''));
@@ -152,7 +157,7 @@ function renderLive(player, teams) {
   setText('bc-next-bid', fmtINR(player.nextBidAmount));
   setHTML('bc-bid-count', player.bidCount ? `<span class="bid-count">Bid #${player.bidCount}</span>` : '');
 
-  renderTeams(teams, player.currentLeadingTeamId);
+  renderTeams(teams, player.currentLeadingTeamId, player);
   showState('live');
 }
 

@@ -87,7 +87,6 @@ function teamCard(t, block) {
           </span>
         </div>
         ${maxBidChip(t, block)}
-        <div class="tile-mid muted">💰 Max bid <b>${fmtShort(t.maxAffordableBid)}</b> · ${t.remainingMandatorySlots ?? 0} to fill</div>
         <div class="tile-purse">
           <div class="tp-amount">${fmtShort(t.remainingPurse)}</div>
           <div class="purse-bar"><i style="width:${pct}%"></i></div>
@@ -104,7 +103,7 @@ function teamCard(t, block) {
           <span class="td-remain">${fmtShort(t.remainingPurse)}</span>
           <span class="td-remain-cap">remaining of ${fmtShort(t.startingPurse)}</span>
         </div>
-        <div class="td-line">🧢 Squad <b>${t.squadFilled}/${total}</b> · 💰 Max <b>${fmtShort(t.maxAffordableBid)}</b> · ${t.remainingMandatorySlots ?? 0} to fill</div>
+        <div class="td-line">🧢 Squad <b>${t.squadFilled}/${total}</b></div>
         <div class="td-block">
           <span class="td-cap">Roles</span>
           <div class="pill-row">${roles.map(r =>
@@ -239,7 +238,6 @@ function renderHead(t, squad) {
     <div class="muted">${fmtShort(spent)} spent · ${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)} remaining</div>
     <div class="tile-row">
       <div class="tile"><span class="ticon">🧢</span><b>${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</b><span>Squad</span></div>
-      <div class="tile"><span class="ticon">💰</span><b>${fmtShort(t.maxAffordableBid)}</b><span>Max affordable bid</span></div>
       <div class="tile"><span class="ticon">📌</span><b>${retained}/${maxRetained}</b><span>Retained</span></div>
     </div>`);
 }

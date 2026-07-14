@@ -185,13 +185,18 @@ function renderTeams(dash) {
           return `${g} <b>${n}${max != null ? '/' + max : ''}</b>`;
         })
         .join(' · ');
+    const block = dash.onTheBlock;
+    const mbCan = block && t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount;
+    const maxBidHtml = block
+      ? `<div class="team-maxbid${mbCan ? '' : ' none'}">🔨 Max next bid <b>${mbCan ? fmtShort(t.maxBidForBlockPlayer) : "Can't bid"}</b></div>`
+      : '';
     return `
       <div class="team ${t.teamId === leadingId ? 'leading' : ''}">
         <div class="tname">${esc(t.name)} ${t.teamId === leadingId ? '👑' : ''}</div>
         <div class="purse">${fmtShort(t.remainingPurse)}</div>
         <div class="bar"><i style="width:${pct}%"></i></div>
-        <div class="meta">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}
-          · Max bid ${fmtShort(t.maxAffordableBid)}</div>
+        ${maxBidHtml}
+        <div class="meta">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</div>
         ${roles ? `<div class="roles">${roles}</div>` : ''}
         ${groups ? `<div class="roles">Groups: ${groups}</div>` : ''}
       </div>`;

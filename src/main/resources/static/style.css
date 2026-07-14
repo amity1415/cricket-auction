@@ -1509,3 +1509,24 @@ table.pool tbody tr:hover {
 .bblock-maxbid .bmb-val { font-size: 21px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .bblock-maxbid.none { background: rgba(240,86,74,.12); border-color: rgba(240,86,74,.45); }
 .bblock-maxbid.none .bmb-val { font-size: 14px; color: #f2988f; }
+
+/* Max next bid on the auction console team cards. */
+.team-maxbid {
+  margin: 7px 0; padding: 5px 10px; border-radius: 8px; font-size: 12px; color: var(--muted);
+  background: rgba(45,212,143,.14); border: 1px solid rgba(45,212,143,.4);
+}
+.team-maxbid b { color: var(--green); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.team-maxbid.none { background: rgba(240,86,74,.1); border-color: rgba(240,86,74,.35); }
+.team-maxbid.none b { color: #f2988f; font-size: 12px; }
+
+/* Max next bid on the broadcast team cards (TV-sized). */
+.bc-maxbid {
+  margin-top: 10px; padding: 8px 12px; border-radius: 10px;
+  display: flex; flex-direction: column; gap: 2px;
+  background: rgba(45,212,143,.16); border: 1px solid rgba(45,212,143,.45);
+}
+.bc-maxbid span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.bc-maxbid b { font-size: 22px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.bc-maxbid.none { background: rgba(240,86,74,.12); border-color: rgba(240,86,74,.4); }
+.bc-maxbid.none b { font-size: 15px; color: #f2988f; }
+@media (max-width: 640px) { .bc-maxbid b { font-size: 17px; } .bc-maxbid { padding: 6px 10px; } }

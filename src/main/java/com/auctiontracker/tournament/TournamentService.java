@@ -6,6 +6,7 @@ import com.auctiontracker.bidding.BidEventJpaRepository;
 import com.auctiontracker.bidding.BiddingService;
 import com.auctiontracker.config.AuctionProperties;
 import com.auctiontracker.core.AuctionException;
+import com.auctiontracker.core.PlayerCategory;
 import com.auctiontracker.core.PlayerJpaRepository;
 import com.auctiontracker.core.Team;
 import com.auctiontracker.core.TeamJpaRepository;
@@ -85,6 +86,7 @@ public class TournamentService {
         if (rules == null) {
             throw AuctionException.badRequest("INVALID_TOURNAMENT", "Tournament rules are required");
         }
+        validateSquadFeasibility(rules);
         Tournament t = Tournament.create(name.trim(), uniqueSlug(name), ruleBook.serialize(rules));
         if (tournaments.count() == 0) {
             t.setActive(true); // first tournament is the default for id-less requests
@@ -102,11 +104,56 @@ public class TournamentService {
             t.setName(name.trim());
         }
         if (rules != null) {
+            validateSquadFeasibility(rules);
             t.setRulesJson(ruleBook.serialize(rules));
         }
         tournaments.save(t);
         ruleBook.rulesChanged(id);
         return t;
+    }
+
+    /**
+     * A squad must hold exactly {@code maxSquadSize} players, drawn from the
+     * groups within each group's [min, max] per-team bounds. That is only possible
+     * when the group minimums sum to no more than the squad size and the group
+     * maximums sum to at least it (an unlimited group makes the upper bound moot).
+     * Rejects an infeasible rule book with a message that says why it doesn't fit.
+     */
+    private void validateSquadFeasibility(AuctionProperties rules) {
+        int squad = rules.teamDefaults() == null ? 0 : rules.teamDefaults().maxSquadSize();
+        if (squad <= 0) {
+            return;
+        }
+        int minSum = 0;
+        long maxSum = 0;
+        boolean anyUnlimited = false;
+        for (PlayerCategory g : PlayerCategory.values()) {
+            int min = rules.minPerTeamFor(g);
+            Integer max = rules.maxPerTeamFor(g);
+            if (max != null && min > max) {
+                throw AuctionException.badRequest("RULES_INFEASIBLE",
+                        "Group %s can't fit: its minimum (%d) is greater than its maximum (%d)."
+                                .formatted(g, min, max));
+            }
+            minSum += min;
+            if (max == null) {
+                anyUnlimited = true;
+            } else {
+                maxSum += max;
+            }
+        }
+        if (minSum > squad) {
+            throw AuctionException.badRequest("RULES_INFEASIBLE",
+                    ("These rules don't fit: the group minimums add up to %d players, but a squad holds only %d. "
+                            + "Lower the group minimums or raise the max squad size.")
+                            .formatted(minSum, squad));
+        }
+        if (!anyUnlimited && maxSum < squad) {
+            throw AuctionException.badRequest("RULES_INFEASIBLE",
+                    ("These rules don't fit: the group maximums add up to only %d players, but a squad must hold %d. "
+                            + "Raise a group maximum (or leave one unlimited) or lower the max squad size.")
+                            .formatted(maxSum, squad));
+        }
     }
 
     /** Makes this tournament the default used when a request names none. */
