@@ -275,38 +275,54 @@ document.getElementById('form-import').onsubmit = async e => {
 const retTeamSel = document.getElementById('ret-team');
 const retPlayerSel = document.getElementById('ret-player');
 
+// Only touch an element when its content actually changed. Re-assigning a
+// <select>'s innerHTML on every 3s poll was closing the dropdown mid-selection
+// (the "list keeps refreshing" bug); a no-op poll now leaves it open. Selects
+// keep their current choice across a genuine re-render.
+const _retHtml = {};
+function setRetHtml(el, html) {
+  if (!el || _retHtml[el.id] === html) return;
+  _retHtml[el.id] = html;
+  if (el.tagName === 'SELECT') {
+    const cur = el.value;
+    el.innerHTML = html;
+    if (cur && [...el.options].some(o => o.value === cur)) el.value = cur;
+  } else {
+    el.innerHTML = html;
+  }
+}
+
 async function refreshRetention(teams, players) {
   try {
-    const selected = retTeamSel.value;
-    retTeamSel.innerHTML = '<option value="">Choose a team…</option>' + teams.map(t =>
-        `<option value="${t.teamId}">${esc(t.name)} — ${fmtShort(t.remainingPurse)} left</option>`).join('');
-    if (teams.some(t => t.teamId === selected)) retTeamSel.value = selected;
+    // Sort deterministically so identical data yields identical option HTML —
+    // otherwise Postgres's unordered rows would differ every poll and re-render.
+    const byName = (a, b) => a.name.localeCompare(b.name);
+    setRetHtml(retTeamSel, '<option value="">Choose a team…</option>' + [...teams].sort(byName).map(t =>
+        `<option value="${t.teamId}">${esc(t.name)} — ${fmtShort(t.remainingPurse)} left</option>`).join(''));
 
-    const chosenPlayer = retPlayerSel.value;
-    const available = players.filter(p => p.status === 'AVAILABLE');
-    retPlayerSel.innerHTML = '<option value="">Choose a player to retain…</option>' + available.map(p =>
-        `<option value="${p.playerId}">${esc(p.name)} — Group ${p.category} (${fmtShort(p.basePrice)})</option>`).join('');
-    if (available.some(p => p.playerId === chosenPlayer)) retPlayerSel.value = chosenPlayer;
+    const available = players.filter(p => p.status === 'AVAILABLE').sort(byName);
+    setRetHtml(retPlayerSel, '<option value="">Choose a player to retain…</option>' + available.map(p =>
+        `<option value="${p.playerId}">${esc(p.name)} — Group ${p.category} (${fmtShort(p.basePrice)})</option>`).join(''));
 
     const slotsEl = document.getElementById('ret-slots');
     const listEl = document.getElementById('ret-list');
-    if (!retTeamSel.value) { slotsEl.innerHTML = ''; listEl.innerHTML = ''; return; }
+    if (!retTeamSel.value) { setRetHtml(slotsEl, ''); setRetHtml(listEl, ''); return; }
 
     const detail = await getJSON(`/api/dashboard/teams/${retTeamSel.value}`);
     const retained = detail.squad.filter(p => p.retained);
     const rules = auctionConfig?.retention || { maxPerTeam: 3, maxFromGroupA: 2, maxFromLowerGroups: 1 };
     const fromA = retained.filter(p => p.category === 'A').length;
-    slotsEl.innerHTML = `Group A <b>${fromA}/${rules.maxFromGroupA}</b> ·
+    setRetHtml(slotsEl, `Group A <b>${fromA}/${rules.maxFromGroupA}</b> ·
         Lower groups <b>${retained.length - fromA}/${rules.maxFromLowerGroups}</b> ·
-        Total <b>${retained.length}/${rules.maxPerTeam}</b>`;
-    listEl.innerHTML = retained.length
+        Total <b>${retained.length}/${rules.maxPerTeam}</b>`);
+    setRetHtml(listEl, retained.length
         ? retained.map(p => `
           <div class="row">
             <span>📌 <a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a>
               <span class="chip">${p.category}</span> · ${fmtShort(p.soldPrice)}</span>
             <button class="link-btn subtle" onclick="releaseRetention('${p.playerId}')">↩ Release</button>
           </div>`).join('')
-        : '<p class="muted">No retentions yet for this team.</p>';
+        : '<p class="muted">No retentions yet for this team.</p>');
   } catch (e) { /* retry on next tick */ }
 }
 
