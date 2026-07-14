@@ -62,6 +62,27 @@
 
     const here = (location.pathname.split('/').pop() || 'index.html');
 
+    // Back arrow on the left for easier navigation. Skipped on the Auctions hub
+    // (the top of the app — nowhere sensible to go "back" to). Goes to the
+    // previous screen, falling back to the hub on a fresh/deep-linked load.
+    const NO_BACK = new Set(['auctions.html', 'login.html']);
+    if (!NO_BACK.has(here) && !header.querySelector('.back-btn')) {
+      const back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'back-btn';
+      back.setAttribute('aria-label', 'Go back');
+      back.title = 'Back';
+      back.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none"'
+        + ' stroke="currentColor" stroke-width="2.2" stroke-linecap="round"'
+        + ' stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+      back.addEventListener('click', () => {
+        const from = document.referrer;
+        if (history.length > 1 && (!from || from.startsWith(location.origin))) history.back();
+        else location.href = 'auctions.html';
+      });
+      header.insertBefore(back, header.firstChild);
+    }
+
     // Hamburger toggle.
     const btn = document.createElement('button');
     btn.type = 'button';
