@@ -1269,7 +1269,7 @@ main.owner-wrap.wide { max-width: 1240px; }
 .ostat b { display: block; font-size: 20px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .ostat span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 
-.teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 16px; }
+#teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 16px; }
 
 .team-tile {
   position: relative; display: block; text-decoration: none; color: var(--text);
@@ -1353,3 +1353,109 @@ main.owner-wrap.wide { max-width: 1240px; }
   .team-tile { min-height: 172px; }
 }
 @media (max-width: 560px) { .overview-stats { width: 100%; justify-content: space-between; } }
+
+/* ============================================================================
+   App-wide premium polish — a cohesive layer over the shared components used
+   across every page: data tables, filter chips, stat tiles, the player-profile
+   hero, the live "on the block" card, and the audit log. Purely presentational.
+   ========================================================================== */
+
+/* ---- Section headings inside cards: a subtle gradient accent bar ---------- */
+.card > h2 { position: relative; padding-left: 13px; }
+.card > h2::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 1.05em; border-radius: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+/* Cards that carry their own heading treatment opt out of the bar. */
+.setup-wrap .card > h2, .block-card > h2, .profile-hero > h2,
+.auctions-hero h2, .teams-overview h2 { padding-left: 0; }
+.setup-wrap .card > h2::before, .block-card > h2::before,
+.profile-hero > h2::before { content: none; }
+
+/* ---- Data tables (.pool) — crisper header, lively accent row-hover -------- */
+table.pool thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: linear-gradient(180deg, rgba(31,40,64,.96), rgba(23,30,48,.96));
+  backdrop-filter: blur(4px);
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--muted); font-weight: 700; padding: 10px 8px;
+  border-bottom: 1px solid var(--border-strong);
+}
+table.pool tbody tr { transition: background .14s ease, box-shadow .14s ease; }
+table.pool tbody tr:hover {
+  background: rgba(91,140,255,.07);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.players-table tbody tr:hover .plink { color: var(--accent); }
+
+/* ---- Status badges — a touch more definition ----------------------------- */
+.badge { border: 1px solid transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
+
+/* ---- Filter chips (players page + pool filters) — pill lift & gradient ---- */
+.fchip, .filters button {
+  transition: color .15s, border-color .15s, background .15s, transform .15s, box-shadow .15s;
+}
+.fchip:hover, .filters button:hover { transform: translateY(-1px); }
+.fchip.active, .filters button.active {
+  box-shadow: 0 6px 16px -8px rgba(91,140,255,.8);
+}
+/* The filter/controls bar reads as its own subtle console strip. */
+.players-wrap .controls {
+  background: linear-gradient(160deg, rgba(31,40,64,.5), rgba(23,30,48,.4));
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+}
+
+/* ---- Grouped-results heading (players page) ------------------------------ */
+.group-head { position: relative; padding-left: 12px; }
+.group-head::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 1em; border-radius: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
+/* ---- Player-profile hero (player.html + profile modal) ------------------- */
+.profile-hero {
+  position: relative; overflow: hidden;
+  border-color: rgba(91,140,255,.4);
+  background:
+    radial-gradient(120% 160% at 100% -40%, rgba(139,92,246,.18), transparent 55%),
+    linear-gradient(160deg, rgba(91,140,255,.13), rgba(139,92,246,.04) 55%, transparent),
+    var(--card-solid);
+}
+.profile-hero > * { position: relative; }
+.profile-hero .avatar, .pm-hero .avatar {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 14px 30px -10px rgba(91,140,255,.6), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.profile-hero .pname {
+  background: linear-gradient(92deg, #eaf0ff, #b9cbff 55%, #cbb6f8);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ---- Stat tiles: profile "btile" + inline "pstat" — hover life ----------- */
+.btile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.btile {
+  background: linear-gradient(160deg, rgba(31,40,64,.9), rgba(23,30,48,.9));
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.btile:hover { transform: translateY(-2px); border-color: rgba(91,140,255,.5);
+  box-shadow: 0 12px 24px -16px rgba(91,140,255,.6); }
+.btile b { display: block; font-size: 20px; font-weight: 800; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums; }
+.btile span { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+
+/* ---- Auction console: make "On the Block" read as a live hero ------------- */
+.block-card {
+  position: relative; overflow: hidden;
+  border-color: rgba(245,185,66,.45);
+  background:
+    radial-gradient(120% 150% at 100% -30%, rgba(245,185,66,.14), transparent 55%),
+    linear-gradient(160deg, rgba(245,185,66,.08), transparent 55%), var(--card);
+}
+.block-card > * { position: relative; }
+
+/* ---- Audit log rows — quiet hover ---------------------------------------- */
+.audit .row { transition: background .14s ease; border-radius: 6px; padding-left: 6px; padding-right: 6px; }
+.audit .row:hover { background: rgba(148,163,205,.06); }

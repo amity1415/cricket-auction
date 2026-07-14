@@ -6,54 +6,90 @@
   <title>Cricket Auction — Sign in</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    .auth-wrap { max-width: 380px; margin: 8vh auto 0; padding: 0 16px; }
-    .auth-wrap h1 { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 4px; }
-    .auth-wrap .card { padding: 22px; }
-    .auth-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-    .auth-field label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-    .auth-field input, .auth-field select {
-      padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
-      background: var(--card-2); color: var(--text); font-size: 14px;
-    }
-    .auth-field input:focus, .auth-field select:focus { outline: none; border-color: var(--accent); }
-    .auth-wrap button.primary { width: 100%; padding: 11px; margin-top: 4px; }
-    .auth-msg { min-height: 18px; font-size: 13px; margin: 4px 0 10px; }
+    .login-body { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px 16px; position: relative; overflow: hidden; }
+    /* Drifting colour orbs behind everything. */
+    .login-orbs span { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .5;
+      animation: orbDrift 12s ease-in-out infinite; z-index: 0; }
+    .login-orbs span:nth-child(1) { width: 340px; height: 340px; left: -60px; top: -40px; background: rgba(91,140,255,.5); }
+    .login-orbs span:nth-child(2) { width: 300px; height: 300px; right: -50px; top: 20%; background: rgba(139,92,246,.45); animation-delay: -4s; }
+    .login-orbs span:nth-child(3) { width: 260px; height: 260px; left: 30%; bottom: -80px; background: rgba(45,212,143,.32); animation-delay: -8s; }
+
+    .auth-wrap { position: relative; z-index: 1; width: 100%; max-width: 400px;
+      display: flex; flex-direction: column; align-items: stretch; animation: rise .5s ease both; }
+    .auth-brand { text-align: center; margin-bottom: 20px; }
+    .auth-logo { width: 68px; height: 68px; margin: 0 auto 14px; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center; font-size: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 18px 40px -12px rgba(91,140,255,.7), inset 0 1px 0 rgba(255,255,255,.3);
+      animation: trophyFloat 3.6s ease-in-out infinite; }
+    .auth-brand h1 { margin: 0; font-size: 27px; font-weight: 800; letter-spacing: -.02em;
+      background: linear-gradient(92deg, #eaf0ff, #b9cbff 50%, #cbb6f8);
+      -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .auth-tagline { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); }
+
+    .auth-card { padding: 24px; border-color: var(--border-strong);
+      box-shadow: 0 30px 80px -30px rgba(0,0,0,.75); }
+    .auth-msg { min-height: 18px; font-size: 13px; margin: 0 0 12px; font-weight: 600; }
     .auth-msg.error { color: var(--red); }
     .auth-msg.ok { color: var(--green); }
-    .auth-alt { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: center; }
-    .auth-alt a { color: var(--accent); }
-    .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 12px; color: var(--muted); font-size: 12px; }
-    .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-    .guest-btn {
-      display: block; text-align: center; text-decoration: none;
-      padding: 11px; border-radius: 10px; border: 1px solid var(--border-strong);
-      color: var(--text); font-weight: 700; font-size: 14px; transition: border-color .15s, background .15s;
-    }
-    .guest-btn:hover { border-color: var(--accent); background: rgba(91,140,255,.08); }
-    .guest-hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+    .auth-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+    .auth-field label { font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em; transition: color .18s ease; }
+    .auth-field:focus-within label { color: var(--accent); }
+    .auth-field input {
+      padding: 12px 14px; border-radius: 11px; border: 1px solid var(--border);
+      background: rgba(10,14,26,.5); color: var(--text); font-size: 14.5px;
+      transition: border-color .18s, box-shadow .18s, background .18s, transform .16s; }
+    .auth-field input::placeholder { color: var(--muted); opacity: .55; }
+    .auth-field input:hover { border-color: var(--border-strong); }
+    .auth-field input:focus { outline: none; transform: translateY(-1px);
+      border-color: var(--accent); background: rgba(91,140,255,.07);
+      box-shadow: 0 0 0 3px rgba(91,140,255,.2), 0 10px 22px -14px rgba(91,140,255,.8); }
+    .auth-wrap button.primary { width: 100%; padding: 12px; margin-top: 4px; font-size: 14.5px; }
+
+    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px;
+      color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; }
+    .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-strong), transparent); }
+    .guest-btn { display: flex; align-items: center; justify-content: center; gap: 8px;
+      text-decoration: none; padding: 12px; border-radius: 11px; border: 1px solid var(--border-strong);
+      color: var(--text); font-weight: 700; font-size: 14px;
+      transition: border-color .16s, background .16s, transform .16s; }
+    .guest-btn:hover { border-color: var(--accent); background: rgba(91,140,255,.1); transform: translateY(-1px); }
+    .guest-hint { margin: 9px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+    .auth-foot { text-align: center; margin: 20px 0 0; font-size: 12px; letter-spacing: .01em; }
   </style>
 </head>
-<body>
+<body class="login-body">
+<div class="login-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
 <div class="auth-wrap">
-  <h1>🏏 Cricket Auction</h1>
-  <p class="muted" style="margin:0 0 18px">Sign in to continue</p>
-  <div class="card">
+  <div class="auth-brand">
+    <div class="auth-logo">🏏</div>
+    <h1>Cricket Auction</h1>
+    <p class="auth-tagline">Sign in to run and follow the auction</p>
+  </div>
+
+  <div class="card auth-card">
     <div id="msg" class="auth-msg"></div>
     <form id="login-form" autocomplete="on">
       <div class="auth-field">
         <label for="username">Username</label>
-        <input id="username" name="username" type="text" required autofocus autocomplete="username">
+        <input id="username" name="username" type="text" required autofocus autocomplete="username" placeholder="your username">
       </div>
       <div class="auth-field">
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" required autocomplete="current-password">
+        <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="••••••••">
       </div>
-      <button type="submit" class="primary" id="submit-btn">Sign in</button>
+      <button type="submit" class="primary" id="submit-btn">Sign in →</button>
     </form>
     <div class="auth-divider"><span>or</span></div>
     <a href="auctions.html" class="guest-btn">👁 Continue as guest</a>
     <p class="guest-hint">Browse the auctions &amp; player analysis — no account needed.</p>
   </div>
+
+  <p class="auth-foot muted">🏆 Live bidding · 👥 team dashboards · 📊 player analytics</p>
 </div>
 <script src="login.js"></script>
 </body>
