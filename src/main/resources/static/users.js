@@ -32,7 +32,8 @@ async function send(method, url, body) {
   if (res.status === 204) return {};
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    toast(data.message || data.error || ('Request failed (' + res.status + ')'), true);
+    const base = data.message || data.error || ('Request failed (' + res.status + ')');
+    toast(data.detail ? base + ' — ' + data.detail : base, true);
     return null;
   }
   return data;

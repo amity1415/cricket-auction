@@ -61,8 +61,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception e) {
         log.error("Unhandled exception", e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "INTERNAL_ERROR", "message", "An unexpected error occurred"));
+        // Surface the root-cause type + message (no stack trace) so this internal
+        // tool is diagnosable from the UI instead of only from server logs.
+        Throwable root = e;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "INTERNAL_ERROR");
+        body.put("message", "An unexpected error occurred");
+        body.put("detail", root.getClass().getSimpleName()
+                + (root.getMessage() != null ? ": " + root.getMessage() : ""));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     private ResponseEntity<Map<String, Object>> badRequest(String code, String message) {

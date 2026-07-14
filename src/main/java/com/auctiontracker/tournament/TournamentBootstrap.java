@@ -58,6 +58,7 @@ public class TournamentBootstrap implements CommandLineRunner {
         // failure/no-op on H2 can't poison the bootstrap below.
         migrateLobRulesJson();
         relaxUserAccountOptionalColumns();
+        dropStaleUserAccountRoleCheck();
 
         if (tournaments.count() > 0) {
             // A tournament already exists — make sure RuleBook knows the active one.
@@ -164,6 +165,50 @@ public class TournamentBootstrap implements CommandLineRunner {
             }
         } catch (Exception e) {
             log.warn("user_account NOT NULL relax skipped: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Drops any CHECK constraint on the {@code user_account.role} column. For an
+     * {@code @Enumerated(STRING)} column Hibernate emits {@code CHECK (role in (...))}
+     * listing only the enum values that existed when the column was first created,
+     * and {@code ddl-auto=update} never updates it. Once TOURNAMENT_ADMIN was added
+     * to the enum, inserting one violates the stale constraint and the request 500s
+     * — the "unexpected error" when creating an auction admin. The enum is enforced
+     * in code, so the DB check is redundant; drop it. Portable across H2/Postgres
+     * via information_schema, and idempotent (nothing to drop once gone).
+     */
+    private void dropStaleUserAccountRoleCheck() {
+        try (Connection c = dataSource.getConnection()) {
+            List<String> toDrop = new ArrayList<>();
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT tc.constraint_name, cc.check_clause "
+                            + "FROM information_schema.table_constraints tc "
+                            + "JOIN information_schema.check_constraints cc "
+                            + "  ON tc.constraint_name = cc.constraint_name "
+                            + " AND tc.constraint_schema = cc.constraint_schema "
+                            + "WHERE tc.constraint_type = 'CHECK' "
+                            + "  AND lower(tc.table_name) = 'user_account'");
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString(1);
+                    String clause = String.valueOf(rs.getString(2)).toLowerCase();
+                    // The enum value check references role; skip synthetic NOT NULL checks.
+                    if (clause.contains("role") && !clause.contains("not null")) {
+                        toDrop.add(name);
+                    }
+                }
+            }
+            for (String name : toDrop) {
+                try (Statement st = c.createStatement()) {
+                    st.executeUpdate("ALTER TABLE user_account DROP CONSTRAINT " + name);
+                    log.info("Dropped stale role CHECK constraint {} on user_account", name);
+                } catch (Exception e) {
+                    log.warn("Could not drop CHECK constraint {} on user_account: {}", name, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("user_account role CHECK cleanup skipped: {}", e.getMessage());
         }
     }
 
