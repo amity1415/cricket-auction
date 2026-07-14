@@ -157,9 +157,13 @@ async function load() {
       getJSON('/api/dashboard').catch(() => ({ teams: [] })),
     ]);
     // Only re-render when the underlying data actually changed — an unchanged
-    // 8s poll used to redraw the whole table and cause a flicker.
-    const sig = JSON.stringify(players) + '|'
-        + JSON.stringify((dash.teams || []).map(t => [t.teamId, t.name]));
+    // poll used to redraw the whole table and cause a flicker. The signature is
+    // order-independent: Postgres returns rows in no guaranteed order, so a raw
+    // JSON.stringify would differ on every poll and redraw needlessly (the table
+    // is re-sorted client-side anyway, so row order from the API is irrelevant).
+    const byId = (a, b) => (a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0);
+    const sig = JSON.stringify([...players].sort(byId)) + '|'
+        + JSON.stringify((dash.teams || []).map(t => [t.teamId, t.name]).sort());
     if (sig === lastSig) return;
     lastSig = sig;
     allPlayers = players;

@@ -12,7 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -52,7 +57,7 @@ public class TournamentBootstrap implements CommandLineRunner {
         // Runs on its OWN JDBC connection (isolated from this transaction) so a
         // failure/no-op on H2 can't poison the bootstrap below.
         migrateLobRulesJson();
-        relaxUserAccountTeamId();
+        relaxUserAccountOptionalColumns();
 
         if (tournaments.count() > 0) {
             // A tournament already exists — make sure RuleBook knows the active one.
@@ -117,22 +122,48 @@ public class TournamentBootstrap implements CommandLineRunner {
     }
 
     /**
-     * Tournament-admin accounts own no team, so {@code user_account.team_id} must
-     * be nullable. {@code ddl-auto=update} never relaxes an existing NOT NULL, so
-     * do it once here (Postgres only; {@code DROP NOT NULL} is a no-op if already
-     * nullable). On H2 the fresh schema is already nullable, so we skip.
+     * Columns every {@code user_account} row always has — these keep their NOT NULL.
+     * Everything else (team_id, tournament_id, and any column left over from an
+     * older schema) must be nullable: a TOURNAMENT_ADMIN owns no team, so it
+     * inserts NULLs there.
      */
-    private void relaxUserAccountTeamId() {
+    private static final Set<String> USER_ACCOUNT_REQUIRED_COLUMNS =
+            Set.of("id", "username", "password_hash", "display_name", "role", "created_at");
+
+    /**
+     * Relaxes any stale NOT NULL constraint on the optional {@code user_account}
+     * columns. {@code ddl-auto=update} adds columns but never drops an existing
+     * NOT NULL, so a constraint from an earlier schema (most importantly on
+     * {@code team_id}, which is NULL for tournament admins) makes every such
+     * insert fail with a generic 500 — the "unexpected error" when creating an
+     * auction admin. Data-driven off {@code information_schema} so it also heals
+     * orphaned columns from older naming, and idempotent (DROP NOT NULL on an
+     * already-nullable column is a no-op). Runs on its own connection.
+     */
+    private void relaxUserAccountOptionalColumns() {
         try (Connection c = dataSource.getConnection()) {
-            String product = c.getMetaData().getDatabaseProductName();
-            if (product == null || !product.toLowerCase().contains("postgre")) {
-                return;
+            List<String> toRelax = new ArrayList<>();
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT column_name FROM information_schema.columns "
+                            + "WHERE lower(table_name) = 'user_account' AND is_nullable = 'NO'");
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String col = rs.getString(1).toLowerCase();
+                    if (!USER_ACCOUNT_REQUIRED_COLUMNS.contains(col)) {
+                        toRelax.add(col);
+                    }
+                }
             }
-            try (Statement st = c.createStatement()) {
-                st.executeUpdate("ALTER TABLE user_account ALTER COLUMN team_id DROP NOT NULL");
+            for (String col : toRelax) {
+                try (Statement st = c.createStatement()) {
+                    st.executeUpdate("ALTER TABLE user_account ALTER COLUMN " + col + " DROP NOT NULL");
+                    log.info("Relaxed stale NOT NULL on user_account.{}", col);
+                } catch (Exception e) {
+                    log.warn("Could not relax NOT NULL on user_account.{}: {}", col, e.getMessage());
+                }
             }
         } catch (Exception e) {
-            log.warn("user_account.team_id NOT NULL relax skipped: {}", e.getMessage());
+            log.warn("user_account NOT NULL relax skipped: {}", e.getMessage());
         }
     }
 
