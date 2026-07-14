@@ -38,12 +38,92 @@ async function getJSON(url) {
   return res.json();
 }
 
+// ---- Teams overview (the landing when no specific team is chosen) ----------
+// A wide, live grid of every team. Each card shows the essentials up front and,
+// on hover, pops a glassy panel with a full snapshot (purse, max bid, squad,
+// role & group make-up). Clicking opens that team's full dashboard.
+
+const CRESTS = [
+  'linear-gradient(135deg,#5b8cff,#8b5cf6)',
+  'linear-gradient(135deg,#2dd48f,#1f8f5c)',
+  'linear-gradient(135deg,#f5b942,#f0564a)',
+  'linear-gradient(135deg,#22d3ee,#5b8cff)',
+  'linear-gradient(135deg,#f472b6,#8b5cf6)',
+  'linear-gradient(135deg,#8b5cf6,#f0564a)',
+];
+const crestFor = id => {
+  let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return CRESTS[h % CRESTS.length];
+};
+const tParam = () => window.TOURNAMENT_ID ? '&tournamentId=' + encodeURIComponent(window.TOURNAMENT_ID) : '';
+
+function teamCard(t) {
+  const total = t.squadFilled + t.squadOpenSlots;
+  const spent = t.startingPurse - t.remainingPurse;
+  const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
+  const mine = t.teamId === myTeamId;
+  const roles = ['BATSMAN', 'BOWLER', 'ALL_ROUNDER', 'WICKETKEEPER'];
+  return `
+    <a class="team-tile${mine ? ' mine' : ''}" href="team.html?teamId=${t.teamId}${tParam()}"
+       style="--crest:${crestFor(t.teamId)}">
+      <div class="tile-front">
+        <div class="tile-top">
+          <span class="crest">${esc(initials(t.name))}</span>
+          <span class="tile-id">
+            <b class="tt-name">${esc(t.name)}</b>
+            <span class="muted">${esc(t.ownerName)}${mine ? ' · ⭐ you' : ''}</span>
+          </span>
+        </div>
+        <div class="tile-mid muted">💰 Max bid <b>${fmtShort(t.maxAffordableBid)}</b> · ${t.remainingMandatorySlots ?? 0} to fill</div>
+        <div class="tile-purse">
+          <div class="tp-amount">${fmtShort(t.remainingPurse)}</div>
+          <div class="purse-bar"><i style="width:${pct}%"></i></div>
+          <div class="tp-sub muted">${t.squadFilled}/${total} squad · ${fmtShort(spent)} spent</div>
+        </div>
+      </div>
+      <div class="tile-detail" aria-hidden="true">
+        <div class="td-head"><span class="crest sm">${esc(initials(t.name))}</span>${esc(t.name)}</div>
+        <div class="td-purse">
+          <span class="td-remain">${fmtShort(t.remainingPurse)}</span>
+          <span class="td-remain-cap">remaining of ${fmtShort(t.startingPurse)}</span>
+        </div>
+        <div class="td-line">🧢 Squad <b>${t.squadFilled}/${total}</b> · 💰 Max <b>${fmtShort(t.maxAffordableBid)}</b> · ${t.remainingMandatorySlots ?? 0} to fill</div>
+        <div class="td-block">
+          <span class="td-cap">Roles</span>
+          <div class="pill-row">${roles.map(r =>
+            `<span class="rpill">${ROLE_SHORT[r]}<b>${t.roleCounts?.[r] || 0}</b></span>`).join('')}</div>
+        </div>
+        <div class="td-block">
+          <span class="td-cap">Groups</span>
+          <div class="pill-row">${['A', 'B', 'C', 'D', 'E'].map(g =>
+            `<span class="gpill">${g}<b>${t.categoryCounts?.[g] || 0}</b></span>`).join('')}</div>
+        </div>
+        <div class="td-open">Open full dashboard →</div>
+      </div>
+    </a>`;
+}
+
+let pickerTimer = null;
 async function showPicker() {
-  const dash = await getJSON('/api/dashboard');
+  document.querySelector('main').classList.add('wide');
   document.getElementById('picker').style.display = '';
-  document.getElementById('picker-links').innerHTML = dash.teams.map(t =>
-      `<a href="team.html?teamId=${t.teamId}">${esc(t.name)} — ${esc(t.ownerName)}`
-      + `${t.teamId === myTeamId ? ' ⭐ Your team' : ''}</a>`).join('');
+  await renderOverview();
+  if (!pickerTimer) pickerTimer = setInterval(renderOverview, 3000);
+}
+
+async function renderOverview() {
+  let dash;
+  try { dash = await getJSON('/api/dashboard'); } catch (e) { return; }
+  const teams = dash.teams || [];
+  const totalSpent = teams.reduce((s, t) => s + (t.startingPurse - t.remainingPurse), 0);
+  const signed = teams.reduce((s, t) => s + t.squadFilled, 0);
+  setHTMLIfChanged('overview-stats', `
+    <div class="ostat"><b>${teams.length}</b><span>Teams</span></div>
+    <div class="ostat"><b>${signed}</b><span>Signed</span></div>
+    <div class="ostat"><b>${fmtShort(totalSpent)}</b><span>Spent</span></div>`);
+  setHTMLIfChanged('teams-grid', teams.length
+    ? teams.map(teamCard).join('')
+    : '<p class="muted">No teams registered yet.</p>');
 }
 
 async function refresh() {
