@@ -1459,3 +1459,53 @@ table.pool tbody tr:hover {
 /* ---- Audit log rows — quiet hover ---------------------------------------- */
 .audit .row { transition: background .14s ease; border-radius: 6px; padding-left: 6px; padding-right: 6px; }
 .audit .row:hover { background: rgba(148,163,205,.06); }
+
+/* ============================================================================
+   Max next bid — per team, shown while a player is on the block (team overview
+   grid + individual team dashboard). Green = can bid; red = priced out / quota.
+   ========================================================================== */
+
+/* Overview: a banner naming the on-block player above the grid. */
+#overview-block:empty { display: none; }
+.ov-block {
+  margin: 0 0 14px; padding: 12px 16px; border-radius: 12px; font-size: 14px;
+  border: 1px solid rgba(245,185,66,.4);
+  background: linear-gradient(160deg, rgba(245,185,66,.14), rgba(245,185,66,.03)), var(--card-solid);
+  animation: rise .35s ease both;
+}
+.ov-block b { color: var(--text); }
+
+/* Overview card: prominent max-next-bid chip on the front. */
+.tile-maxbid {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin: 2px 0 6px; padding: 7px 11px; border-radius: 10px;
+  background: linear-gradient(120deg, rgba(45,212,143,.18), rgba(45,212,143,.05));
+  border: 1px solid rgba(45,212,143,.45);
+}
+.tile-maxbid .mb-cap { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.tile-maxbid .mb-val { font-size: 17px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.tile-maxbid.none { background: rgba(240,86,74,.1); border-color: rgba(240,86,74,.35); }
+.tile-maxbid.none .mb-val { font-size: 13px; color: #f2988f; }
+
+/* Overview hover detail: max-next-bid row. */
+.td-maxbid {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; border-radius: 9px; margin-bottom: 4px;
+  background: rgba(45,212,143,.13); border: 1px solid rgba(45,212,143,.4);
+}
+.td-maxbid > span { font-size: 10.5px; color: var(--muted); }
+.td-maxbid b { font-size: 15px; color: var(--green); font-variant-numeric: tabular-nums; }
+.td-maxbid.none { background: rgba(240,86,74,.1); border-color: rgba(240,86,74,.3); }
+.td-maxbid.none b { color: #f2988f; font-size: 12px; }
+
+/* Individual dashboard banner: your max next bid, highlighted. */
+.bblock-maxbid {
+  display: flex; align-items: center; gap: 12px; width: fit-content; margin-top: 12px;
+  padding: 9px 16px; border-radius: 11px;
+  background: linear-gradient(120deg, rgba(45,212,143,.2), rgba(45,212,143,.05));
+  border: 1px solid rgba(45,212,143,.5);
+}
+.bblock-maxbid .bmb-cap { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.bblock-maxbid .bmb-val { font-size: 21px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.bblock-maxbid.none { background: rgba(240,86,74,.12); border-color: rgba(240,86,74,.45); }
+.bblock-maxbid.none .bmb-val { font-size: 14px; color: #f2988f; }

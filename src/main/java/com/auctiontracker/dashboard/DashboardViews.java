@@ -26,7 +26,9 @@ public final class DashboardViews {
             int remainingMandatorySlots,
             Map<PlayerRole, Integer> roleCounts,
             Map<PlayerRole, Integer> minPerRole,
-            Map<PlayerCategory, Integer> categoryCounts) {}
+            Map<PlayerCategory, Integer> categoryCounts,
+            /** Max this team may bid on the player currently on the block; null when none is. */
+            Long maxBidForBlockPlayer) {}
 
     public record OnTheBlockView(
             UUID playerId,

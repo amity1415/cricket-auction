@@ -280,4 +280,43 @@ public class FeasibilityService {
         long reserve = mandatory.stream().mapToLong(Long::longValue).sum() - thisBidCovers;
         return Math.max(0, team.getRemainingPurse() - reserve);
     }
+
+    /**
+     * The most this team may bid on {@code player} specifically and still pass
+     * every acquire-time check in {@link #assertCanAcquire}: its purse, the group
+     * budget ceiling for the player's group, and the reserve it must keep to fill
+     * its remaining mandatory slots at base price. Returns 0 when the team cannot
+     * sign this player at all (squad full, or its quota for the player's group is
+     * already used up). This is the player-aware companion to
+     * {@link #maxAffordableBid} — the "max next bid" a screen shows per team while
+     * a specific player is on the block.
+     */
+    public long maxBidFor(Team team, Player player, List<Player> squad) {
+        if (team.squadSize() >= team.getMaxSquadSize()) {
+            return 0;
+        }
+        PlayerCategory cat = player.getCategory();
+        int inGroup = categoryCounts(squad).get(cat);
+        Integer maxInGroup = ruleBook.current().maxPerTeamFor(cat);
+        if (maxInGroup != null && inGroup >= maxInGroup) {
+            return 0; // group quota already full — this team can't sign the player
+        }
+        long cap = team.getRemainingPurse();
+
+        // Group budget ceiling (groups with a configured budget, e.g. Group A):
+        // budget − already-spent-in-group − reserve to fill this group's other slots.
+        Long budget = ruleBook.current().budgetFor(cat);
+        if (budget != null) {
+            long spent = groupSpend(squad, cat);
+            int remainingAfter = maxInGroup == null ? 0 : Math.max(0, maxInGroup - inGroup - 1);
+            long groupReserve = (long) remainingAfter * ruleBook.current().reservePerSlotFor(cat);
+            cap = Math.min(cap, budget - spent - groupReserve);
+        }
+
+        // Must still leave enough to fill every remaining mandatory slot at base price.
+        long completionReserve = squadCompletionReserve(squad, cat, team.getMaxSquadSize(), team.squadSize());
+        cap = Math.min(cap, team.getRemainingPurse() - completionReserve);
+
+        return Math.max(0, cap);
+    }
 }
