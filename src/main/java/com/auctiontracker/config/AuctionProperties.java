@@ -1,5 +1,6 @@
 package com.auctiontracker.config;
 
+import com.auctiontracker.core.AuctionException;
 import com.auctiontracker.core.PlayerCategory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -94,5 +95,49 @@ public record AuctionProperties(
     /** RULE 2 retention cost: flat fee for retaining a player in this group. */
     public long retentionCostFor(PlayerCategory category) {
         return category == PlayerCategory.A ? retention.costGroupA() : retention.costOtherGroups();
+    }
+
+    /**
+     * Checks that a squad of {@code squadSize} players can actually be filled
+     * under these group rules: the group minimums must sum to no more than the
+     * squad size, the group maximums must sum to at least it (an unlimited group
+     * lifts the upper bound), and no group's minimum may exceed its maximum.
+     * Throws a BAD_REQUEST that says why it doesn't fit. Enforced both when the
+     * rule book is saved and when a team is given a custom squad size.
+     */
+    public void assertSquadFits(int squadSize) {
+        if (squadSize <= 0) {
+            return;
+        }
+        int minSum = 0;
+        long maxSum = 0;
+        boolean anyUnlimited = false;
+        for (PlayerCategory g : PlayerCategory.values()) {
+            int min = minPerTeamFor(g);
+            Integer max = maxPerTeamFor(g);
+            if (max != null && min > max) {
+                throw AuctionException.badRequest("RULES_INFEASIBLE",
+                        "Group %s can't fit: its minimum (%d) is greater than its maximum (%d)."
+                                .formatted(g, min, max));
+            }
+            minSum += min;
+            if (max == null) {
+                anyUnlimited = true;
+            } else {
+                maxSum += max;
+            }
+        }
+        if (minSum > squadSize) {
+            throw AuctionException.badRequest("RULES_INFEASIBLE",
+                    ("These rules don't fit: the group minimums add up to %d players, but a squad holds only %d. "
+                            + "Lower the group minimums or raise the squad size.")
+                            .formatted(minSum, squadSize));
+        }
+        if (!anyUnlimited && maxSum < squadSize) {
+            throw AuctionException.badRequest("RULES_INFEASIBLE",
+                    ("These rules don't fit: the group maximums add up to only %d players, but a squad must hold %d. "
+                            + "Raise a group maximum (or leave one unlimited) or lower the squad size.")
+                            .formatted(maxSum, squadSize));
+        }
     }
 }

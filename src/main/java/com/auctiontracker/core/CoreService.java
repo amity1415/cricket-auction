@@ -64,6 +64,7 @@ public class CoreService {
             throw AuctionException.badRequest("INVALID_TEAM",
                     "Role minimums (" + mandatorySlots + ") exceed max squad size (" + maxSquadSize + ")");
         }
+        ruleBook.current().assertSquadFits(maxSquadSize); // group min/max must fit this squad
         return teams.save(Team.register(name.trim(), ownerName, startingPurse, maxSquadSize,
                 minPerRole));
     }
@@ -157,6 +158,7 @@ public class CoreService {
                     "%s already has %d player(s) — max squad size can't go below that"
                             .formatted(team.getName(), team.squadSize()));
         }
+        ruleBook.current().assertSquadFits(maxSquadSize); // group min/max must fit this squad
         team.setName(name.trim());
         team.setOwnerName(ownerName);
         team.setStartingPurse(startingPurse);
