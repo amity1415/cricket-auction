@@ -1182,3 +1182,48 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
 .field-form .submit-row { grid-column: 1 / -1; margin-top: 2px; }
 .field-form .submit-row button { width: 100%; }
 @media (max-width: 560px) { .field-form { grid-template-columns: 1fr; } }
+
+/* ============================================================================
+   Interactive form fields — lively focus/hover across the setup forms, the
+   auction rules editor, and the modal forms. Fields lift with a soft glow, a
+   caret-blue underline sweeps in, and the field's label lights up on focus.
+   ========================================================================== */
+:is(.field-form, .form, .form-grid, .retain-row) :is(input, select),
+#form-editor input {
+  position: relative;
+  transition: border-color .18s ease, box-shadow .18s ease,
+              background-color .18s ease, transform .16s ease;
+}
+/* Hover: a hint of life before you even click in. */
+:is(.field-form, .form, .form-grid, .retain-row) :is(input, select):hover:not(:focus),
+#form-editor input:hover:not(:focus) {
+  border-color: var(--border-strong);
+  background: rgba(91,140,255,.05);
+}
+/* Focus: lift, tinted fill, and a layered accent glow. */
+:is(.field-form, .form, .form-grid, .retain-row) :is(input, select):focus,
+#form-editor input:focus {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: rgba(91,140,255,.07);
+  box-shadow: 0 0 0 3px rgba(91,140,255,.20), 0 10px 22px -14px rgba(91,140,255,.75);
+}
+/* The label above the focused field lights up (setup + auction editor). */
+.field-form label:focus-within,
+.form-grid label:focus-within { color: var(--accent); }
+.field-form label:focus-within,
+.form-grid label:focus-within { transition: color .18s ease; }
+#form-editor .field:focus-within > span { color: var(--accent); transition: color .18s ease; }
+
+/* A blue underline that sweeps out from the centre as the field gains focus.
+   Wrapped fields (label/.field around the input) host the pseudo-element. */
+.field-form label, #form-editor .field { position: relative; }
+.field-form label::after,
+#form-editor .field::after {
+  content: ''; position: absolute; left: 50%; right: 50%; bottom: 0; height: 2px;
+  border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: left .22s ease, right .22s ease, opacity .22s ease; opacity: 0;
+}
+.field-form label:focus-within::after,
+#form-editor .field:focus-within::after { left: 10%; right: 10%; opacity: .9; }

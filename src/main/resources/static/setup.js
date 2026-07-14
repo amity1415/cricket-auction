@@ -207,6 +207,20 @@ window.removeTeam = async teamId => {
   if (r) { toast(`Removed ${t?.name ?? 'team'}`); refresh(); }
 };
 
+/**
+ * Pre-fills the "add team" form's purse and squad size from the auction's own
+ * team defaults. Called on load AND after each add — a plain form.reset() would
+ * otherwise snap them back to the generic HTML fallback values (the bug where
+ * every team after the first defaulted to ₹15 Cr instead of the auction's purse).
+ */
+function applyTeamDefaults() {
+  const d = auctionConfig?.teamDefaults;
+  const form = document.getElementById('form-team');
+  if (!d || !form) return;
+  form.querySelector('[name=startingPurse]').value = d.startingPurse;
+  form.querySelector('[name=maxSquadSize]').value = d.maxSquadSize;
+}
+
 document.getElementById('form-team').onsubmit = async e => {
   e.preventDefault();
   const f = new FormData(e.target);
@@ -216,7 +230,7 @@ document.getElementById('form-team').onsubmit = async e => {
     startingPurse: Number(f.get('startingPurse')),
     maxSquadSize: Number(f.get('maxSquadSize')),
   });
-  if (r) { toast(`Registered ${r.name}`); e.target.reset(); refresh(); }
+  if (r) { toast(`Registered ${r.name}`); e.target.reset(); applyTeamDefaults(); refresh(); }
 };
 
 /* --- Import (replace all) --- */
@@ -335,12 +349,7 @@ document.getElementById('sample').href =
 (async () => {
   try {
     auctionConfig = await getJSON('/api/config');
-    const d = auctionConfig.teamDefaults;
-    if (d) {
-      const form = document.getElementById('form-team');
-      form.querySelector('[name=startingPurse]').value = d.startingPurse;
-      form.querySelector('[name=maxSquadSize]').value = d.maxSquadSize;
-    }
+    applyTeamDefaults();
   } catch (e) { /* keep the HTML defaults */ }
   refresh();
 })();
