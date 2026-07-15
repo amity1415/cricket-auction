@@ -97,6 +97,7 @@ function renderBlock(dash) {
     btnConfirm.disabled = true;
     btnUnsold.disabled = true;
     btnUndo.disabled = true;
+    document.getElementById('custom-bid').style.display = 'none';
     return;
   }
 
@@ -154,6 +155,32 @@ function renderBlock(dash) {
     const r = await post(`/api/admin/players/${block.playerId}/mark-unsold`);
     if (r) toast(unsoldMessage(r));
     refresh();
+  };
+
+  // Manual/floor bid: the auctioneer types an amount + picks a team (for bids
+  // called out off the increment ladder). Runs the same checks as a quick bid.
+  const cb = document.getElementById('custom-bid');
+  cb.style.display = '';
+  const teamOpts = '<option value="">Choose team…</option>' + dash.teams.map(t =>
+    `<option value="${t.teamId}">${esc(t.name)} — ${fmtShort(t.remainingPurse)} left</option>`).join('');
+  const teamSel = document.getElementById('cb-team');
+  if (teamSel.dataset.sig !== teamOpts) {          // rebuild only on change → keeps the admin's choice
+    const cur = teamSel.value;
+    teamSel.innerHTML = teamOpts;
+    teamSel.dataset.sig = teamOpts;
+    if ([...teamSel.options].some(o => o.value === cur)) teamSel.value = cur;
+  }
+  document.getElementById('cb-place').onclick = async () => {
+    const teamId = teamSel.value;
+    const amount = Number(document.getElementById('cb-amount').value);
+    if (!teamId) { toast('Pick a team for the manual bid', true); return; }
+    if (!amount || amount <= 0) { toast('Enter a valid bid amount', true); return; }
+    const r = await post(`/api/admin/players/${block.playerId}/place-bid`, { teamId, amount });
+    if (r) {
+      toast(`Bid #${r.bidNumber}: ${r.currentLeadingTeamName} → ${fmtINR(r.currentBidAmount)}`);
+      document.getElementById('cb-amount').value = '';
+      refresh();
+    }
   };
 }
 

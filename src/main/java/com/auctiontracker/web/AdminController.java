@@ -159,7 +159,7 @@ public class AdminController {
     @PostMapping("/players/{id}/place-bid")
     public PlaceBidResponse placeBid(@PathVariable("id") UUID playerId,
                                      @Valid @RequestBody PlaceBidRequest request) {
-        BiddingService.BidResult result = bidding.placeBid(playerId, request.teamId());
+        BiddingService.BidResult result = bidding.placeBid(playerId, request.teamId(), request.amount());
         Player player = result.player();
         return new PlaceBidResponse(
                 player.getPlayerId(),

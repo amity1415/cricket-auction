@@ -147,20 +147,56 @@ async function deleteAuction(id, name) {
 
 const $ = id => document.getElementById(id);
 
-function buildStaticInputs() {
-  const bp = $('basePrices');
-  bp.innerHTML = GROUPS.map(g =>
-    `<label class="field"><span>Group ${g}</span><input id="bp-${g}" type="number" min="1" required></label>`).join('');
+// Every group a tournament can use — the legacy A–E tiers plus the role-based
+// cascade groups. A tournament picks whichever it needs; neither set is required.
+const ALL_GROUPS = [
+  ['A', 'A'], ['B', 'B'], ['C', 'C'], ['D', 'D'], ['E', 'E'],
+  ['MIXED_UTILITY_BAG', 'Mixed Utility Bag'],
+  ['WICKET_KEEPER', 'Wicket Keeper'],
+  ['BOWLER', 'Bowler'],
+  ['ALL_ROUNDER', 'All Rounder'],
+  ['MARKEE_PLAYER', 'Markee Player'],
+];
+const groupLabel = code => (ALL_GROUPS.find(g => g[0] === code) || [code, code])[1];
+const addedGroupCodes = () =>
+  [...document.querySelectorAll('#groupRules .group-row')].map(r => r.dataset.group);
 
-  const cr = $('categoryRules');
-  cr.innerHTML = GROUPS.map(g => `
-    <div class="cat-rules-row">
-      <span class="cat-tag">${g}</span>
-      <input id="cr-${g}-max" type="number" min="0" placeholder="—">
-      <input id="cr-${g}-min" type="number" min="0" placeholder="0">
-      <input id="cr-${g}-reserve" type="number" min="0" placeholder="base">
-      <input id="cr-${g}-budget" type="number" min="0" placeholder="none">
-    </div>`).join('');
+function buildStaticInputs() {
+  refreshGroupAddDropdown();
+  $('group-add-btn').addEventListener('click', () => {
+    const code = $('group-add-select').value;
+    if (!code) return;
+    addGroupRow(code, {});
+    refreshGroupAddDropdown();
+  });
+}
+
+/** Offers only groups not already added; disables the button when all are in. */
+function refreshGroupAddDropdown() {
+  const added = new Set(addedGroupCodes());
+  const avail = ALL_GROUPS.filter(([code]) => !added.has(code));
+  const sel = $('group-add-select');
+  sel.innerHTML = avail.length
+    ? avail.map(([code, label]) => `<option value="${code}">${label}</option>`).join('')
+    : '<option value="">All groups added</option>';
+  $('group-add-btn').disabled = avail.length === 0;
+}
+
+/** One configurable group: base price + per-team max/min (+ optional reserve/budget). */
+function addGroupRow(code, v) {
+  const row = document.createElement('div');
+  row.className = 'group-row';
+  row.dataset.group = code;
+  row.innerHTML = `
+    <span class="cat-tag" title="${groupLabel(code)}">${groupLabel(code)}</span>
+    <input class="gr-base" type="number" min="0" placeholder="own base" value="${v.base ?? ''}">
+    <input class="gr-max" type="number" min="0" placeholder="—" value="${v.max ?? ''}">
+    <input class="gr-min" type="number" min="0" placeholder="0" value="${v.min ?? ''}">
+    <input class="gr-reserve" type="number" min="0" placeholder="base" value="${v.reserve ?? ''}">
+    <input class="gr-budget" type="number" min="0" placeholder="none" value="${v.budget ?? ''}">
+    <button type="button" class="ghost gr-del" title="Remove group">✕</button>`;
+  row.querySelector('.gr-del').addEventListener('click', () => { row.remove(); refreshGroupAddDropdown(); });
+  $('groupRules').appendChild(row);
 }
 
 function bandRow(upTo, inc) {
@@ -185,14 +221,20 @@ function fillEditor(rules) {
   $('f-minViablePrice').value = rules.minViablePrice;
   $('f-defaultIncrement').value = rules.defaultIncrement;
   $('f-demote').checked = !!rules.demoteUnsoldPlayers;
-  GROUPS.forEach(g => { $(`bp-${g}`).value = rules.basePrices[g] ?? ''; });
-  GROUPS.forEach(g => {
-    const c = (rules.categoryRules && rules.categoryRules[g]) || {};
-    $(`cr-${g}-max`).value = c.maxPerTeam ?? '';
-    $(`cr-${g}-min`).value = c.minPerTeam ?? '';
-    $(`cr-${g}-reserve`).value = c.reservePerSlot ?? '';
-    $(`cr-${g}-budget`).value = c.budget ?? '';
+  // One row per group this tournament configures (base prices ∪ category rules),
+  // in the canonical ALL_GROUPS order.
+  $('groupRules').innerHTML = '';
+  const codes = new Set([...Object.keys(rules.basePrices || {}),
+                         ...Object.keys(rules.categoryRules || {})]);
+  ALL_GROUPS.forEach(([code]) => {
+    if (!codes.has(code)) return;
+    const c = (rules.categoryRules && rules.categoryRules[code]) || {};
+    addGroupRow(code, {
+      base: rules.basePrices?.[code], max: c.maxPerTeam, min: c.minPerTeam,
+      reserve: c.reservePerSlot, budget: c.budget,
+    });
   });
+  refreshGroupAddDropdown();
   const bands = $('incrementRules');
   bands.innerHTML = '';
   (rules.incrementRules || []).forEach(b => bands.appendChild(bandRow(b.upTo, b.increment)));
@@ -205,14 +247,17 @@ function fillEditor(rules) {
 }
 
 function readRules() {
-  const basePrices = {}; GROUPS.forEach(g => basePrices[g] = Number($(`bp-${g}`).value));
+  const basePrices = {};
   const categoryRules = {};
-  GROUPS.forEach(g => {
+  document.querySelectorAll('#groupRules .group-row').forEach(row => {
+    const g = row.dataset.group;
+    const base = numOrNull(row.querySelector('.gr-base').value);
+    if (base != null) basePrices[g] = base;   // blank base = no group default price
     categoryRules[g] = {
-      maxPerTeam: numOrNull($(`cr-${g}-max`).value),
-      minPerTeam: numOrNull($(`cr-${g}-min`).value),
-      reservePerSlot: numOrNull($(`cr-${g}-reserve`).value),
-      budget: numOrNull($(`cr-${g}-budget`).value),
+      maxPerTeam: numOrNull(row.querySelector('.gr-max').value),
+      minPerTeam: numOrNull(row.querySelector('.gr-min').value),
+      reservePerSlot: numOrNull(row.querySelector('.gr-reserve').value),
+      budget: numOrNull(row.querySelector('.gr-budget').value),
     };
   });
   const incrementRules = [];

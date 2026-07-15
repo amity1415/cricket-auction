@@ -1,6 +1,7 @@
 package com.auctiontracker.bidding;
 
 import com.auctiontracker.core.AuctionException;
+import com.auctiontracker.core.Money;
 import com.auctiontracker.core.AuctionLock;
 import com.auctiontracker.core.FeasibilityService;
 import com.auctiontracker.core.Player;
@@ -96,10 +97,22 @@ public class BiddingService {
                             long nextMinimumIncrement) {}
 
     /**
-     * Records a bid for a team — in memory only, no database write. The server
-     * computes the price; the request deliberately carries no amount (DESIGN.md 5.3).
+     * Records a bid for a team at the server-computed next increment — in memory
+     * only, no database write (DESIGN.md 5.3).
      */
     public BidResult placeBid(UUID playerId, UUID teamId) {
+        return placeBid(playerId, teamId, null);
+    }
+
+    /**
+     * Records a bid for a team. When {@code customAmount} is null the server uses
+     * the computed next increment (the normal quick-bid path). When it is set —
+     * the auctioneer typed a floor/verbal bid — that exact amount is used instead,
+     * provided it clears the base price and beats the current bid. Either way it
+     * runs the full acquire-time feasibility check (purse, squad, group quota,
+     * reserve), so a manual bid can never break the rules.
+     */
+    public BidResult placeBid(UUID playerId, UUID teamId, Long customAmount) {
         synchronized (lock) {
             LiveBidSession session = session();
             Player player = requirePlayer(playerId);
@@ -119,13 +132,28 @@ public class BiddingService {
                                 .formatted(team.getName()));
             }
 
-            long nextAmount = incrementEngine.nextBidAmount(player.getBasePrice(),
-                    leading == null ? null : leading.amount());
-            feasibility.assertCanAcquire(team, player, nextAmount);
+            long amount;
+            if (customAmount != null) {
+                if (customAmount < player.getBasePrice()) {
+                    throw AuctionException.badRequest("BID_TOO_LOW",
+                            "Bid %s is below %s's base price of %s".formatted(
+                                    Money.inr(customAmount), player.getName(), Money.inr(player.getBasePrice())));
+                }
+                if (leading != null && customAmount <= leading.amount()) {
+                    throw AuctionException.conflict("BID_TOO_LOW",
+                            "Bid %s must be higher than the current bid of %s".formatted(
+                                    Money.inr(customAmount), Money.inr(leading.amount())));
+                }
+                amount = customAmount;
+            } else {
+                amount = incrementEngine.nextBidAmount(player.getBasePrice(),
+                        leading == null ? null : leading.amount());
+            }
+            feasibility.assertCanAcquire(team, player, amount);
 
-            session.push(teamId, nextAmount);
-            return new BidResult(player, team, nextAmount, session.count(),
-                    incrementEngine.incrementFor(nextAmount));
+            session.push(teamId, amount);
+            return new BidResult(player, team, amount, session.count(),
+                    incrementEngine.incrementFor(amount));
         }
     }
 

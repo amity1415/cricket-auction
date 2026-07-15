@@ -1540,3 +1540,40 @@ table.pool tbody tr:hover {
 .bc-maxbid.none { background: rgba(240,86,74,.12); border-color: rgba(240,86,74,.4); }
 .bc-maxbid.none b { font-size: 15px; color: #f2988f; }
 @media (max-width: 640px) { .bc-maxbid b { font-size: 17px; } .bc-maxbid { padding: 6px 10px; } }
+
+/* Manual/floor-bid entry on the auction console (amount + team). */
+.custom-bid {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 12px 0 4px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(91,140,255,.06); border: 1px solid var(--border);
+}
+.custom-bid .cb-label { font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
+.custom-bid #cb-amount { flex: 1 1 130px; min-width: 110px; padding: 9px 12px; font-size: 14px;
+  background: rgba(10,14,26,.5); border: 1px solid var(--border); border-radius: 9px; color: var(--text);
+  font-variant-numeric: tabular-nums; }
+.custom-bid #cb-team { flex: 1 1 170px; min-width: 150px; padding: 9px 12px; font-size: 13px;
+  background: rgba(10,14,26,.5); border: 1px solid var(--border); border-radius: 9px; color: var(--text); }
+.custom-bid #cb-amount:focus, .custom-bid #cb-team:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.18); }
+.custom-bid #cb-place { flex: 0 0 auto; padding: 9px 18px; }
+
+/* Dynamic per-group rules editor (auction create/edit). */
+.group-add-row { display: flex; gap: .5rem; align-items: center; margin: .3rem 0 .8rem; flex-wrap: wrap; }
+.group-add-row select { flex: 1 1 220px; }
+.grouped-head, .group-row {
+  display: grid; grid-template-columns: 108px repeat(5, 1fr) 34px; gap: .5rem; align-items: center;
+}
+.grouped-head { font-size: .74rem; color: var(--muted); margin-bottom: .35rem; padding: 0 .1rem; }
+.group-row { margin-bottom: .45rem; }
+.group-row input { width: 100%; }
+.group-row .cat-tag { font-weight: 700; color: var(--accent); font-size: .74rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.group-row .gr-del { padding: .2rem .5rem; }
+.group-row:hover .gr-del { border-color: var(--red); color: var(--red); }
+@media (max-width: 640px) {
+  .grouped-head { display: none; }
+  .group-row { grid-template-columns: 1fr 1fr 1fr; }
+  .group-row .cat-tag { grid-column: 1 / -1; }
+  .group-row .gr-del { grid-column: 1 / -1; justify-self: end; }
+}

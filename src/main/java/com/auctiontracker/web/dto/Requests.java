@@ -36,6 +36,11 @@ public final class Requests {
             @Positive long startingPurse,
             @Min(1) int maxSquadSize) {}
 
-    /** Deliberately no amount — the server computes the next price (DESIGN.md 5.3). */
-    public record PlaceBidRequest(@NotNull UUID teamId) {}
+    /**
+     * A bid for a team. {@code amount} is normally null — the server computes the
+     * next increment (DESIGN.md 5.3). It is set only for a manual/floor bid the
+     * auctioneer types in: any amount that beats the current bid and the team can
+     * afford, off the increment ladder if need be.
+     */
+    public record PlaceBidRequest(@NotNull UUID teamId, Long amount) {}
 }

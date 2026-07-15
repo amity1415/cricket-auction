@@ -55,18 +55,18 @@
       </fieldset>
 
       <fieldset class="rules-group">
-        <legend>Base price per group (₹)</legend>
-        <div class="grid5" id="basePrices"></div>
-      </fieldset>
-
-      <fieldset class="rules-group">
-        <legend>Per-group squad rules</legend>
-        <p class="hint" style="margin:.1rem 0 .6rem;">max / min players per team in the group; reserve-per-slot and budget are optional
-          (blank = none). Budget is a hard group spend ceiling (Group A in KCPL).</p>
-        <div class="cat-rules-head">
-          <span>Group</span><span>Max</span><span>Min</span><span>Reserve/slot</span><span>Budget</span>
+        <legend>Player groups</legend>
+        <p class="hint" style="margin:.1rem 0 .6rem;">Add each group and set its <b>base price</b> and per-team <b>max</b>/<b>min</b>.
+          Any blank field means no restriction — blank max = unlimited, blank min = none, blank base = players keep their own base price.
+          Reserve/slot and budget are optional advanced caps.</p>
+        <div class="group-add-row">
+          <select id="group-add-select"></select>
+          <button type="button" id="group-add-btn" class="ghost">＋ Add group</button>
         </div>
-        <div id="categoryRules"></div>
+        <div class="cat-rules-head grouped-head">
+          <span>Group</span><span>Base ₹</span><span>Max</span><span>Min</span><span>Reserve/slot</span><span>Budget</span><span></span>
+        </div>
+        <div id="groupRules"></div>
       </fieldset>
 
       <fieldset class="rules-group">

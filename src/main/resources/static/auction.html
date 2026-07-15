@@ -20,6 +20,12 @@
       <h2>On the Block</h2>
       <div id="block-content"><p class="muted">Nobody is under auction. Pick a player from the pool →</p></div>
       <div id="bid-buttons" class="bid-buttons"></div>
+      <div id="custom-bid" class="custom-bid" style="display:none">
+        <span class="cb-label">✍️ Manual bid</span>
+        <input id="cb-amount" type="number" min="1" placeholder="Amount (₹)" autocomplete="off">
+        <select id="cb-team"><option value="">Choose team…</option></select>
+        <button id="cb-place" class="primary">Place bid</button>
+      </div>
       <div class="actions">
         <button id="btn-confirm" class="primary" disabled>Confirm Sale</button>
         <button id="btn-unsold" class="danger" disabled>Mark Unsold</button>
