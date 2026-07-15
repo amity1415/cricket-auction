@@ -35,10 +35,12 @@ public record AuctionProperties(
 
     /**
      * Where an unsold player moves next and the base price they carry into that
-     * destination group. {@code destinationBasePrice == null} keeps the player's
-     * current base price (never silently lowers it). Used only by formats that
-     * configure {@code unsoldTransitions}; the A–E format leaves this unset and
-     * keeps its ordinal demotion.
+     * destination group. {@code destinationBasePrice == null} (the normal case)
+     * means "use the destination group's own base price" — so a transferred
+     * player always restarts at the base price of the pool they land in, and it
+     * auto-adjusts if that pool's base price changes. Set a value only to force a
+     * specific override. Used by formats that configure {@code unsoldTransitions};
+     * the A–E format leaves this unset and keeps its ordinal demotion.
      */
     public record GroupTransition(PlayerCategory destination, Long destinationBasePrice) {}
 

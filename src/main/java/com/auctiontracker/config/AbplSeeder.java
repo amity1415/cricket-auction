@@ -96,7 +96,7 @@ public class AbplSeeder implements CommandLineRunner {
         Map<PlayerCategory, Long> basePrices = new LinkedHashMap<>();
         basePrices.put(MIXED_UTILITY_BAG, 20_000L);
         basePrices.put(WICKET_KEEPER, 40_000L);
-        basePrices.put(BOWLER, 60_000L);
+        basePrices.put(BOWLER, 40_000L);
         basePrices.put(ALL_ROUNDER, 100_000L);
         basePrices.put(MARKEE_PLAYER, 80_000L);
 
@@ -108,13 +108,14 @@ public class AbplSeeder implements CommandLineRunner {
         quotas.put(ALL_ROUNDER,       new CategoryRule(3, 2, null, null));
         quotas.put(MARKEE_PLAYER,     new CategoryRule(2, 1, null, null)); // Markee max: configurable
 
-        // Unsold cascade with rising base price. Mixed→Bowler steps up to ₹60k;
-        // WK/Bowler→All Rounder step up to ₹1L; All Rounder→Markee keeps the
-        // player's current (already higher) price rather than dropping to ₹80k.
+        // Unsold cascade. A null destination price means the transferred player
+        // restarts at the destination pool's own base price (Mixed→Bowler ₹40k,
+        // WK/Bowler→All Rounder ₹1L, All Rounder→Markee ₹80k) — and auto-adjusts if
+        // a pool's base price is retuned.
         Map<PlayerCategory, GroupTransition> transitions = new LinkedHashMap<>();
-        transitions.put(MIXED_UTILITY_BAG, new GroupTransition(BOWLER, 60_000L));
-        transitions.put(WICKET_KEEPER,     new GroupTransition(ALL_ROUNDER, 100_000L));
-        transitions.put(BOWLER,            new GroupTransition(ALL_ROUNDER, 100_000L));
+        transitions.put(MIXED_UTILITY_BAG, new GroupTransition(BOWLER, null));
+        transitions.put(WICKET_KEEPER,     new GroupTransition(ALL_ROUNDER, null));
+        transitions.put(BOWLER,            new GroupTransition(ALL_ROUNDER, null));
         transitions.put(ALL_ROUNDER,       new GroupTransition(MARKEE_PLAYER, null));
         // MARKEE_PLAYER is terminal (no entry) → unsold there is finally UNSOLD.
 

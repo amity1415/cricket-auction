@@ -133,14 +133,15 @@ public class SaleService {
                     wasUnderAuction ? rules.unsoldTransitionFor(player.getCategory()) : null;
             if (transition != null) {
                 // Config-driven cascade (e.g. role-based format): move the player to
-                // the configured destination group, carrying the configured base
-                // price into it (null keeps the current one — never lowers it), and
-                // return to the pool AVAILABLE so it can be re-auctioned in that group.
+                // the configured destination group and re-price them to that group's
+                // own base price (so a transferred player always starts at the base
+                // of the pool they land in), unless the transition sets an explicit
+                // override. Then back to the pool AVAILABLE to be re-auctioned there.
                 // A group with no transition entry is terminal → falls through below.
                 player.setCategory(transition.destination());
-                if (transition.destinationBasePrice() != null) {
-                    player.setBasePrice(transition.destinationBasePrice());
-                }
+                Long override = transition.destinationBasePrice();
+                player.setBasePrice(override != null ? override
+                        : rules.basePriceFor(transition.destination()));
                 player.setStatus(PlayerStatus.AVAILABLE);
             } else if (wasUnderAuction && rules.demoteUnsoldPlayers()) {
                 PlayerCategory lowerGroup = player.getCategory().nextLower();
