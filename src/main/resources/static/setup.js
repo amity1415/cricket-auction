@@ -300,9 +300,16 @@ async function refreshRetention(teams, players) {
     setRetHtml(retTeamSel, '<option value="">Choose a team…</option>' + [...teams].sort(byName).map(t =>
         `<option value="${t.teamId}">${esc(t.name)} — ${fmtShort(t.remainingPurse)} left</option>`).join(''));
 
-    const available = players.filter(p => p.status === 'AVAILABLE').sort(byName);
-    setRetHtml(retPlayerSel, '<option value="">Choose a player to retain…</option>' + available.map(p =>
+    const available = players
+        .filter(p => p.status === 'AVAILABLE' && (!retSearch || p.name.toLowerCase().includes(retSearch)))
+        .sort(byName);
+    const placeholder = retSearch && available.length === 0
+        ? `<option value="">No available player matches “${esc(retSearch)}”</option>`
+        : '<option value="">Choose a player to retain…</option>';
+    setRetHtml(retPlayerSel, placeholder + available.map(p =>
         `<option value="${p.playerId}">${esc(p.name)} — Group ${p.category} (${fmtShort(p.basePrice)})</option>`).join(''));
+    // Narrowed to exactly one match → pre-select it for a one-click retain.
+    if (retSearch && available.length === 1) retPlayerSel.value = available[0].playerId;
 
     const slotsEl = document.getElementById('ret-slots');
     const listEl = document.getElementById('ret-list');
@@ -328,6 +335,16 @@ async function refreshRetention(teams, players) {
 
 retTeamSel.onchange = () => refreshRetention(lastTeams, lastPlayers);
 
+// Search box that filters the "player to retain" dropdown by name.
+let retSearch = '';
+const retSearchEl = document.getElementById('ret-search');
+if (retSearchEl) {
+  retSearchEl.oninput = () => {
+    retSearch = retSearchEl.value.trim().toLowerCase();
+    refreshRetention(lastTeams, lastPlayers);
+  };
+}
+
 document.getElementById('ret-btn').onclick = async () => {
   if (!retTeamSel.value || !retPlayerSel.value) {
     toast('Pick a team and a player first', true);
@@ -337,6 +354,8 @@ document.getElementById('ret-btn').onclick = async () => {
   if (r) {
     toast(`📌 Retained ${r.player.name} for ${fmtShort(r.player.soldPrice)}`);
     retPlayerSel.value = '';
+    retSearch = '';
+    if (retSearchEl) retSearchEl.value = '';   // reset the filter for the next pick
     refresh();
   }
 };
