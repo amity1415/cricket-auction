@@ -59,6 +59,7 @@ public class TournamentBootstrap implements CommandLineRunner {
         migrateLobRulesJson();
         relaxUserAccountOptionalColumns();
         dropStaleUserAccountRoleCheck();
+        dropStaleEnumCheck("player", "category"); // role-based cascade added new group values
 
         if (tournaments.count() > 0) {
             // A tournament already exists — make sure RuleBook knows the active one.
@@ -179,6 +180,21 @@ public class TournamentBootstrap implements CommandLineRunner {
      * via information_schema, and idempotent (nothing to drop once gone).
      */
     private void dropStaleUserAccountRoleCheck() {
+        dropStaleEnumCheck("user_account", "role");
+    }
+
+    /**
+     * Drops any CHECK constraint on {@code table.column} that references the enum
+     * column (skipping synthetic NOT NULL checks). Hibernate emits
+     * {@code CHECK (col in (...))} for {@code @Enumerated(STRING)} columns listing
+     * only the values present when the column was created; {@code ddl-auto=update}
+     * never updates it, so adding a value to the enum breaks inserts on a
+     * long-lived DB. Applies to {@code user_account.role} and, since the
+     * role-based cascade groups were added, {@code player.category}. The enum is
+     * enforced in code, so the DB check is redundant. Portable across H2/Postgres,
+     * idempotent.
+     */
+    private void dropStaleEnumCheck(String table, String column) {
         try (Connection c = dataSource.getConnection()) {
             List<String> toDrop = new ArrayList<>();
             try (PreparedStatement ps = c.prepareStatement(
@@ -188,27 +204,29 @@ public class TournamentBootstrap implements CommandLineRunner {
                             + "  ON tc.constraint_name = cc.constraint_name "
                             + " AND tc.constraint_schema = cc.constraint_schema "
                             + "WHERE tc.constraint_type = 'CHECK' "
-                            + "  AND lower(tc.table_name) = 'user_account'");
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String name = rs.getString(1);
-                    String clause = String.valueOf(rs.getString(2)).toLowerCase();
-                    // The enum value check references role; skip synthetic NOT NULL checks.
-                    if (clause.contains("role") && !clause.contains("not null")) {
-                        toDrop.add(name);
+                            + "  AND lower(tc.table_name) = ?")) {
+                ps.setString(1, table);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String name = rs.getString(1);
+                        String clause = String.valueOf(rs.getString(2)).toLowerCase();
+                        // The enum value check references the column; skip NOT NULL checks.
+                        if (clause.contains(column) && !clause.contains("not null")) {
+                            toDrop.add(name);
+                        }
                     }
                 }
             }
             for (String name : toDrop) {
                 try (Statement st = c.createStatement()) {
-                    st.executeUpdate("ALTER TABLE user_account DROP CONSTRAINT " + name);
-                    log.info("Dropped stale role CHECK constraint {} on user_account", name);
+                    st.executeUpdate("ALTER TABLE " + table + " DROP CONSTRAINT " + name);
+                    log.info("Dropped stale {} CHECK constraint {} on {}", column, name, table);
                 } catch (Exception e) {
-                    log.warn("Could not drop CHECK constraint {} on user_account: {}", name, e.getMessage());
+                    log.warn("Could not drop CHECK constraint {} on {}: {}", name, table, e.getMessage());
                 }
             }
         } catch (Exception e) {
-            log.warn("user_account role CHECK cleanup skipped: {}", e.getMessage());
+            log.warn("{} {} CHECK cleanup skipped: {}", table, column, e.getMessage());
         }
     }
 

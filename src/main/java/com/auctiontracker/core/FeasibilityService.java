@@ -207,7 +207,7 @@ public class FeasibilityService {
         }
         List<Long> mandatory = new ArrayList<>();  // group-minimum slots, priced at group base
         List<Long> optional = new ArrayList<>();   // spare capacity, cheapest wins
-        for (PlayerCategory g : PlayerCategory.values()) {
+        for (PlayerCategory g : ruleBook.current().configuredGroups()) {
             int have = held.getOrDefault(g, 0);
             int min = ruleBook.current().minPerTeamFor(g);
             Integer max = ruleBook.current().maxPerTeamFor(g);
@@ -260,7 +260,7 @@ public class FeasibilityService {
         }
         Map<PlayerCategory, Integer> counts = categoryCounts(squad);
         List<Long> mandatory = new ArrayList<>();
-        for (PlayerCategory g : PlayerCategory.values()) {
+        for (PlayerCategory g : ruleBook.current().configuredGroups()) {
             long base = ruleBook.current().basePriceFor(g);
             for (int i = 0; i < Math.max(0, ruleBook.current().minPerTeamFor(g) - counts.get(g)); i++) {
                 mandatory.add(base);

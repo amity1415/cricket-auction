@@ -23,7 +23,24 @@ public record AuctionProperties(
         Retention retention,
         TeamDefaults teamDefaults,
         boolean demoteUnsoldPlayers,
-        boolean seedDemoData) {
+        boolean seedDemoData,
+        // ---- Optional add-ons; null/absent = legacy behaviour (STANDARD_POOL) ----
+        // Where an unsold player in each group moves next, and at what base price.
+        // When a group has an entry here it OVERRIDES the ordinal A→E demotion, so
+        // any format can express its own cascade graph (e.g. the role-based one).
+        Map<PlayerCategory, GroupTransition> unsoldTransitions,
+        // Retention fee as a multiple of the player's own base price (e.g. 3 = 3×).
+        // When set it overrides the flat per-group retention cost below.
+        Integer retentionBasePriceMultiplier) {
+
+    /**
+     * Where an unsold player moves next and the base price they carry into that
+     * destination group. {@code destinationBasePrice == null} keeps the player's
+     * current base price (never silently lowers it). Used only by formats that
+     * configure {@code unsoldTransitions}; the A–E format leaves this unset and
+     * keeps its ordinal demotion.
+     */
+    public record GroupTransition(PlayerCategory destination, Long destinationBasePrice) {}
 
     /**
      * Pre-auction retention rules: total cap per team, split between the top
@@ -52,6 +69,17 @@ public record AuctionProperties(
     public record TeamDefaults(
             long startingPurse,
             int maxSquadSize) {}
+
+    /**
+     * The groups this rule book actually uses — exactly those with a configured
+     * base price. Loops must iterate these, NOT {@code PlayerCategory.values()},
+     * so that unrelated groups from the other auction format (which this
+     * tournament doesn't configure) are ignored instead of throwing on a missing
+     * base price or skewing feasibility maths.
+     */
+    public java.util.Set<PlayerCategory> configuredGroups() {
+        return basePrices == null ? java.util.Set.of() : basePrices.keySet();
+    }
 
     public long basePriceFor(PlayerCategory category) {
         Long price = basePrices.get(category);
@@ -98,6 +126,28 @@ public record AuctionProperties(
     }
 
     /**
+     * What retaining this player actually costs. When a base-price multiplier is
+     * configured the fee is {@code playerBasePrice × multiplier} (e.g. 3×); with
+     * no multiplier it falls back to the legacy flat per-group cost. Callers pass
+     * the player's own base price so per-player overrides are respected.
+     */
+    public long retentionCost(PlayerCategory category, long playerBasePrice) {
+        if (retentionBasePriceMultiplier != null) {
+            return playerBasePrice * (long) retentionBasePriceMultiplier;
+        }
+        return retentionCostFor(category);
+    }
+
+    /**
+     * The configured move for an unsold player in {@code group}, or null when this
+     * rule book defines no transition for it (then the caller uses the legacy
+     * demotion / marks the player finally unsold). Terminal groups have no entry.
+     */
+    public GroupTransition unsoldTransitionFor(PlayerCategory group) {
+        return unsoldTransitions == null ? null : unsoldTransitions.get(group);
+    }
+
+    /**
      * Checks that a squad of {@code squadSize} players can actually be filled
      * under these group rules: the group minimums must sum to no more than the
      * squad size, the group maximums must sum to at least it (an unlimited group
@@ -112,7 +162,7 @@ public record AuctionProperties(
         int minSum = 0;
         long maxSum = 0;
         boolean anyUnlimited = false;
-        for (PlayerCategory g : PlayerCategory.values()) {
+        for (PlayerCategory g : configuredGroups()) {
             int min = minPerTeamFor(g);
             Integer max = maxPerTeamFor(g);
             if (max != null && min > max) {

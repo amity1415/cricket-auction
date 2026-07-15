@@ -46,6 +46,16 @@ public class Tournament {
     @Column(nullable = false)
     private boolean active;
 
+    /**
+     * Which auction format this tournament runs. A plain nullable string (not a
+     * DB enum, so no CHECK constraint to keep in sync as formats are added);
+     * {@code null} means the legacy {@code STANDARD_POOL}. The actual mechanics
+     * are driven by the rule book (base prices, quotas, unsold transitions); this
+     * is the label a tournament carries so screens can show/select its format.
+     */
+    @Column(name = "auction_rule_type")
+    private String auctionRuleType;
+
     protected Tournament() {
         // for JPA
     }
@@ -71,4 +81,10 @@ public class Tournament {
     public String getRulesJson() { return rulesJson; }
     public void setRulesJson(String rulesJson) { this.rulesJson = rulesJson; }
     public Instant getCreatedAt() { return createdAt; }
+
+    /** The auction format label; defaults to STANDARD_POOL when unset (legacy rows). */
+    public String getAuctionRuleType() {
+        return auctionRuleType == null ? "STANDARD_POOL" : auctionRuleType;
+    }
+    public void setAuctionRuleType(String auctionRuleType) { this.auctionRuleType = auctionRuleType; }
 }

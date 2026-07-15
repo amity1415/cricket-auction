@@ -128,18 +128,33 @@ public class SaleService {
             // Persist the live bid trail (if any) for the audit replay, then drop the session.
             bidding.flushLiveBids(playerId);
 
-            if (wasUnderAuction && ruleBook.current().demoteUnsoldPlayers()) {
+            AuctionProperties rules = ruleBook.current();
+            AuctionProperties.GroupTransition transition =
+                    wasUnderAuction ? rules.unsoldTransitionFor(player.getCategory()) : null;
+            if (transition != null) {
+                // Config-driven cascade (e.g. role-based format): move the player to
+                // the configured destination group, carrying the configured base
+                // price into it (null keeps the current one — never lowers it), and
+                // return to the pool AVAILABLE so it can be re-auctioned in that group.
+                // A group with no transition entry is terminal → falls through below.
+                player.setCategory(transition.destination());
+                if (transition.destinationBasePrice() != null) {
+                    player.setBasePrice(transition.destinationBasePrice());
+                }
+                player.setStatus(PlayerStatus.AVAILABLE);
+            } else if (wasUnderAuction && rules.demoteUnsoldPlayers()) {
                 PlayerCategory lowerGroup = player.getCategory().nextLower();
                 if (lowerGroup != null) {
                     player.setCategory(lowerGroup);
-                    player.setBasePrice(ruleBook.current().basePriceFor(lowerGroup));
+                    player.setBasePrice(rules.basePriceFor(lowerGroup));
                 }
                 // Demoted one group, or already at the lowest group — either way the
                 // player goes back into the pool AVAILABLE so it can be put on the
                 // block again. Group E is a sticky floor, never terminally unsold.
                 player.setStatus(PlayerStatus.AVAILABLE);
             } else {
-                // Withdrawn before ever going under auction (or demotion disabled).
+                // Withdrawn before ever going under auction, demotion disabled, or a
+                // terminal group with no onward transition → finally unsold.
                 player.setStatus(PlayerStatus.UNSOLD);
             }
             players.save(player);
@@ -191,9 +206,10 @@ public class SaleService {
                                 .formatted(team.getName(), inSameBucket, rules.maxFromLowerGroups()));
             }
 
-            // RULE 2: retention costs a flat fee by group (A vs. any lower group),
-            // not the player's base price.
-            long price = ruleBook.current().retentionCostFor(player.getCategory());
+            // RULE 2: retention fee. Either a flat per-group fee (legacy) or, when a
+            // multiplier is configured, a multiple of the player's own base price
+            // (e.g. 3× base) — see AuctionProperties.retentionCost.
+            long price = ruleBook.current().retentionCost(player.getCategory(), player.getBasePrice());
             // Same purse / squad-size / group-quota guards as buying at auction.
             feasibility.assertCanAcquire(team, player, price);
 
