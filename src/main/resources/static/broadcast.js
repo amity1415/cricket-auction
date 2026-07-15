@@ -164,16 +164,25 @@ function renderLive(player, teams) {
 // Cache full player details for the sold screen so we don't re-fetch each tick.
 let soldDetailCache = { id: null, player: null };
 
-async function renderSold(sale, teams) {
-  // Paint the core sale facts IMMEDIATELY from the audit entry — no await. This
-  // is what the audience must see: who was sold, to whom, for how much. Waiting
-  // on the stats fetch here would leave the *previous* sale on screen for
-  // seconds (a stale player + amount flash), which is exactly the reported bug.
+async function renderResult(sale, teams) {
+  // Handles both terminal results — SOLD and UNSOLD — on the same panel. Paint
+  // the core facts IMMEDIATELY from the audit entry (no await) so a slow stats
+  // fetch can't leave the previous result on screen.
+  const sold = sale.type === 'SOLD';
+  const section = document.querySelector('#sold-state .broadcast-sold');
+  if (section) section.classList.toggle('unsold', !sold);
+  const stamp = document.querySelector('#sold-state .sold-stamp');
+  if (stamp) stamp.textContent = sold ? 'SOLD' : 'UNSOLD';
+  const deal = document.querySelector('#sold-state .sold-deal');
+  if (deal) deal.style.display = sold ? '' : 'none';
+
   setText('sold-avatar', initials(sale.playerName));
   setText('sold-name', sale.playerName);
-  setText('sold-team', sale.teamName);
-  setText('sold-amount', fmtINR(sale.amount));
-  renderTeams(teams, sale.teamId);
+  if (sold) {
+    setText('sold-team', sale.teamName);
+    setText('sold-amount', fmtINR(sale.amount));
+  }
+  renderTeams(teams, sold ? sale.teamId : null);
   showState('sold');
 
   // Enrich with role/stats asynchronously. Clear the previous player's chips
@@ -226,11 +235,11 @@ async function refreshLoop() {
     // audit fetch needed here, which also keeps the live board snappy.
     if (dash.onTheBlock) { renderLive(dash.onTheBlock, dash.teams); return; }
 
-    // Nobody on the block: the most recent result, if any, is a sale to show.
+    // Nobody on the block: show the most recent terminal result — sold OR unsold.
     const audit = await getJSON('/api/admin/audit').catch(() => []);
     if (!current()) return;
-    const lastSold = [].concat(audit).reverse().find(a => a.type === 'SOLD');
-    if (lastSold) { await renderSold(lastSold, dash.teams); return; }
+    const lastResult = [].concat(audit).reverse().find(a => a.type === 'SOLD' || a.type === 'UNSOLD');
+    if (lastResult) { await renderResult(lastResult, dash.teams); return; }
 
     setText('idle-title', '⏳ Waiting for the auction to begin…');
     setText('idle-sub', 'Check back when the admin puts a player on the block.');
