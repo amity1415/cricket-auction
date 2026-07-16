@@ -215,7 +215,13 @@ function numOrNull(v) {
   return s === '' ? null : Number(s);
 }
 
+// The rules being edited, kept whole so readRules can preserve fields the form
+// doesn't expose (e.g. a role-based tournament's unsoldTransitions and
+// retentionBasePriceMultiplier) instead of silently dropping them on save.
+let editorBaseRules = {};
+
 function fillEditor(rules) {
+  editorBaseRules = rules || {};
   $('f-startingPurse').value = rules.teamDefaults.startingPurse;
   $('f-maxSquadSize').value = rules.teamDefaults.maxSquadSize;
   $('f-minViablePrice').value = rules.minViablePrice;
@@ -268,6 +274,9 @@ function readRules() {
   });
   incrementRules.sort((a, b) => a.upTo - b.upTo);
   return {
+    // Preserve any fields the form doesn't manage (unsoldTransitions,
+    // retentionBasePriceMultiplier, …); the explicit keys below then override.
+    ...editorBaseRules,
     minViablePrice: Number($('f-minViablePrice').value),
     basePrices,
     incrementRules,
