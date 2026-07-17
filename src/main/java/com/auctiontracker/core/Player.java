@@ -50,16 +50,26 @@ public class Player {
     private PlayerStats stats;
 
     /**
-     * Reference to this player's poster image — normally a Google Drive file id,
-     * but may also be a direct image URL. Set either from the import's
-     * {@code Image_location} column (see {@link PlayerRowParser#toPhotoRef}) or,
-     * as a fallback, resolved at startup by
-     * {@link com.auctiontracker.photo.PlayerPhotoService} from the public photo
-     * folder by import serial ({@link #seq} + 1). An import-supplied value wins.
-     * Null when no image is mapped. Served via GET /api/players/{id}/photo.
+     * Google Drive file id of this player's resolved poster image, or null when
+     * none. Resolved by {@link com.auctiontracker.photo.PlayerPhotoService} as the
+     * file named by the player's serial ({@link #seq} + 1) inside the photo folder
+     * — the import's {@code Image_location} folder ({@link #photoFolderId}) when
+     * given, else the configured folder. Persisted, so it survives restarts;
+     * served via GET /api/players/{id}/photo.
      */
     @Column(name = "photo_file_id")
     private String photoFileId;
+
+    /**
+     * Transient (never persisted) Google Drive FOLDER reference supplied by an
+     * import's {@code Image_location} column. The player's poster is the file
+     * named by its 1-based serial ({@link #seq} + 1) inside this folder; the
+     * photo service resolves that to {@link #photoFileId} right after import.
+     * In-memory only — it carries the folder from the parser to that resolution
+     * step without adding a column.
+     */
+    @jakarta.persistence.Transient
+    private String photoFolderId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -112,6 +122,9 @@ public class Player {
 
     public String getPhotoFileId() { return photoFileId; }
     public void setPhotoFileId(String photoFileId) { this.photoFileId = photoFileId; }
+
+    public String getPhotoFolderId() { return photoFolderId; }
+    public void setPhotoFolderId(String photoFolderId) { this.photoFolderId = photoFolderId; }
 
     /** True when this player has a poster image mapped (served at /api/players/{id}/photo). */
     public boolean hasPhoto() { return photoFileId != null && !photoFileId.isBlank(); }

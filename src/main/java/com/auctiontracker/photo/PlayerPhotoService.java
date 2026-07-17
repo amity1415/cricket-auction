@@ -109,37 +109,63 @@ public class PlayerPhotoService {
     }
 
     /**
-     * Re-list the folder, (re)map file ids onto the tournament's players, and warm
-     * the byte cache. Safe to call again at runtime (e.g. after adding images);
-     * returns the number of players that now have an image mapped.
+     * Startup / manual sync for the CONFIGURED photo folder: (re)maps its images
+     * onto the configured tournament's players by serial and warms the cache.
+     * Returns how many players now have an image.
      */
     public int syncAndWarm() {
-        Map<String, String> serialToFileId = listFolder();
-        if (serialToFileId.isEmpty()) {
-            log.warn("Photo folder {} listed 0 files — nothing to map.", folderId);
-            return 0;
-        }
         UUID tournamentId = resolveTournamentId();
         if (tournamentId == null) {
             log.warn("Photo tournament '{}' not found — skipping photo mapping.", tournamentSlug);
             return 0;
         }
-        List<Player> pool = players.findByTournamentIdOrdered(tournamentId);
+        return assignAndWarm(players.findByTournamentIdOrdered(tournamentId),
+                folderId.isEmpty() ? null : folderId);
+    }
+
+    /**
+     * Resolve poster images for a freshly imported pool. Each player's image is
+     * the file named by its 1-based serial ({@link Player#getSeq()} + 1) inside
+     * the Drive folder given per row in the import (the {@code Image_location}
+     * column, carried on {@link Player#getPhotoFolderId()}); the configured folder
+     * is the fallback. Runs off the request thread and is fully guarded, so a
+     * slow/broken Drive can never delay or fail the import — players just render
+     * with initials until (and unless) their image resolves.
+     */
+    public void resolveFolderImages(List<Player> imported) {
+        if (!enabled || imported == null || imported.isEmpty()) return;
+        CompletableFuture.runAsync(() -> {
+            try { assignAndWarm(imported, folderId.isEmpty() ? null : folderId); }
+            catch (Exception e) { log.warn("Post-import photo mapping failed: {}", e.toString()); }
+        });
+    }
+
+    /**
+     * Core mapping. For every player that doesn't already have an image, take the
+     * file named by its serial (seq + 1) from its folder — the player's own
+     * {@link Player#getPhotoFolderId()} when set (from Image_location), otherwise
+     * the given fallback folder — record the Drive file id, then warm the cache.
+     * Players that already have an image are left untouched; each folder is listed
+     * once and reused across players.
+     */
+    private int assignAndWarm(List<Player> pool, String fallbackFolderId) {
+        Map<String, Map<String, String>> byFolder = new HashMap<>(); // folderId → (serial → fileId)
         int mapped = 0;
         for (Player p : pool) {
-            // An image supplied per-row in the import (Image_location) is
-            // authoritative — the folder-by-serial mapping only fills gaps for
-            // players that don't already have one, and never overwrites it.
-            if (p.hasPhoto()) { mapped++; continue; }
+            if (p.hasPhoto()) { mapped++; continue; }            // already resolved — keep it
             if (p.getSeq() == null) continue;                    // no import order → no serial
-            String fileId = serialToFileId.get(String.valueOf(p.getSeq() + 1));
-            if (fileId == null) continue;                        // no image for this serial
+            String folder = p.getPhotoFolderId() != null && !p.getPhotoFolderId().isBlank()
+                    ? p.getPhotoFolderId() : fallbackFolderId;
+            if (folder == null || folder.isBlank()) continue;
+            String fileId = byFolder.computeIfAbsent(folder, this::listFolder)
+                    .get(String.valueOf(p.getSeq() + 1));
+            if (fileId == null) continue;                        // no image at this serial
             p.setPhotoFileId(fileId);
             players.save(p);                                     // own transaction per save
             mapped++;
         }
-        log.info("Player photos: mapped {}/{} players in '{}' from {} folder files.",
-                mapped, pool.size(), tournamentSlug, serialToFileId.size());
+        log.info("Player photos: {}/{} players have an image ({} folder(s) listed).",
+                mapped, pool.size(), byFolder.size());
         warmCache(pool);
         return mapped;
     }
@@ -176,9 +202,9 @@ public class PlayerPhotoService {
 
     // --- Drive access -------------------------------------------------------
 
-    /** Fetch and parse {@code serial -> fileId} from the public embedded-folder listing. */
-    private Map<String, String> listFolder() {
-        String url = "https://drive.google.com/embeddedfolderview?id=" + folderId + "#list";
+    /** Fetch and parse {@code serial -> fileId} from a folder's public listing. */
+    private Map<String, String> listFolder(String driveFolderId) {
+        String url = "https://drive.google.com/embeddedfolderview?id=" + driveFolderId + "#list";
         String html = fetchString(url);
         return html == null ? new HashMap<>() : parseFolderListing(html);
     }

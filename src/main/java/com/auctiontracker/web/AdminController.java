@@ -5,6 +5,7 @@ import com.auctiontracker.core.CoreService;
 import com.auctiontracker.core.Player;
 import com.auctiontracker.core.Team;
 import com.auctiontracker.dashboard.DashboardService;
+import com.auctiontracker.photo.PlayerPhotoService;
 import com.auctiontracker.sale.SaleService;
 import com.auctiontracker.setup.SetupService;
 import com.auctiontracker.web.dto.Requests.PlaceBidRequest;
@@ -50,14 +51,16 @@ public class AdminController {
     private final SaleService sale;
     private final DashboardService dashboard;
     private final SetupService setup;
+    private final PlayerPhotoService photos;
 
     public AdminController(CoreService core, BiddingService bidding, SaleService sale,
-                           DashboardService dashboard, SetupService setup) {
+                           DashboardService dashboard, SetupService setup, PlayerPhotoService photos) {
         this.core = core;
         this.bidding = bidding;
         this.sale = sale;
         this.dashboard = dashboard;
         this.setup = setup;
+        this.photos = photos;
     }
 
     // --- Pre-auction setup -------------------------------------------------
@@ -85,6 +88,9 @@ public class AdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public BulkImportResponse bulkImportReplace(@RequestParam("file") MultipartFile file) throws IOException {
         List<Player> imported = setup.replaceImport(file.getOriginalFilename(), file.getBytes());
+        // Resolve each player's poster (by serial) from the Image_location folder,
+        // off-thread — never blocks or fails the import if Drive is slow/down.
+        photos.resolveFolderImages(imported);
         return new BulkImportResponse(imported.size(), imported.stream().map(PlayerView::from).toList());
     }
 

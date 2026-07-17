@@ -21,9 +21,11 @@ import java.util.regex.Pattern;
  *       insensitive): columns are matched <em>by name</em>, so they can appear in
  *       any order and optional ones can be omitted. Recognised headers:
  *       {@code name, role, category, basePrice, matches, runs, battingAvg,
- *       strikeRate, wickets, economy} and {@code Image_location} — the player's
- *       poster (a Google Drive share link, a bare Drive file id, or a direct
- *       image URL; see {@link #toPhotoRef}).</li>
+ *       strikeRate, wickets, economy} and {@code Image_location} — the Google
+ *       Drive FOLDER holding the posters (a folder link or a bare folder id; see
+ *       {@link #toPhotoFolderId}). Each player's poster is the image named by the
+ *       player's 1-based serial (its position in the file, header excluded) inside
+ *       that folder — the photo service resolves it after import.</li>
  *   <li><b>Without a header</b>: the legacy fixed order
  *       {@code name,role,category[,basePrice][,matches,runs,battingAvg,strikeRate,wickets,economy]}
  *       (no image column — add a header row to use {@code Image_location}).</li>
@@ -58,9 +60,9 @@ public class PlayerRowParser {
             Map.entry("imageurl", "image"), Map.entry("photo", "image"),
             Map.entry("photourl", "image"), Map.entry("photolocation", "image"));
 
-    /** File id inside a Google Drive share link (…/file/d/ID, …/d/ID, ?id=ID). */
-    private static final Pattern DRIVE_ID =
-            Pattern.compile("(?:/d/|/file/d/|[?&]id=)([A-Za-z0-9_-]{20,})");
+    /** Folder id inside a Google Drive folder link (…/folders/ID or ?id=ID). */
+    private static final Pattern DRIVE_FOLDER_ID =
+            Pattern.compile("(?:/folders/|[?&]id=)([A-Za-z0-9_-]{15,})");
 
     private final RuleBook ruleBook;
 
@@ -144,7 +146,7 @@ public class PlayerRowParser {
                 doubleValue(parts, cols, "battingavg"), doubleValue(parts, cols, "strikerate"),
                 intValue(parts, cols, "wickets"), doubleValue(parts, cols, "economy"));
         player.setStats(stats.allNull() ? null : stats);
-        player.setPhotoFileId(toPhotoRef(value(parts, cols, "image")));
+        player.setPhotoFolderId(toPhotoFolderId(value(parts, cols, "image")));
         return player;
     }
 
@@ -208,25 +210,25 @@ public class PlayerRowParser {
     // --- Image location ----------------------------------------------------
 
     /**
-     * Normalise an {@code Image_location} cell into the reference stored on
-     * {@link Player#getPhotoFileId()} and later resolved by the photo service:
+     * Normalise an {@code Image_location} cell into a Google Drive FOLDER id,
+     * stored transiently on {@link Player#getPhotoFolderId()} and resolved to the
+     * per-player image (by serial) after import:
      * <ul>
-     *   <li>a Google Drive share link (…/file/d/ID/view, ?id=ID, …) → its file id;</li>
-     *   <li>a bare Drive file id → used as-is;</li>
-     *   <li>any other http(s) URL → kept whole as a direct image link.</li>
+     *   <li>a Drive folder link (…/drive/folders/ID, …/folders/ID, ?id=ID) → its id;</li>
+     *   <li>a bare folder id → used as-is;</li>
+     *   <li>a link that isn't a recognisable Drive folder → null (no image).</li>
      * </ul>
-     * Blank / null → null (the player simply has no image). Static so the value
-     * can be normalised without a Spring bean.
+     * Blank / null → null. Static so the value can be normalised without a bean.
      */
-    public static String toPhotoRef(String raw) {
+    public static String toPhotoFolderId(String raw) {
         if (raw == null) return null;
         String s = raw.trim();
         if (s.isEmpty()) return null;
         if (s.startsWith("http://") || s.startsWith("https://")) {
-            Matcher m = DRIVE_ID.matcher(s);
-            return m.find() ? m.group(1) : s;   // Drive link → id; otherwise a direct URL
+            Matcher m = DRIVE_FOLDER_ID.matcher(s);
+            return m.find() ? m.group(1) : null;   // only a real Drive folder link yields an id
         }
-        return s;                                // assume a bare Drive file id
+        return s;                                   // assume a bare folder id
     }
 
     private static String normalizeHeader(String s) {
