@@ -67,7 +67,7 @@ public class DashboardService {
                 .sorted(Comparator.comparing(Player::getSoldAt))
                 .map(p -> new SquadMemberView(p.getPlayerId(), p.getName(), p.getRole(),
                         p.getCategory(), p.getStatus() == PlayerStatus.RETAINED,
-                        p.getSoldPrice(), p.getSoldAt()))
+                        p.getSoldPrice(), p.getSoldAt(), p.hasPhoto()))
                 .toList();
         return new TeamDetailView(snapshot(team, squadPlayers, blockPlayer()), squad, Instant.now());
     }
@@ -124,6 +124,7 @@ public class DashboardService {
                 leadingTeamId,
                 leadingTeamName,
                 bidding.nextBidAmount(player),
-                bidding.bidCount(player.getPlayerId()));
+                bidding.bidCount(player.getPlayerId()),
+                player.hasPhoto());
     }
 }

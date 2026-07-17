@@ -49,6 +49,15 @@ public class Player {
     @Embedded
     private PlayerStats stats;
 
+    /**
+     * Google Drive file id of this player's poster image, resolved at startup by
+     * {@link com.auctiontracker.photo.PlayerPhotoService} from the public photo
+     * folder (matched to the player by import serial = {@link #seq} + 1). Null
+     * when no image is mapped. Served via GET /api/players/{id}/photo.
+     */
+    @Column(name = "photo_file_id")
+    private String photoFileId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlayerStatus status;
@@ -97,6 +106,12 @@ public class Player {
 
     public PlayerStats getStats() { return stats; }
     public void setStats(PlayerStats stats) { this.stats = stats; }
+
+    public String getPhotoFileId() { return photoFileId; }
+    public void setPhotoFileId(String photoFileId) { this.photoFileId = photoFileId; }
+
+    /** True when this player has a poster image mapped (served at /api/players/{id}/photo). */
+    public boolean hasPhoto() { return photoFileId != null && !photoFileId.isBlank(); }
 
     public PlayerStatus getStatus() { return status; }
     public void setStatus(PlayerStatus status) { this.status = status; }

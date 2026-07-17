@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cricket Auction — Live Broadcast</title>
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body class="broadcast-mode">
 <header>
@@ -29,6 +29,7 @@
   <div id="live-state" style="display:none">
     <section class="broadcast-player">
       <div class="player-card">
+        <img class="player-poster" id="bc-poster" alt="" style="display:none">
         <div class="player-avatar" id="bc-avatar"></div>
         <div class="player-main">
           <h2 id="bc-name">Player Name</h2>
@@ -58,6 +59,7 @@
     <section class="broadcast-sold">
       <div class="sold-stamp">SOLD</div>
       <div class="player-card">
+        <img class="player-poster" id="sold-poster" alt="" style="display:none">
         <div class="player-avatar" id="sold-avatar"></div>
         <div class="player-main">
           <h2 id="sold-name"></h2>
@@ -78,16 +80,27 @@
     </section>
   </div>
 
-  <!-- Shared: team purses, shown under both the live and sold panels -->
+  <!-- Shared: team purses, shown under both the live and sold panels.
+       Click any team to open its squad drill-down (see #bc-team-modal). -->
   <section id="teams-section" class="broadcast-teams" style="display:none">
-    <h2>Team Purses</h2>
+    <h2>Team Purses <span class="muted th-hint">— click a team to see its squad</span></h2>
     <div class="teams-broadcast" id="bc-teams"></div>
   </section>
 </main>
 
+<!-- Team squad drill-down: who this team has bought and for how much. Mirrors the
+     team-owner dashboard's squad list; opened by clicking a team purse card. -->
+<dialog id="bc-team-modal" class="modal">
+  <div class="modal-head">
+    <h3 id="btm-title">Team squad</h3>
+    <button type="button" class="modal-x" id="btm-close" title="Close (Esc)">✕</button>
+  </div>
+  <div class="modal-body" id="btm-body"><p class="muted">Loading…</p></div>
+</dialog>
+
 <script src="tournament-context.js"></script>
 <script src="auth.js"></script>
-<script src="profile-modal.js?v=11"></script>
-<script src="broadcast.js?v=13"></script>
+<script src="profile-modal.js?v=12"></script>
+<script src="broadcast.js?v=14"></script>
 </body>
 </html>

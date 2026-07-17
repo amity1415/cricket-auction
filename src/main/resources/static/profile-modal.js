@@ -78,7 +78,9 @@
       document.getElementById('ppm-full').href = `player.html?playerId=${p.playerId}`;
       const html = `
         <div class="pm-hero">
-          <div class="avatar">${initials(p.name)}</div>
+          ${p.hasPhoto ? `<img class="pm-photo" src="/api/players/${p.playerId}/photo" alt=""
+             onerror="this.style.display='none';this.nextElementSibling.style.display='';">` : ''}
+          <div class="avatar"${p.hasPhoto ? ' style="display:none"' : ''}>${initials(p.name)}</div>
           <div class="hero-main">
             <div class="chips">
               <span class="chip">${ROLE_ICON[p.role] || ''} ${ROLE_NAME[p.role] || p.role}</span>

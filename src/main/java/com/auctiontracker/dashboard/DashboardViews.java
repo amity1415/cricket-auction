@@ -41,7 +41,8 @@ public final class DashboardViews {
             UUID currentLeadingTeamId,
             String currentLeadingTeamName,
             long nextBidAmount,
-            int bidCount) {}
+            int bidCount,
+            boolean hasPhoto) {}
 
     public record DashboardView(
             OnTheBlockView onTheBlock,
@@ -55,7 +56,8 @@ public final class DashboardViews {
             PlayerCategory category,
             boolean retained,
             Long soldPrice,
-            Instant soldAt) {}
+            Instant soldAt,
+            boolean hasPhoto) {}
 
     public record TeamDetailView(
             TeamSnapshot team,
