@@ -20,4 +20,9 @@ public interface SaleJpaRepository extends JpaRepository<Sale, UUID> {
     @Modifying
     @Query("delete from Sale s where s.tournamentId = :tid")
     void deleteByTournamentId(@Param("tid") UUID tournamentId);
+
+    /** Bulk DELETE of a single player's audit rows (a player id is tournament-unique). */
+    @Modifying
+    @Query("delete from Sale s where s.playerId = :pid")
+    void deleteByPlayerId(@Param("pid") UUID playerId);
 }

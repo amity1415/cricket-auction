@@ -25,6 +25,11 @@ public class InMemorySaleRepository implements SaleRepository {
     }
 
     @Override
+    public void deleteByPlayerId(UUID playerId) {
+        store.values().removeIf(s -> s.getPlayerId().equals(playerId));
+    }
+
+    @Override
     public void deleteAll() {
         store.clear();
     }

@@ -261,6 +261,54 @@ public class SaleService {
         }
     }
 
+    /**
+     * Reverts a completed sale: the player goes back to the pool as AVAILABLE and
+     * everything the sale touched is undone —
+     *   - the buying team is refunded the sold price and the squad slot is freed;
+     *   - the player's sale fields (team / price / timestamp) are cleared;
+     *   - the player's persisted bid trail is dropped, so a re-auction starts
+     *     fresh from base price instead of replaying the void bids;
+     *   - the player's audit rows (the SOLD entry) are removed, so reports and
+     *     the broadcast no longer count a sale that no longer stands.
+     * A RELEASED audit row is written to record who reverted it and when.
+     *
+     * Category / base price are left untouched — a straight sale never changed
+     * them, unlike the unsold cascade. RETAINED players use {@link #releasePlayer}.
+     */
+    @Transactional
+    public SaleResult revertSale(UUID playerId) {
+        synchronized (lock) {
+            Player player = requirePlayer(playerId);
+            if (player.getStatus() != PlayerStatus.SOLD) {
+                throw AuctionException.conflict("INVALID_STATE",
+                        "%s is %s — only SOLD players can be reverted to the pool"
+                                .formatted(player.getName(), player.getStatus()));
+            }
+            Team team = teams.findById(player.getSoldToTeamId()).orElseThrow(() ->
+                    AuctionException.notFound("TEAM_NOT_FOUND",
+                            "Buying team no longer exists: " + player.getSoldToTeamId()));
+            long refund = player.getSoldPrice();
+
+            player.setStatus(PlayerStatus.AVAILABLE);
+            player.setSoldToTeamId(null);
+            player.setSoldPrice(null);
+            player.setSoldAt(null);
+            players.save(player);
+
+            team.setRemainingPurse(team.getRemainingPurse() + refund);
+            team.getSquadPlayerIds().remove(player.getPlayerId());
+            teams.save(team);
+
+            // Wipe the void auction trail and the now-defunct SOLD audit row, then
+            // leave a RELEASED breadcrumb documenting the reversal.
+            bidding.discardBids(playerId);
+            sales.deleteByPlayerId(playerId);
+            sales.save(Sale.released(player.getPlayerId(), player.getName(),
+                    team.getTeamId(), team.getName(), refund, RECORDED_BY));
+            return new SaleResult(player, team);
+        }
+    }
+
     /** Setup-time wipe (players are being replaced); not used mid-auction. */
     @Transactional
     public void deleteAllSales() {

@@ -31,6 +31,11 @@ public class InMemoryBidEventRepository implements BidEventRepository {
     }
 
     @Override
+    public void deleteByPlayerId(UUID playerId) {
+        store.values().removeIf(e -> e.getPlayerId().equals(playerId));
+    }
+
+    @Override
     public void deleteAll() {
         store.clear();
     }

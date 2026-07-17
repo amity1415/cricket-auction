@@ -22,4 +22,9 @@ public interface BidEventJpaRepository extends JpaRepository<BidEvent, UUID> {
     @Modifying
     @Query("delete from BidEvent b where b.tournamentId = :tid")
     void deleteByTournamentId(@Param("tid") UUID tournamentId);
+
+    /** Bulk DELETE of a single player's bid trail (a player id is tournament-unique). */
+    @Modifying
+    @Query("delete from BidEvent b where b.playerId = :pid")
+    void deleteByPlayerId(@Param("pid") UUID playerId);
 }
