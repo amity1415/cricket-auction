@@ -435,7 +435,7 @@ summary { cursor: pointer; color: var(--accent); padding: 4px 0; font-weight: 60
 .profile-wrap { max-width: 780px; margin: 0 auto; padding: 20px 26px; display: flex; flex-direction: column; gap: 18px; }
 .profile-wrap > div { display: flex; flex-direction: column; gap: 18px; }
 .profile-hero {
-  display: flex; gap: 20px; align-items: center;
+  display: flex; gap: 28px; align-items: center;
   border-color: rgba(91,140,255,.4);
   background: linear-gradient(160deg, rgba(91,140,255,.10), rgba(139,92,246,.06) 50%, transparent), var(--card);
 }
@@ -446,14 +446,18 @@ summary { cursor: pointer; color: var(--accent); padding: 4px 0; font-weight: 60
   font-size: 27px; font-weight: 800; color: #fff;
   box-shadow: 0 10px 26px -8px rgba(91,140,255,.55);
 }
-/* Portrait poster on the full player page — full artwork, not cropped. */
+/* Portrait poster on the full player page — full artwork, not cropped. Sized as
+   the page's centrepiece; capped by viewport height so it never overflows. */
 .profile-poster {
-  flex: 0 0 auto; width: 170px; height: auto; max-height: 240px;
-  object-fit: contain; border-radius: 14px; background: rgba(10,14,26,.4);
-  box-shadow: 0 12px 30px -12px rgba(0,0,0,.7);
+  flex: 0 0 auto; width: 320px; max-width: 42vw; height: auto; max-height: 62vh;
+  object-fit: contain; border-radius: 18px; background: rgba(10,14,26,.4);
+  box-shadow: 0 18px 44px -14px rgba(0,0,0,.75);
 }
+/* When the poster is present the hero reads as a portrait card — top-align the
+   details so long stat blocks flow down beside the tall image, not off-centre. */
+.profile-hero:has(.profile-poster) { align-items: flex-start; }
 .hero-main { min-width: 0; }
-.pname { margin: 0 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.pname { margin: 0 0 8px; font-size: 32px; font-weight: 800; letter-spacing: -.02em; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .chips .chip { margin-left: 0; }
 .status-line { margin-top: 12px; font-size: 14px; }
@@ -630,49 +634,52 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
 .broadcast-player {
   background: linear-gradient(160deg, rgba(79,108,255,.12), rgba(139,92,246,.08)), var(--card);
   border: 1px solid rgba(79,108,255,.45); border-radius: var(--radius);
-  padding: 28px; margin-bottom: 28px;
+  padding: 24px 28px; margin-bottom: 20px;
   box-shadow: var(--shadow);
 }
 
+/* The hero is one horizontal band: the poster on the left, all the text and bid
+   figures in the column beside it (bid markup lives inside .player-main now). */
 .player-card {
-  display: flex; gap: 36px; align-items: center; margin-bottom: 26px;
-  padding-bottom: 26px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 48px; align-items: center;
 }
-/* Photo placeholder — a real player photo can be dropped in later via
-   background-image (it's set to cover). Initials show until then. */
+/* Initials fallback, shown only when a player has no poster. */
 .player-avatar {
-  width: 200px; height: 200px; border-radius: 22px; flex: 0 0 auto;
+  width: 260px; height: 260px; border-radius: 26px; flex: 0 0 auto;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   background-size: cover; background-position: center;
   display: flex; align-items: center; justify-content: center;
-  font-size: 72px; font-weight: 800; color: #fff;
-  box-shadow: 0 16px 38px -10px rgba(91,140,255,.55);
+  font-size: 96px; font-weight: 800; color: #fff;
+  box-shadow: 0 18px 44px -10px rgba(91,140,255,.55);
 }
 /* Portrait player poster (Drive-backed). Shown instead of the initials avatar
-   when the player has an image; full poster is preserved (object-fit: contain)
-   rather than cropped, since the artwork already carries the player's name and
-   traits. The broadcast board's fit-to-screen scaling keeps the taller card on
-   one screen. */
+   when the player has an image; the full poster is preserved (object-fit:
+   contain) rather than cropped, since the artwork already carries the player's
+   name and traits. Sized to dominate the hero on a projector; the board's
+   fit-to-screen scaling still guarantees the whole page stays on one screen. */
 .player-poster {
   flex: 0 0 auto;
-  height: 460px; max-height: 52vh; width: auto; max-width: 40vw;
-  object-fit: contain; border-radius: 20px;
+  height: 50vh; max-height: 56vh; width: auto; max-width: 44vw;
+  object-fit: contain; border-radius: 24px;
   background: rgba(10,14,26,.4);
-  box-shadow: 0 16px 38px -10px rgba(91,140,255,.55);
+  box-shadow: 0 24px 56px -14px rgba(91,140,255,.6);
 }
-.broadcast-sold .player-poster { box-shadow: 0 16px 38px -10px rgba(45,212,143,.5); }
-.player-main { flex: 1; min-width: 0; }
-.player-main h2 { margin: 0 0 16px; font-size: 52px; letter-spacing: -.02em; line-height: 1.05; }
-.player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
-.player-meta .chip { font-size: 24px; padding: 10px 22px; }
+.broadcast-sold .player-poster { box-shadow: 0 24px 56px -14px rgba(45,212,143,.5); }
+.player-main {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 22px;
+}
+.player-main h2 { margin: 0; font-size: 60px; letter-spacing: -.02em; line-height: 1.02; }
+.player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin: 0; }
+.player-meta .chip { font-size: 26px; padding: 11px 24px; }
 .player-status { color: var(--muted); }
 /* Bigger, evenly-spread career stats for the TV. */
 .player-status .pstats { gap: 12px 30px; padding: 20px 26px; justify-content: space-between; }
-.player-status .pstat b { font-size: 38px; }
-.player-status .pstat span { font-size: 16px; }
+.player-status .pstat b { font-size: 40px; }
+.player-status .pstat span { font-size: 17px; }
 
 .bid-display {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 6px 0 0;
 }
 .bid-amount {
   background: rgba(10,14,26,.5); border: 1px solid var(--border);
@@ -685,10 +692,10 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   letter-spacing: .06em; color: var(--muted);
 }
 .bid-value {
-  font-size: 54px; font-weight: 800; color: var(--green);
+  font-size: 64px; font-weight: 800; color: var(--green);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
-.bid-team { font-size: 22px; color: var(--text); font-weight: 600; }
+.bid-team { font-size: 24px; color: var(--text); font-weight: 600; }
 .bid-amount.next .bid-value { color: var(--accent); }
 
 .bid-info { display: flex; gap: 12px; align-items: center; }
@@ -698,50 +705,55 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   border-radius: 20px; font-size: 12px; font-weight: 700; color: #c1a8f7;
 }
 
+/* Team purses — big type but COMPACT height, so a full field lays out in one
+   row and the board fits one screen without shrinking (projector-readable). */
 .broadcast-teams {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 24px;
+  border-radius: var(--radius); padding: 22px 26px;
 }
 .broadcast-teams h2 {
-  margin: 0 0 18px; font-size: 15px; text-transform: uppercase;
+  margin: 0 0 16px; font-size: 20px; text-transform: uppercase;
   letter-spacing: .1em; color: var(--muted);
 }
 .teams-broadcast {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
 }
 .team-broadcast {
   background: var(--card-2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 16px;
-  transition: all .3s ease;
+  border-radius: 16px; padding: 16px 18px;
+  transition: border-color .3s ease, transform .2s ease, box-shadow .2s ease;
   position: relative;
 }
 .team-broadcast:hover { border-color: var(--border-strong); }
 .team-broadcast.leading {
-  border-color: var(--green); box-shadow: 0 0 0 1px var(--green);
+  border-color: var(--green); box-shadow: 0 0 0 2px var(--green);
   background: linear-gradient(160deg, rgba(45,212,143,.08), rgba(45,212,143,.02)), var(--card-2);
 }
-.team-broadcast h3 { margin: 0 0 10px; font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
-.purse-bar { height: 12px; background: rgba(148,163,205,.14); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.tb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.team-broadcast h3 {
+  margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.purse-amount {
+  font-size: 40px; font-weight: 800; color: var(--green);
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 2px 0 10px;
+}
+.purse-bar { height: 14px; background: rgba(148,163,205,.14); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
 .purse-bar i { display: block; height: 100%; background: linear-gradient(90deg, #1f8f5c, var(--green)); transition: width .6s ease; }
 .team-broadcast.leading .purse-bar i { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-.purse-amount {
-  font-size: 24px; font-weight: 800; color: var(--green);
-  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
-}
-.purse-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.squad-info { font-size: 12px; color: var(--muted); margin-top: 8px; }
-.leading-badge {
-  position: absolute; top: 10px; right: 10px;
-  font-size: 18px; font-weight: 800; animation: pulse 1.2s infinite;
-}
+.tb-meta { font-size: 16px; color: var(--muted); font-weight: 600; }
+/* Legacy stacked lines (kept for any other users of the classes). */
+.purse-detail { font-size: 16px; color: var(--muted); margin-top: 4px; }
+.squad-info { font-size: 17px; color: var(--muted); margin-top: 8px; font-weight: 600; }
+.leading-badge { font-size: 26px; font-weight: 800; line-height: 1; animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
 
 /* Team purse cards are clickable → squad drill-down. */
 .team-broadcast { cursor: pointer; }
 .team-broadcast:hover { transform: translateY(-2px); box-shadow: 0 10px 26px -14px rgba(0,0,0,.6); }
 .team-broadcast:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.th-hint { font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.th-hint { font-size: 16px; text-transform: none; letter-spacing: 0; font-weight: 500; }
 
 /* --- Broadcast team squad drill-down modal --- */
 #bc-team-modal.modal { width: min(680px, calc(100vw - 32px)); }
@@ -776,7 +788,7 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   position: relative; overflow: hidden;
   background: linear-gradient(160deg, rgba(45,212,143,.16), rgba(31,142,92,.06) 55%, transparent), var(--card);
   border: 1px solid var(--green); border-radius: var(--radius);
-  padding: 28px; margin-bottom: 28px;
+  padding: 24px 28px; margin-bottom: 20px;
   box-shadow: 0 0 0 1px rgba(45,212,143,.25), 0 20px 60px -20px rgba(45,212,143,.4);
   animation: sold-pop .45s cubic-bezier(.2,.9,.3,1.25);
 }
@@ -801,18 +813,18 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   color: var(--red); border-color: var(--red); text-shadow: 0 2px 12px rgba(240,86,74,.4);
 }
 .sold-deal {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-  margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
+  margin-top: 6px; padding-top: 22px; border-top: 1px solid var(--border);
 }
 .sold-block {
   background: rgba(10,14,26,.45); border: 1px solid var(--border);
-  border-radius: 12px; padding: 18px;
-  display: flex; flex-direction: column; gap: 8px;
+  border-radius: 14px; padding: 22px 24px;
+  display: flex; flex-direction: column; gap: 10px;
 }
 .sold-block.price { background: rgba(45,212,143,.08); border-color: rgba(45,212,143,.4); }
-.sold-team { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+.sold-team { font-size: 38px; font-weight: 800; letter-spacing: -.02em; }
 .sold-amount {
-  font-size: 40px; font-weight: 800; color: var(--green);
+  font-size: 52px; font-weight: 800; color: var(--green);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
 
@@ -1624,16 +1636,16 @@ table.pool tbody tr:hover {
 .team-maxbid.none { background: rgba(240,86,74,.1); border-color: rgba(240,86,74,.35); }
 .team-maxbid.none b { color: #f2988f; font-size: 12px; }
 
-/* Max next bid on the broadcast team cards (TV-sized). */
+/* Max next bid on the broadcast team cards — compact stacked chip. */
 .bc-maxbid {
   margin-top: 10px; padding: 8px 12px; border-radius: 10px;
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
   background: rgba(45,212,143,.16); border: 1px solid rgba(45,212,143,.45);
 }
-.bc-maxbid span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
-.bc-maxbid b { font-size: 22px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.bc-maxbid span { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+.bc-maxbid b { font-size: 26px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; }
 .bc-maxbid.none { background: rgba(240,86,74,.12); border-color: rgba(240,86,74,.4); }
-.bc-maxbid.none b { font-size: 15px; color: #f2988f; }
+.bc-maxbid.none b { font-size: 18px; color: #f2988f; }
 @media (max-width: 640px) { .bc-maxbid b { font-size: 17px; } .bc-maxbid { padding: 6px 10px; } }
 
 /* Manual/floor-bid entry on the auction console (amount + team). */

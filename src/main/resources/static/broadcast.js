@@ -112,21 +112,21 @@ function fitToScreen() {
   wrap.style.transform = scale < 1 ? `scale(${scale})` : 'none';
 }
 
-// Lay out the team cards so every row is full — no lopsided last row. The column
-// count is always a divisor of the team count (so N/cols is a whole number), and
-// we pick the largest such count whose cards still meet a minimum width for the
-// current screen. This keeps the grid symmetrical at any screen size.
+// Lay the team cards out for a projector: up to 6 teams sit on ONE row; a
+// larger field (7, 8, 9 … up to a dozen) splits into a balanced TWO rows
+// (12→6×2, 10→5×2, 9→5+4, 8→4×2, 7→4+3) so cards stay wide and readable rather
+// than shrinking into a thin single strip. On a narrow screen that can't fit
+// that many across at a readable width, it falls back to more rows.
 let lastTeamCount = 0;
 
 function layoutTeams(n) {
   const el = document.getElementById('bc-teams');
   if (!el || !n) return;
-  const gap = 14, minCard = 150;
+  const gap = 16, minCard = 170;
   const width = el.clientWidth || el.parentElement?.clientWidth || window.innerWidth;
-  let cols = 1;
-  for (let d = 1; d <= n; d++) {
-    if (n % d === 0 && (width - gap * (d - 1)) / d >= minCard) cols = d;
-  }
+  const maxCols = Math.max(1, Math.floor((width + gap) / (minCard + gap)));
+  const target = n <= 6 ? n : Math.ceil(n / 2);   // one row up to 6, else two rows
+  const cols = Math.min(target, maxCols);
   el.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
 }
 
@@ -156,13 +156,14 @@ function renderTeams(teams, highlightTeamId, block) {
     return `
       <div class="team-broadcast ${hot ? 'leading' : ''}" data-team-id="${t.teamId}"
            role="button" tabindex="0" title="Click to see ${esc(t.name)}'s squad">
-        <h3>${esc(t.name)}</h3>
-        <div class="purse-bar"><i style="width:${pct}%"></i></div>
+        <div class="tb-head">
+          <h3>${esc(t.name)}</h3>
+          ${hot ? '<span class="leading-badge">👑</span>' : ''}
+        </div>
         <div class="purse-amount">${fmtShort(t.remainingPurse)}</div>
-        <div class="purse-detail">${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)}</div>
-        <div class="squad-info">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</div>
+        <div class="purse-bar"><i style="width:${pct}%"></i></div>
+        <div class="tb-meta">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots} · ${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)}</div>
         ${maxBidHtml}
-        ${hot ? '<div class="leading-badge">👑</div>' : ''}
       </div>`;
   }).join(''));
   layoutTeams(lastTeamCount);

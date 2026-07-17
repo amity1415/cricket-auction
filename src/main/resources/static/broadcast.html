@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cricket Auction — Live Broadcast</title>
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=20">
 </head>
 <body class="broadcast-mode">
 <header>
@@ -25,7 +25,9 @@
     </div>
   </div>
 
-  <!-- State 2: a player is on the block, bidding live -->
+  <!-- State 2: a player is on the block, bidding live. The poster sits on the
+       left; the name, meta and the bid figures fill the column beside it, so the
+       hero stays one compact band and the team panel below can be large. -->
   <div id="live-state" style="display:none">
     <section class="broadcast-player">
       <div class="player-card">
@@ -35,22 +37,22 @@
           <h2 id="bc-name">Player Name</h2>
           <div class="player-meta" id="bc-meta"></div>
           <div class="player-status" id="bc-status"></div>
+
+          <div class="bid-display">
+            <div class="bid-amount">
+              <span class="bid-label">Current Bid</span>
+              <span class="bid-value" id="bc-current-bid">₹ —</span>
+              <span class="bid-team" id="bc-leading-team">—</span>
+            </div>
+            <div class="bid-amount next">
+              <span class="bid-label">Next Bid</span>
+              <span class="bid-value" id="bc-next-bid">₹ —</span>
+            </div>
+          </div>
+
+          <div class="bid-info" id="bc-bid-count"></div>
         </div>
       </div>
-
-      <div class="bid-display">
-        <div class="bid-amount">
-          <span class="bid-label">Current Bid</span>
-          <span class="bid-value" id="bc-current-bid">₹ —</span>
-          <span class="bid-team" id="bc-leading-team">—</span>
-        </div>
-        <div class="bid-amount next">
-          <span class="bid-label">Next Bid</span>
-          <span class="bid-value" id="bc-next-bid">₹ —</span>
-        </div>
-      </div>
-
-      <div class="bid-info" id="bc-bid-count"></div>
     </section>
   </div>
 
@@ -65,16 +67,17 @@
           <h2 id="sold-name"></h2>
           <div class="player-meta" id="sold-meta"></div>
           <div class="player-status" id="sold-stats"></div>
-        </div>
-      </div>
-      <div class="sold-deal">
-        <div class="sold-block">
-          <span class="bid-label">Sold To</span>
-          <span class="sold-team" id="sold-team"></span>
-        </div>
-        <div class="sold-block price">
-          <span class="bid-label">Winning Bid</span>
-          <span class="sold-amount" id="sold-amount"></span>
+
+          <div class="sold-deal">
+            <div class="sold-block">
+              <span class="bid-label">Sold To</span>
+              <span class="sold-team" id="sold-team"></span>
+            </div>
+            <div class="sold-block price">
+              <span class="bid-label">Winning Bid</span>
+              <span class="sold-amount" id="sold-amount"></span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -101,6 +104,6 @@
 <script src="tournament-context.js"></script>
 <script src="auth.js"></script>
 <script src="profile-modal.js?v=12"></script>
-<script src="broadcast.js?v=14"></script>
+<script src="broadcast.js?v=20"></script>
 </body>
 </html>
