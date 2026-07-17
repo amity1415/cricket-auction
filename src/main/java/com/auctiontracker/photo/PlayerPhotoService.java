@@ -127,13 +127,15 @@ public class PlayerPhotoService {
         List<Player> pool = players.findByTournamentIdOrdered(tournamentId);
         int mapped = 0;
         for (Player p : pool) {
+            // An image supplied per-row in the import (Image_location) is
+            // authoritative — the folder-by-serial mapping only fills gaps for
+            // players that don't already have one, and never overwrites it.
+            if (p.hasPhoto()) { mapped++; continue; }
             if (p.getSeq() == null) continue;                    // no import order → no serial
             String fileId = serialToFileId.get(String.valueOf(p.getSeq() + 1));
             if (fileId == null) continue;                        // no image for this serial
-            if (!fileId.equals(p.getPhotoFileId())) {
-                p.setPhotoFileId(fileId);
-                players.save(p);                                 // own transaction per save
-            }
+            p.setPhotoFileId(fileId);
+            players.save(p);                                     // own transaction per save
             mapped++;
         }
         log.info("Player photos: mapped {}/{} players in '{}' from {} folder files.",
@@ -200,9 +202,16 @@ public class PlayerPhotoService {
         return map;
     }
 
-    /** Download a Drive file's bytes, or null on any failure / non-image response. */
-    private byte[] download(String fileId) {
-        String url = "https://drive.google.com/uc?export=download&id=" + fileId;
+    /**
+     * Download an image's bytes, or null on any failure / non-image response. The
+     * stored reference is either a full http(s) URL (fetched directly — a direct
+     * image link from Image_location) or a Google Drive file id (turned into a
+     * Drive download URL).
+     */
+    private byte[] download(String ref) {
+        String url = (ref.startsWith("http://") || ref.startsWith("https://"))
+                ? ref
+                : "https://drive.google.com/uc?export=download&id=" + ref;
         try {
             HttpResponse<byte[]> res = http.send(
                     HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(30)).GET().build(),
@@ -211,9 +220,9 @@ public class PlayerPhotoService {
             if (res.statusCode() == 200 && type.startsWith("image/")) {
                 return res.body();
             }
-            log.warn("Photo download {} -> HTTP {} ({})", fileId, res.statusCode(), type);
+            log.warn("Photo download {} -> HTTP {} ({})", ref, res.statusCode(), type);
         } catch (Exception e) {
-            log.warn("Photo download {} failed: {}", fileId, e.toString());
+            log.warn("Photo download {} failed: {}", ref, e.toString());
         }
         return null;
     }

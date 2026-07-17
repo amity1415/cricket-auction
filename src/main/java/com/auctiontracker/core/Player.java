@@ -50,10 +50,13 @@ public class Player {
     private PlayerStats stats;
 
     /**
-     * Google Drive file id of this player's poster image, resolved at startup by
+     * Reference to this player's poster image — normally a Google Drive file id,
+     * but may also be a direct image URL. Set either from the import's
+     * {@code Image_location} column (see {@link PlayerRowParser#toPhotoRef}) or,
+     * as a fallback, resolved at startup by
      * {@link com.auctiontracker.photo.PlayerPhotoService} from the public photo
-     * folder (matched to the player by import serial = {@link #seq} + 1). Null
-     * when no image is mapped. Served via GET /api/players/{id}/photo.
+     * folder by import serial ({@link #seq} + 1). An import-supplied value wins.
+     * Null when no image is mapped. Served via GET /api/players/{id}/photo.
      */
     @Column(name = "photo_file_id")
     private String photoFileId;
