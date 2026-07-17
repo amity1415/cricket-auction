@@ -18,6 +18,13 @@ public interface PlayerJpaRepository extends JpaRepository<Player, UUID> {
 
     List<Player> findByTournamentId(UUID tournamentId);
 
+    /** Players in insertion order (as imported); rows without a seq sort last, by name. */
+    @Query("select p from Player p where p.tournamentId = :tid order by p.seq asc nulls last, p.name asc")
+    List<Player> findByTournamentIdOrdered(@Param("tid") UUID tournamentId);
+
+    @Query("select p from Player p order by p.seq asc nulls last, p.name asc")
+    List<Player> findAllOrdered();
+
     Optional<Player> findFirstByStatusAndTournamentId(PlayerStatus status, UUID tournamentId);
 
     List<Player> findBySoldToTeamId(UUID teamId);

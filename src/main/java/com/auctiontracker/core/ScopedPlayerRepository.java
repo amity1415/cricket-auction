@@ -43,7 +43,7 @@ public class ScopedPlayerRepository implements PlayerRepository {
     @Override
     public List<Player> findAll() {
         UUID tid = ruleBook.activeTournamentId();
-        return tid == null ? jpa.findAll() : jpa.findByTournamentId(tid);
+        return tid == null ? jpa.findAllOrdered() : jpa.findByTournamentIdOrdered(tid);
     }
 
     @Override

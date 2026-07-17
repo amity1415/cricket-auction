@@ -36,6 +36,15 @@ public class Player {
 
     private long basePrice;
 
+    /**
+     * Insertion order within the tournament (0-based), so lists can show players
+     * in the order they were registered / imported from the CSV rather than an
+     * arbitrary DB order. Nullable for rows created before this existed — those
+     * sort last (see the repository's ordered queries).
+     */
+    @Column(name = "seq")
+    private Integer seq;
+
     /** Career profile shown to the room while the player is on the block. */
     @Embedded
     private PlayerStats stats;
@@ -82,6 +91,9 @@ public class Player {
 
     public long getBasePrice() { return basePrice; }
     public void setBasePrice(long basePrice) { this.basePrice = basePrice; }
+
+    public Integer getSeq() { return seq; }
+    public void setSeq(Integer seq) { this.seq = seq; }
 
     public PlayerStats getStats() { return stats; }
     public void setStats(PlayerStats stats) { this.stats = stats; }

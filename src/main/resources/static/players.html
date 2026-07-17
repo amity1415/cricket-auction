@@ -15,27 +15,40 @@
 <main class="players-wrap">
   <section class="card">
     <div class="controls">
-      <div class="ctl-group">
-        <span class="ctl-label">Status</span>
-        <div class="chip-filter" id="status-chips"></div>
+      <div class="filter-bar">
+        <div class="filter-row filter-row--primary">
+          <div class="ctl-group">
+            <span class="ctl-label">Status</span>
+            <div class="chip-filter" id="status-chips"></div>
+          </div>
+        </div>
+        <div class="filter-row filter-row--refine">
+          <span class="refine-badge">Refine</span>
+          <div class="ctl-group">
+            <span class="ctl-label">Role</span>
+            <div class="chip-filter" id="role-chips"></div>
+          </div>
+          <div class="ctl-group">
+            <span class="ctl-label">Category</span>
+            <div class="chip-filter" id="category-chips"></div>
+          </div>
+        </div>
       </div>
-      <div class="ctl-group">
-        <span class="ctl-label">Role</span>
-        <div class="chip-filter" id="role-chips"></div>
+      <div class="filter-row filter-row--tools">
+        <label class="ctl"><span class="ctl-label">Sort by</span>
+          <select id="sort"></select>
+        </label>
+        <button id="sort-dir" class="ghost" title="Toggle ascending / descending">▲ Asc</button>
+        <label class="ctl"><span class="ctl-label">Group by</span>
+          <select id="group">
+            <option value="none">No grouping</option>
+            <option value="category">Category</option>
+            <option value="role">Role</option>
+            <option value="status">Status</option>
+          </select>
+        </label>
+        <input id="search" class="search-input" type="search" placeholder="🔍 Search by name…" autocomplete="off">
       </div>
-      <label class="ctl"><span class="ctl-label">Sort by</span>
-        <select id="sort"></select>
-      </label>
-      <button id="sort-dir" class="ghost" title="Toggle ascending / descending">▼ Desc</button>
-      <label class="ctl"><span class="ctl-label">Group by</span>
-        <select id="group">
-          <option value="none">No grouping</option>
-          <option value="category">Group (A–E)</option>
-          <option value="role">Role</option>
-          <option value="status">Status</option>
-        </select>
-      </label>
-      <input id="search" class="search-input" type="search" placeholder="🔍 Search by name…" autocomplete="off">
     </div>
   </section>
 

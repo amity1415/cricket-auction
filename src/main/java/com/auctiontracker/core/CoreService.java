@@ -43,7 +43,16 @@ public class CoreService {
         if (stats != null && !stats.allNull()) {
             player.setStats(stats);
         }
+        player.setSeq(nextSeq()); // append to the end of this tournament's insertion order
         return players.save(player);
+    }
+
+    /** Next insertion-order index for the current tournament (max existing + 1). */
+    private int nextSeq() {
+        return players.findAll().stream()
+                .map(p -> p.getSeq() == null ? -1 : p.getSeq())
+                .max(Integer::compareTo)
+                .orElse(-1) + 1;
     }
 
     @Transactional
@@ -93,6 +102,10 @@ public class CoreService {
             team.setRemainingPurse(team.getStartingPurse());
             teams.save(team);
         });
+        // Stamp insertion order so lists can show players exactly as imported.
+        for (int i = 0; i < newPlayers.size(); i++) {
+            newPlayers.get(i).setSeq(i);
+        }
         newPlayers.forEach(players::save);
         return newPlayers;
     }
@@ -195,11 +208,12 @@ public class CoreService {
     }
 
     public List<Player> listPlayers(PlayerStatus status, PlayerRole role, PlayerCategory category) {
+        // Order is the repository's insertion order (by seq) — the pool is shown
+        // exactly as imported from the CSV, not alphabetised.
         return players.findAll().stream()
                 .filter(p -> status == null || p.getStatus() == status)
                 .filter(p -> role == null || p.getRole() == role)
                 .filter(p -> category == null || p.getCategory() == category)
-                .sorted(Comparator.comparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 

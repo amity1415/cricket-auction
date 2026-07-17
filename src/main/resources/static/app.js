@@ -15,11 +15,23 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BWL', ALL_ROUNDER: 'AR', WICKETKEEPER: 'WK' };
+const ROLE_LABEL = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All Rounder', WICKETKEEPER: 'Wicket Keeper' };
+const ROLE_ORDER = ['BATSMAN', 'BOWLER', 'ALL_ROUNDER', 'WICKETKEEPER'];
+const POOL_CAT_ORDER = ['A', 'B', 'C', 'D', 'E', 'MIXED_UTILITY_BAG', 'WICKET_KEEPER', 'BOWLER', 'ALL_ROUNDER', 'MARKEE_PLAYER'];
+const POOL_CAT_LABEL = {
+  A: 'A', B: 'B', C: 'C', D: 'D', E: 'E',
+  MIXED_UTILITY_BAG: 'Mixed Utility', WICKET_KEEPER: 'Wicket Keeper',
+  BOWLER: 'Bowler', ALL_ROUNDER: 'All Rounder', MARKEE_PLAYER: 'Markee',
+};
+const poolCatLabel = c => POOL_CAT_LABEL[c] || c;
+const orderRank = (order, v) => { const i = order.indexOf(v); return i < 0 ? 999 : i; };
 
 let toastTimer = null;
 let auctionConfig = null; // rule book from /api/config (group quotas etc.)
 let poolFilter = 'ALL';
 let poolSearch = '';
+const poolRoles = new Set();       // 2nd-level Role refine (empty = all)
+const poolCats = new Set();        // 2nd-level Category refine (empty = all)
 let lastPlayers = [];     // latest poll results, so search re-renders instantly
 let lastTeams = [];
 
@@ -237,9 +249,17 @@ function renderPool(players, teams) {
       `<button class="${f === poolFilter ? 'active' : ''}" onclick="setFilter('${f}')">${f.replace('_', ' ')}</button>`
   ).join('');
 
+  // 2nd-level refine chips, built from whatever roles/categories the pool actually has.
+  renderRefineChips('pool-role-filters', players, p => p.role, ROLE_ORDER,
+      r => ROLE_LABEL[r] || r, poolRoles);
+  renderRefineChips('pool-cat-filters', players, p => p.category, POOL_CAT_ORDER,
+      poolCatLabel, poolCats);
+
   // Serial numbers follow the full pool listing (stable across status filters).
   const numbered = players.map((p, i) => ({ ...p, sl: i + 1 }));
   let rows = numbered.filter(p => poolFilter === 'ALL' || p.status === poolFilter);
+  if (poolRoles.size) rows = rows.filter(p => poolRoles.has(p.role));
+  if (poolCats.size) rows = rows.filter(p => poolCats.has(p.category));
   const q = poolSearch.trim().toLowerCase();
   if (q) {
     rows = /^\d+$/.test(q)
@@ -265,6 +285,29 @@ function renderPool(players, teams) {
           : ''}</td>
     </tr>`).join('')
     || `<tr><td colspan="7" class="muted">${q ? `No player matches “${esc(poolSearch.trim())}”.` : 'No players match this filter.'}</td></tr>`;
+}
+
+// Builds a set of refine chips (Role / Category) from the values present in the
+// pool. Selecting chips filters client-side — no server round-trip, unlike the
+// status filter which re-polls. A "signature" guard keeps us from clobbering the
+// DOM (and losing hover/focus) when the set of values hasn't changed.
+const _refineSig = {};
+function renderRefineChips(elId, players, pick, order, label, selected) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const values = [...new Set(players.map(pick))]
+      .sort((a, b) => orderRank(order, a) - orderRank(order, b));
+  const sig = elId + '|' + values.join(',') + '|' + [...selected].join(',');
+  if (_refineSig[elId] === sig) return;
+  _refineSig[elId] = sig;
+  el.innerHTML = values.map(v =>
+      `<button type="button" class="${selected.has(v) ? 'active' : ''}" data-v="${v}">${label(v)}</button>`
+  ).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const v = b.dataset.v;
+    selected.has(v) ? selected.delete(v) : selected.add(v);
+    renderPool(lastPlayers, lastTeams); // instant, client-side
+  });
 }
 
 const poolSearchInput = document.getElementById('pool-search');
