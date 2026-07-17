@@ -206,6 +206,16 @@ public class AdminController {
         return PlayerView.from(sale.markUnsold(playerId));
     }
 
+    /** Undo a completed sale: the player returns to the pool, the purse is refunded. */
+    @PostMapping("/players/{id}/revert-sale")
+    public ConfirmSaleResponse revertSale(@PathVariable("id") UUID playerId) {
+        SaleService.SaleResult result = sale.revertSale(playerId);
+        return new ConfirmSaleResponse(
+                PlayerView.from(result.player()),
+                List.of(dashboard.snapshot(result.team())),
+                Instant.now());
+    }
+
     // --- Bid history -------------------------------------------------------
 
     @GetMapping("/players/{id}/bids")

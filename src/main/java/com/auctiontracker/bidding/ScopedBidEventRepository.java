@@ -41,6 +41,11 @@ public class ScopedBidEventRepository implements BidEventRepository {
     }
 
     @Override
+    public void deleteByPlayerId(UUID playerId) {
+        jpa.deleteByPlayerId(playerId); // player id is tournament-unique — no scoping needed
+    }
+
+    @Override
     public void deleteAll() {
         UUID tid = ruleBook.activeTournamentId();
         if (tid == null) {

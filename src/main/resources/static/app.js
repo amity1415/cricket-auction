@@ -282,6 +282,8 @@ function renderPool(players, teams) {
              <button class="link-btn subtle" onclick="withdraw('${p.playerId}')" title="Mark unsold without auctioning">✕</button>`
           : p.status === 'RETAINED'
           ? `<button class="link-btn subtle" onclick="releaseRetention('${p.playerId}')" title="Undo retention — refunds the purse">↩ Release</button>`
+          : p.status === 'SOLD'
+          ? `<button class="link-btn subtle" onclick="revertSale('${p.playerId}')" title="Undo the sale — refunds the purse and returns the player to the pool">↩ Revert</button>`
           : ''}</td>
     </tr>`).join('')
     || `<tr><td colspan="7" class="muted">${q ? `No player matches “${esc(poolSearch.trim())}”.` : 'No players match this filter.'}</td></tr>`;
@@ -343,6 +345,15 @@ window.setFilter = f => { poolFilter = f; refresh(); };
 window.releaseRetention = async id => {
   const r = await post(`/api/admin/players/${id}/release-retention`);
   if (r) toast(`↩ Released ${r.player.name} — purse refunded`);
+  refresh();
+};
+
+window.revertSale = async id => {
+  const p = lastPlayers.find(x => x.playerId === id);
+  const name = p ? p.name : 'this player';
+  if (!confirm(`Revert the sale of ${name}?\n\nThe purse is refunded, the squad slot is freed, and ${name} returns to the pool as AVAILABLE.`)) return;
+  const r = await post(`/api/admin/players/${id}/revert-sale`);
+  if (r) toast(`↩ Reverted ${r.player.name} — purse refunded, back in the pool`);
   refresh();
 };
 

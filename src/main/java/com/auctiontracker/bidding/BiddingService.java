@@ -270,6 +270,23 @@ public class BiddingService {
         bidEvents.deleteAll();
     }
 
+    /**
+     * Drops a single player's persisted bid trail (and any stray live session for
+     * them). Called by the sale module when a sale is reverted, so the player
+     * returns to the pool clean and a fresh auction starts from base price rather
+     * than replaying the old, now-void trail.
+     */
+    @Transactional
+    public void discardBids(UUID playerId) {
+        synchronized (lock) {
+            LiveBidSession session = session();
+            if (session.isFor(playerId)) {
+                session.close();
+            }
+            bidEvents.deleteByPlayerId(playerId);
+        }
+    }
+
     /** Live trail from the cache while under auction; persisted rows afterwards. */
     public List<BidEvent> bidHistory(UUID playerId) {
         requirePlayer(playerId);

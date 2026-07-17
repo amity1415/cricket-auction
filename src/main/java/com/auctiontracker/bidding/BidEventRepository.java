@@ -15,5 +15,8 @@ public interface BidEventRepository {
 
     long countByPlayerId(UUID playerId);
 
+    /** Wipes a single player's persisted bid trail — used when a sale is reverted. */
+    void deleteByPlayerId(UUID playerId);
+
     void deleteAll();
 }

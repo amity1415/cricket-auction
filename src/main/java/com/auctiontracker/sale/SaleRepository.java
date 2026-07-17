@@ -12,5 +12,8 @@ public interface SaleRepository {
 
     List<Sale> findAllByOrderByRecordedAtAsc();
 
+    /** Wipes every audit row for one player — used when a sale is reverted. */
+    void deleteByPlayerId(java.util.UUID playerId);
+
     void deleteAll();
 }
