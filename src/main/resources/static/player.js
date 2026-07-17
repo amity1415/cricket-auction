@@ -70,7 +70,9 @@ function render(p, current, teams, bids) {
   document.title = `${p.name} — Player Profile`;
   document.getElementById('content').innerHTML = `
     <section class="card profile-hero">
-      <div class="avatar">${initials(p.name)}</div>
+      ${p.hasPhoto ? `<img class="profile-poster" src="/api/players/${p.playerId}/photo" alt=""
+         onerror="this.style.display='none';this.nextElementSibling.style.display='';">` : ''}
+      <div class="avatar"${p.hasPhoto ? ' style="display:none"' : ''}>${initials(p.name)}</div>
       <div class="hero-main">
         <h2 class="pname">${esc(p.name)}</h2>
         <div class="chips">
