@@ -40,7 +40,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           TournamentAdminAuthorization tournamentAuth) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
@@ -51,27 +52,50 @@ public class SecurityConfig {
                 .requestMatchers("/*.js", "/*.css", "/*.ico",
                         "/*.png", "/*.svg", "/*.woff2", "/*.map").permitAll()
 
-                // Public pages (guest access): login, the live broadcast, and the
+                // Public pages (guest access): login, the auctions hub (everyone
+                // lands here and picks an auction), the live broadcast, and the
                 // read-only player list + analysis + profile + team dashboards.
-                .requestMatchers("/login.html", "/broadcast.html", "/players.html",
-                        "/player.html", "/team.html").permitAll()
+                .requestMatchers("/login.html", "/auctions.html", "/broadcast.html",
+                        "/players.html", "/player.html", "/team.html").permitAll()
 
                 // Public auth endpoints (login/self-lookup/logout + team list).
                 .requestMatchers("/api/auth/login", "/api/auth/teams",
                         "/api/auth/me", "/api/auth/logout").permitAll()
 
-                // Creating a franchise-owner account is admin-only (no self-signup).
-                .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
+                // Creating a franchise-owner account: app admin, or a tournament
+                // admin of the auction in context (its team belongs to that auction).
+                .requestMatchers(HttpMethod.POST, "/api/auth/register").access(tournamentAuth)
 
                 // Read APIs the public broadcast screen depends on. Note the audit
                 // GET lives under /api/admin but is read-only and needed by broadcast.
                 .requestMatchers(HttpMethod.GET, "/api/dashboard/**", "/api/players/**",
-                        "/api/config", "/api/admin/audit").permitAll()
+                        "/api/config", "/api/admin/audit",
+                        "/api/tournaments", "/api/tournaments/**").permitAll()
 
-                // Admin-only pages: setup (also the "/" welcome page) and the console.
-                .requestMatchers("/", "/index.html", "/auction.html").hasRole("ADMIN")
+                // The users & access page manages accounts — app admin only.
+                .requestMatchers("/users.html").hasRole("ADMIN")
 
-                // Admin-only APIs: every write and user-management call.
+                // Setup + console pages: app admin and tournament admins (the API
+                // scopes each call to the auction the page is bound to).
+                .requestMatchers("/", "/index.html", "/auction.html")
+                        .hasAnyRole("ADMIN", "TOURNAMENT_ADMIN")
+
+                // App-admin-only APIs: create/delete/set-default auctions, and all
+                // user/access management.
+                .requestMatchers(HttpMethod.POST, "/api/admin/tournaments").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/admin/tournaments/*/activate").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/admin/tournaments/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/admin/tournaments").hasRole("ADMIN")
+                .requestMatchers("/api/admin/app-users/**").hasRole("ADMIN")
+
+                // Tournament-scoped admin APIs: app admin OR a tournament admin of the
+                // target auction (path id for a specific auction, else the X-Tournament-Id
+                // context for players/teams/owners).
+                .requestMatchers("/api/admin/tournaments/**").access(tournamentAuth)
+                .requestMatchers("/api/admin/players/**", "/api/admin/teams/**",
+                        "/api/admin/users/**").access(tournamentAuth)
+
+                // Anything else under /api/admin stays app-admin only.
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                 // API docs are an admin tool.
@@ -101,12 +125,12 @@ public class SecurityConfig {
     private AuthenticationSuccessHandler loginSuccessHandler() {
         return (request, response, authentication) -> {
             UserDetails principal = (UserDetails) authentication.getPrincipal();
-            boolean admin = authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals(Role.ADMIN.authority()));
-            String redirect = admin ? "/index.html" : "/team.html";
+            String role = principal instanceof AuthPrincipal p ? p.role().name() : "FRANCHISE_OWNER";
+            // Everyone lands on the auctions hub and picks which auction to enter.
+            String redirect = "/auctions.html";
             writeJson(response, HttpServletResponse.SC_OK,
                     "{\"username\":\"" + escape(principal.getUsername())
-                            + "\",\"role\":\"" + (admin ? "ADMIN" : "FRANCHISE_OWNER")
+                            + "\",\"role\":\"" + role
                             + "\",\"redirect\":\"" + redirect + "\"}");
         };
     }

@@ -2,6 +2,7 @@ package com.auctiontracker.sale;
 
 import com.auctiontracker.bidding.BiddingService;
 import com.auctiontracker.config.AuctionProperties;
+import com.auctiontracker.tournament.RuleBook;
 import com.auctiontracker.core.AuctionException;
 import com.auctiontracker.core.AuctionLock;
 import com.auctiontracker.core.FeasibilityService;
@@ -34,18 +35,18 @@ public class SaleService {
     private final SaleRepository sales;
     private final FeasibilityService feasibility;
     private final AuctionLock lock;
-    private final AuctionProperties props;
+    private final RuleBook ruleBook;
     private final BiddingService bidding;
 
     public SaleService(PlayerRepository players, TeamRepository teams, SaleRepository sales,
-                       FeasibilityService feasibility, AuctionLock lock, AuctionProperties props,
+                       FeasibilityService feasibility, AuctionLock lock, RuleBook ruleBook,
                        BiddingService bidding) {
         this.players = players;
         this.teams = teams;
         this.sales = sales;
         this.feasibility = feasibility;
         this.lock = lock;
-        this.props = props;
+        this.ruleBook = ruleBook;
         this.bidding = bidding;
     }
 
@@ -127,18 +128,34 @@ public class SaleService {
             // Persist the live bid trail (if any) for the audit replay, then drop the session.
             bidding.flushLiveBids(playerId);
 
-            if (wasUnderAuction && props.demoteUnsoldPlayers()) {
+            AuctionProperties rules = ruleBook.current();
+            AuctionProperties.GroupTransition transition =
+                    wasUnderAuction ? rules.unsoldTransitionFor(player.getCategory()) : null;
+            if (transition != null) {
+                // Config-driven cascade (e.g. role-based format): move the player to
+                // the configured destination group and re-price them to that group's
+                // own base price (so a transferred player always starts at the base
+                // of the pool they land in), unless the transition sets an explicit
+                // override. Then back to the pool AVAILABLE to be re-auctioned there.
+                // A group with no transition entry is terminal → falls through below.
+                player.setCategory(transition.destination());
+                Long override = transition.destinationBasePrice();
+                player.setBasePrice(override != null ? override
+                        : rules.basePriceFor(transition.destination()));
+                player.setStatus(PlayerStatus.AVAILABLE);
+            } else if (wasUnderAuction && rules.demoteUnsoldPlayers()) {
                 PlayerCategory lowerGroup = player.getCategory().nextLower();
                 if (lowerGroup != null) {
                     player.setCategory(lowerGroup);
-                    player.setBasePrice(props.basePriceFor(lowerGroup));
+                    player.setBasePrice(rules.basePriceFor(lowerGroup));
                 }
                 // Demoted one group, or already at the lowest group — either way the
                 // player goes back into the pool AVAILABLE so it can be put on the
                 // block again. Group E is a sticky floor, never terminally unsold.
                 player.setStatus(PlayerStatus.AVAILABLE);
             } else {
-                // Withdrawn before ever going under auction (or demotion disabled).
+                // Withdrawn before ever going under auction, demotion disabled, or a
+                // terminal group with no onward transition → finally unsold.
                 player.setStatus(PlayerStatus.UNSOLD);
             }
             players.save(player);
@@ -166,7 +183,7 @@ public class SaleService {
                                 .formatted(player.getName(), player.getStatus()));
             }
 
-            AuctionProperties.Retention rules = props.retention();
+            AuctionProperties.Retention rules = ruleBook.current().retention();
             List<Player> retained = players.findBySoldToTeamId(teamId).stream()
                     .filter(p -> p.getStatus() == PlayerStatus.RETAINED)
                     .toList();
@@ -190,9 +207,10 @@ public class SaleService {
                                 .formatted(team.getName(), inSameBucket, rules.maxFromLowerGroups()));
             }
 
-            // RULE 2: retention costs a flat fee by group (A vs. any lower group),
-            // not the player's base price.
-            long price = props.retentionCostFor(player.getCategory());
+            // RULE 2: retention fee. Either a flat per-group fee (legacy) or, when a
+            // multiplier is configured, a multiple of the player's own base price
+            // (e.g. 3× base) — see AuctionProperties.retentionCost.
+            long price = ruleBook.current().retentionCost(player.getCategory(), player.getBasePrice());
             // Same purse / squad-size / group-quota guards as buying at auction.
             feasibility.assertCanAcquire(team, player, price);
 
@@ -237,6 +255,54 @@ public class SaleService {
             team.getSquadPlayerIds().remove(player.getPlayerId());
             teams.save(team);
 
+            sales.save(Sale.released(player.getPlayerId(), player.getName(),
+                    team.getTeamId(), team.getName(), refund, RECORDED_BY));
+            return new SaleResult(player, team);
+        }
+    }
+
+    /**
+     * Reverts a completed sale: the player goes back to the pool as AVAILABLE and
+     * everything the sale touched is undone —
+     *   - the buying team is refunded the sold price and the squad slot is freed;
+     *   - the player's sale fields (team / price / timestamp) are cleared;
+     *   - the player's persisted bid trail is dropped, so a re-auction starts
+     *     fresh from base price instead of replaying the void bids;
+     *   - the player's audit rows (the SOLD entry) are removed, so reports and
+     *     the broadcast no longer count a sale that no longer stands.
+     * A RELEASED audit row is written to record who reverted it and when.
+     *
+     * Category / base price are left untouched — a straight sale never changed
+     * them, unlike the unsold cascade. RETAINED players use {@link #releasePlayer}.
+     */
+    @Transactional
+    public SaleResult revertSale(UUID playerId) {
+        synchronized (lock) {
+            Player player = requirePlayer(playerId);
+            if (player.getStatus() != PlayerStatus.SOLD) {
+                throw AuctionException.conflict("INVALID_STATE",
+                        "%s is %s — only SOLD players can be reverted to the pool"
+                                .formatted(player.getName(), player.getStatus()));
+            }
+            Team team = teams.findById(player.getSoldToTeamId()).orElseThrow(() ->
+                    AuctionException.notFound("TEAM_NOT_FOUND",
+                            "Buying team no longer exists: " + player.getSoldToTeamId()));
+            long refund = player.getSoldPrice();
+
+            player.setStatus(PlayerStatus.AVAILABLE);
+            player.setSoldToTeamId(null);
+            player.setSoldPrice(null);
+            player.setSoldAt(null);
+            players.save(player);
+
+            team.setRemainingPurse(team.getRemainingPurse() + refund);
+            team.getSquadPlayerIds().remove(player.getPlayerId());
+            teams.save(team);
+
+            // Wipe the void auction trail and the now-defunct SOLD audit row, then
+            // leave a RELEASED breadcrumb documenting the reversal.
+            bidding.discardBids(playerId);
+            sales.deleteByPlayerId(playerId);
             sales.save(Sale.released(player.getPlayerId(), player.getName(),
                     team.getTeamId(), team.getName(), refund, RECORDED_BY));
             return new SaleResult(player, team);

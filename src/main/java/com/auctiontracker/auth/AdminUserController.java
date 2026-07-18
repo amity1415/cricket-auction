@@ -3,6 +3,7 @@ package com.auctiontracker.auth;
 import com.auctiontracker.core.AuctionException;
 import com.auctiontracker.core.Team;
 import com.auctiontracker.core.TeamRepository;
+import com.auctiontracker.tournament.RuleBook;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,10 +28,12 @@ public class AdminUserController {
 
     private final UserAccountRepository accounts;
     private final TeamRepository teams;
+    private final RuleBook ruleBook;
 
-    public AdminUserController(UserAccountRepository accounts, TeamRepository teams) {
+    public AdminUserController(UserAccountRepository accounts, TeamRepository teams, RuleBook ruleBook) {
         this.accounts = accounts;
         this.teams = teams;
+        this.ruleBook = ruleBook;
     }
 
     public record OwnerView(UUID id, String username, String displayName,
@@ -38,7 +41,9 @@ public class AdminUserController {
 
     @GetMapping
     public List<OwnerView> listOwners() {
-        return accounts.findAll().stream()
+        UUID tid = ruleBook.activeTournamentId();
+        List<UserAccount> owners = tid == null ? accounts.findAll() : accounts.findByTournamentId(tid);
+        return owners.stream()
                 .sorted(Comparator.comparing(UserAccount::getCreatedAt))
                 .map(a -> new OwnerView(a.getId(), a.getUsername(), a.getDisplayName(),
                         a.getTeamId(),

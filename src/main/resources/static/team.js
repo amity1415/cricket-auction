@@ -12,7 +12,7 @@ const fmtShort = n => {
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BWL', ALL_ROUNDER: 'AR', WICKETKEEPER: 'WK' };
-const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🎯', ALL_ROUNDER: '🔄', WICKETKEEPER: '🧤' };
+const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🔴', ALL_ROUNDER: '🏏🔴', WICKETKEEPER: '🧤' };
 const initials = name => String(name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
 // Only rewrite a container when its HTML actually changed. Re-writing innerHTML
@@ -38,12 +38,115 @@ async function getJSON(url) {
   return res.json();
 }
 
+// ---- Teams overview (the landing when no specific team is chosen) ----------
+// A wide, live grid of every team. Each card shows the essentials up front and,
+// on hover, pops a glassy panel with a full snapshot (purse, max bid, squad,
+// role & group make-up). Clicking opens that team's full dashboard.
+
+const CRESTS = [
+  'linear-gradient(135deg,#5b8cff,#8b5cf6)',
+  'linear-gradient(135deg,#2dd48f,#1f8f5c)',
+  'linear-gradient(135deg,#f5b942,#f0564a)',
+  'linear-gradient(135deg,#22d3ee,#5b8cff)',
+  'linear-gradient(135deg,#f472b6,#8b5cf6)',
+  'linear-gradient(135deg,#8b5cf6,#f0564a)',
+];
+const crestFor = id => {
+  let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return CRESTS[h % CRESTS.length];
+};
+const tParam = () => window.TOURNAMENT_ID ? '&tournamentId=' + encodeURIComponent(window.TOURNAMENT_ID) : '';
+
+// Per-team "max next bid" for whoever is on the block. maxBidForBlockPlayer is
+// null when nobody is up, and 0 when this team can't sign the player at all.
+function maxBidChip(t, block) {
+  if (!block) return '';
+  const v = t.maxBidForBlockPlayer;
+  const can = v != null && v >= block.nextBidAmount;
+  return `<div class="tile-maxbid${can ? '' : ' none'}">
+      <span class="mb-cap">🔨 Max next bid</span>
+      <span class="mb-val">${can ? fmtShort(v) : "Can't bid"}</span>
+    </div>`;
+}
+
+function teamCard(t, block) {
+  const total = t.squadFilled + t.squadOpenSlots;
+  const spent = t.startingPurse - t.remainingPurse;
+  const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
+  const mine = t.teamId === myTeamId;
+  const roles = ['BATSMAN', 'BOWLER', 'ALL_ROUNDER', 'WICKETKEEPER'];
+  return `
+    <a class="team-tile${mine ? ' mine' : ''}" href="team.html?teamId=${t.teamId}${tParam()}"
+       style="--crest:${crestFor(t.teamId)}">
+      <div class="tile-front">
+        <div class="tile-top">
+          <span class="crest">${esc(initials(t.name))}</span>
+          <span class="tile-id">
+            <b class="tt-name">${esc(t.name)}</b>
+            <span class="muted">${esc(t.ownerName)}${mine ? ' · ⭐ you' : ''}</span>
+          </span>
+        </div>
+        ${maxBidChip(t, block)}
+        <div class="tile-purse">
+          <div class="tp-amount">${fmtShort(t.remainingPurse)}</div>
+          <div class="purse-bar"><i style="width:${pct}%"></i></div>
+          <div class="tp-sub muted">${t.squadFilled}/${total} squad · ${fmtShort(spent)} spent</div>
+        </div>
+      </div>
+      <div class="tile-detail" aria-hidden="true">
+        <div class="td-head"><span class="crest sm">${esc(initials(t.name))}</span>${esc(t.name)}</div>
+        ${block ? `<div class="td-maxbid${(t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount) ? '' : ' none'}">
+          <span>🔨 Max next bid · ${esc(block.name)}</span>
+          <b>${(t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount) ? fmtShort(t.maxBidForBlockPlayer) : "Can't bid"}</b>
+        </div>` : ''}
+        <div class="td-purse">
+          <span class="td-remain">${fmtShort(t.remainingPurse)}</span>
+          <span class="td-remain-cap">remaining of ${fmtShort(t.startingPurse)}</span>
+        </div>
+        <div class="td-line">🧢 Squad <b>${t.squadFilled}/${total}</b></div>
+        <div class="td-block">
+          <span class="td-cap">Roles</span>
+          <div class="pill-row">${roles.map(r =>
+            `<span class="rpill">${ROLE_SHORT[r]}<b>${t.roleCounts?.[r] || 0}</b></span>`).join('')}</div>
+        </div>
+        <div class="td-block">
+          <span class="td-cap">Groups</span>
+          <div class="pill-row">${['A', 'B', 'C', 'D', 'E'].map(g =>
+            `<span class="gpill">${g}<b>${t.categoryCounts?.[g] || 0}</b></span>`).join('')}</div>
+        </div>
+        <div class="td-open">Open full dashboard →</div>
+      </div>
+    </a>`;
+}
+
+let pickerTimer = null;
 async function showPicker() {
-  const dash = await getJSON('/api/dashboard');
+  document.querySelector('main').classList.add('wide');
   document.getElementById('picker').style.display = '';
-  document.getElementById('picker-links').innerHTML = dash.teams.map(t =>
-      `<a href="team.html?teamId=${t.teamId}">${esc(t.name)} — ${esc(t.ownerName)}`
-      + `${t.teamId === myTeamId ? ' ⭐ Your team' : ''}</a>`).join('');
+  await renderOverview();
+  if (!pickerTimer) pickerTimer = setInterval(renderOverview, 3000);
+}
+
+async function renderOverview() {
+  let dash;
+  try { dash = await getJSON('/api/dashboard'); } catch (e) { return; }
+  const teams = dash.teams || [];
+  const block = dash.onTheBlock;
+  const totalSpent = teams.reduce((s, t) => s + (t.startingPurse - t.remainingPurse), 0);
+  const signed = teams.reduce((s, t) => s + t.squadFilled, 0);
+  setHTMLIfChanged('overview-stats', `
+    <div class="ostat"><b>${teams.length}</b><span>Teams</span></div>
+    <div class="ostat"><b>${signed}</b><span>Signed</span></div>
+    <div class="ostat"><b>${fmtShort(totalSpent)}</b><span>Spent</span></div>`);
+  // When a player is on the block, a banner names them; each card then shows that
+  // team's own max next bid for that player.
+  setHTMLIfChanged('overview-block', block
+    ? `<div class="ov-block">🔨 <b>${esc(block.name)}</b> <span class="muted">(${ROLE_SHORT[block.role]}, Group ${block.category})</span>
+         is on the block — opens at <b>${fmtShort(block.basePrice)}</b>. Each team's max next bid 👇</div>`
+    : '');
+  setHTMLIfChanged('teams-grid', teams.length
+    ? teams.map(t => teamCard(t, block)).join('')
+    : '<p class="muted">No teams registered yet.</p>');
 }
 
 async function refresh() {
@@ -91,6 +194,13 @@ function renderBanner(block, team) {
     return;
   }
   const leading = block.currentLeadingTeamId === team.teamId;
+  const mb = team.maxBidForBlockPlayer;
+  const canBid = mb != null && mb >= block.nextBidAmount;
+  const maxBidHtml = `
+      <div class="bblock-maxbid${canBid ? '' : ' none'}">
+        <span class="bmb-cap">🔨 Your max next bid</span>
+        <span class="bmb-val">${canBid ? fmtINR(mb) : "You can't bid on this player"}</span>
+      </div>`;
   if (block.playerId !== bannerPlayerId) {
     // New player on the block — build once (this is when the animation should run).
     el.innerHTML = `
@@ -99,6 +209,7 @@ function renderBanner(block, team) {
         (${ROLE_SHORT[block.role]}, Group ${block.category})
         is on the block —
         <span class="bblock-bid">${bannerBidHtml(block, leading)}</span>
+        ${maxBidHtml}
         ${profileStats(block.stats)}
       </div>`;
     bannerPlayerId = block.playerId;
@@ -127,7 +238,6 @@ function renderHead(t, squad) {
     <div class="muted">${fmtShort(spent)} spent · ${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)} remaining</div>
     <div class="tile-row">
       <div class="tile"><span class="ticon">🧢</span><b>${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</b><span>Squad</span></div>
-      <div class="tile"><span class="ticon">💰</span><b>${fmtShort(t.maxAffordableBid)}</b><span>Max affordable bid</span></div>
       <div class="tile"><span class="ticon">📌</span><b>${retained}/${maxRetained}</b><span>Retained</span></div>
     </div>`);
 }

@@ -1,15 +1,28 @@
 package com.auctiontracker.sale;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
-/** Spring Data implementation of the {@link SaleRepository} port. */
-public interface SaleJpaRepository extends SaleRepository, JpaRepository<Sale, UUID> {
+/**
+ * Raw Spring Data access for the sale/unsold audit log. {@link ScopedSaleRepository}
+ * scopes it to the active tournament and implements the {@link SaleRepository} port.
+ */
+public interface SaleJpaRepository extends JpaRepository<Sale, UUID> {
 
-    /** Single bulk DELETE — no entity loading. */
-    @Override
-    default void deleteAll() {
-        deleteAllInBatch();
-    }
+    List<Sale> findByTournamentIdOrderByRecordedAtAsc(UUID tournamentId);
+
+    /** Bulk DELETE for one tournament — no entity loading. */
+    @Modifying
+    @Query("delete from Sale s where s.tournamentId = :tid")
+    void deleteByTournamentId(@Param("tid") UUID tournamentId);
+
+    /** Bulk DELETE of a single player's audit rows (a player id is tournament-unique). */
+    @Modifying
+    @Query("delete from Sale s where s.playerId = :pid")
+    void deleteByPlayerId(@Param("pid") UUID playerId);
 }

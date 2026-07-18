@@ -56,7 +56,8 @@ public class AuthController {
     public record TeamOption(UUID teamId, String name, String ownerName, boolean claimed) {}
 
     public record MeResponse(boolean authenticated, String username, String displayName,
-                             String role, UUID teamId, String teamName) {}
+                             String role, UUID teamId, String teamName,
+                             java.util.Set<UUID> adminTournamentIds) {}
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -72,8 +73,10 @@ public class AuthController {
                     "That team already has an owner account");
         }
         String hash = passwordEncoder.encode(req.password());
-        UserAccount saved = accounts.save(
-                UserAccount.franchiseOwner(username, hash, req.displayName().trim(), team.getTeamId()));
+        UserAccount account = UserAccount.franchiseOwner(username, hash, req.displayName().trim(),
+                team.getTeamId());
+        account.setTournamentId(team.getTournamentId()); // owner belongs to its team's tournament
+        UserAccount saved = accounts.save(account);
         return new RegisterResponse(saved.getUsername(), saved.getTeamId());
     }
 
@@ -91,11 +94,12 @@ public class AuthController {
     public MeResponse me(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
                 || !(authentication.getPrincipal() instanceof AuthPrincipal principal)) {
-            return new MeResponse(false, null, null, null, null, null);
+            return new MeResponse(false, null, null, null, null, null, java.util.Set.of());
         }
         String teamName = principal.teamId() == null ? null
                 : teams.findById(principal.teamId()).map(Team::getName).orElse(null);
         return new MeResponse(true, principal.getUsername(), principal.displayName(),
-                principal.role().name(), principal.teamId(), teamName);
+                principal.role().name(), principal.teamId(), teamName,
+                principal.adminTournamentIds());
     }
 }

@@ -27,12 +27,13 @@ public final class Responses {
             PlayerStatus status,
             UUID soldToTeamId,
             Long soldPrice,
-            Instant soldAt) {
+            Instant soldAt,
+            boolean hasPhoto) {
 
         public static PlayerView from(Player p) {
             return new PlayerView(p.getPlayerId(), p.getName(), p.getRole(), p.getCategory(),
                     p.getBasePrice(), p.getStats(), p.getStatus(),
-                    p.getSoldToTeamId(), p.getSoldPrice(), p.getSoldAt());
+                    p.getSoldToTeamId(), p.getSoldPrice(), p.getSoldAt(), p.hasPhoto());
         }
     }
 

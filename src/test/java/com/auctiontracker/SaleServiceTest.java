@@ -1,5 +1,7 @@
 package com.auctiontracker;
 
+import com.auctiontracker.tournament.RuleBook;
+
 import com.auctiontracker.bidding.BiddingService;
 import com.auctiontracker.bidding.InMemoryBidEventRepository;
 import com.auctiontracker.bidding.IncrementRuleEngine;
@@ -43,11 +45,11 @@ class SaleServiceTest {
         teams = new InMemoryTeamRepository();
         sales = new InMemorySaleRepository();
         var props = TestFixtures.props();
-        var feasibility = new FeasibilityService(players, props);
+        var feasibility = new FeasibilityService(players, RuleBook.fixed(props));
         var lock = new AuctionLock();
         bidding = new BiddingService(players, teams, new InMemoryBidEventRepository(),
-                new IncrementRuleEngine(props), feasibility, lock);
-        sale = new SaleService(players, teams, sales, feasibility, lock, props, bidding);
+                new IncrementRuleEngine(RuleBook.fixed(props)), feasibility, lock, RuleBook.fixed(props));
+        sale = new SaleService(players, teams, sales, feasibility, lock, RuleBook.fixed(props), bidding);
     }
 
     private Team saveTeam() {

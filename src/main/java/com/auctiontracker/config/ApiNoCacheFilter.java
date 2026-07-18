@@ -26,7 +26,13 @@ public class ApiNoCacheFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        if (request.getRequestURI().startsWith("/api/")) {
+        String uri = request.getRequestURI();
+        // Player poster images are large and immutable — they set their own
+        // long-lived cache policy (see PlayerQueryController#photo) and must be
+        // browser-cacheable, so they're the one /api/ path we don't force no-store
+        // on. (Spring writes the controller's Cache-Control via addHeader, so a
+        // no-store set here would otherwise combine with it and win.)
+        if (uri.startsWith("/api/") && !uri.endsWith("/photo")) {
             response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
             response.setHeader("Pragma", "no-cache");
             response.setHeader("Expires", "0");

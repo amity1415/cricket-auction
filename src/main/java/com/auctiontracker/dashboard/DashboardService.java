@@ -50,11 +50,13 @@ public class DashboardService {
         Map<UUID, List<Player>> squadsByTeam = players.findAll().stream()
                 .filter(p -> p.getSoldToTeamId() != null)
                 .collect(Collectors.groupingBy(Player::getSoldToTeamId));
+        Player blockPlayer = blockPlayer();
         List<TeamSnapshot> snapshots = teams.findAll().stream()
                 .sorted(Comparator.comparing(Team::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(team -> snapshot(team, squadsByTeam.getOrDefault(team.getTeamId(), List.of())))
+                .map(team -> snapshot(team, squadsByTeam.getOrDefault(team.getTeamId(), List.of()), blockPlayer))
                 .toList();
-        return new DashboardView(onTheBlock(), snapshots, Instant.now());
+        return new DashboardView(blockPlayer == null ? null : onTheBlockView(blockPlayer),
+                snapshots, Instant.now());
     }
 
     public TeamDetailView teamDetail(UUID teamId) {
@@ -65,18 +67,24 @@ public class DashboardService {
                 .sorted(Comparator.comparing(Player::getSoldAt))
                 .map(p -> new SquadMemberView(p.getPlayerId(), p.getName(), p.getRole(),
                         p.getCategory(), p.getStatus() == PlayerStatus.RETAINED,
-                        p.getSoldPrice(), p.getSoldAt()))
+                        p.getSoldPrice(), p.getSoldAt(), p.hasPhoto()))
                 .toList();
-        return new TeamDetailView(snapshot(team, squadPlayers), squad, Instant.now());
+        return new TeamDetailView(snapshot(team, squadPlayers, blockPlayer()), squad, Instant.now());
     }
 
     /** Single-team snapshot (fetches this team's squad once). */
     public TeamSnapshot snapshot(Team team) {
-        return snapshot(team, players.findBySoldToTeamId(team.getTeamId()));
+        return snapshot(team, players.findBySoldToTeamId(team.getTeamId()), blockPlayer());
     }
 
-    /** Snapshot from a pre-fetched squad list — no per-figure queries. */
-    public TeamSnapshot snapshot(Team team, List<Player> squad) {
+    /**
+     * Snapshot from a pre-fetched squad list — no per-figure queries. When a
+     * player is on the block, {@code blockPlayer} is passed so the team's
+     * player-specific max next bid can be computed (null otherwise).
+     */
+    public TeamSnapshot snapshot(Team team, List<Player> squad, Player blockPlayer) {
+        Long maxBidForBlock = blockPlayer == null ? null
+                : feasibility.maxBidFor(team, blockPlayer, squad);
         return new TeamSnapshot(
                 team.getTeamId(),
                 team.getName(),
@@ -89,13 +97,13 @@ public class DashboardService {
                 feasibility.remainingMandatorySlots(team, squad),
                 feasibility.roleCounts(squad),
                 team.getMinPerRole(),
-                feasibility.categoryCounts(squad));
+                feasibility.categoryCounts(squad),
+                maxBidForBlock);
     }
 
-    private OnTheBlockView onTheBlock() {
-        return players.findFirstByStatus(PlayerStatus.UNDER_AUCTION)
-                .map(this::onTheBlockView)
-                .orElse(null);
+    /** The player currently under auction, if any. */
+    private Player blockPlayer() {
+        return players.findFirstByStatus(PlayerStatus.UNDER_AUCTION).orElse(null);
     }
 
     private OnTheBlockView onTheBlockView(Player player) {
@@ -116,6 +124,7 @@ public class DashboardService {
                 leadingTeamId,
                 leadingTeamName,
                 bidding.nextBidAmount(player),
-                bidding.bidCount(player.getPlayerId()));
+                bidding.bidCount(player.getPlayerId()),
+                player.hasPhoto());
     }
 }

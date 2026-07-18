@@ -1,5 +1,7 @@
 package com.auctiontracker;
 
+import com.auctiontracker.tournament.RuleBook;
+
 import com.auctiontracker.core.AuctionException;
 import com.auctiontracker.core.CoreService;
 import com.auctiontracker.core.InMemoryPlayerRepository;
@@ -34,7 +36,7 @@ class SetupCrudTest {
         players = new InMemoryPlayerRepository();
         teams = new InMemoryTeamRepository();
         var props = TestFixtures.props();
-        core = new CoreService(players, teams, props, new PlayerRowParser(props));
+        core = new CoreService(players, teams, RuleBook.fixed(props), new PlayerRowParser(RuleBook.fixed(props)));
     }
 
     @Test

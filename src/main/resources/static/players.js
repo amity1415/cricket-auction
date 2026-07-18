@@ -18,7 +18,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const ROLE_NAME = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-rounder', WICKETKEEPER: 'Wicketkeeper' };
-const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🎯', ALL_ROUNDER: '🔄', WICKETKEEPER: '🧤' };
+const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🔴', ALL_ROUNDER: '🏏🔴', WICKETKEEPER: '🧤' };
 const STATUS_LABEL = {
   AVAILABLE: 'Available', UNSOLD: 'Unsold', SOLD: 'Sold',
   RETAINED: 'Retained', UNDER_AUCTION: 'Under auction',
@@ -28,6 +28,8 @@ const STATUS_LABEL = {
 // are offered (there is no separate bowling average / bowling strike rate yet;
 // economy and wickets are the available bowling metrics).
 const SORTS = {
+  // Default: the order players were imported/added (see p._ord, set on load).
+  insertion:      { label: 'Order added',         get: p => p._ord,                 type: 'num' },
   name:           { label: 'Name',                get: p => p.name,                 type: 'str' },
   basePrice:      { label: 'Base price',          get: p => p.basePrice,            type: 'num' },
   soldPrice:      { label: 'Sold price',          get: p => p.soldPrice,            type: 'num' },
@@ -39,13 +41,25 @@ const SORTS = {
   matches:        { label: 'Matches',             get: p => p.stats?.matches,       type: 'num' },
 };
 
+// Category = the player's group/pool. Both formats' groups, in a sensible order,
+// with short display labels for the chips and group headings.
+const CAT_ORDER = ['A', 'B', 'C', 'D', 'E',
+  'MIXED_UTILITY_BAG', 'WICKET_KEEPER', 'BOWLER', 'ALL_ROUNDER', 'MARKEE_PLAYER'];
+const CAT_LABEL = {
+  A: 'A', B: 'B', C: 'C', D: 'D', E: 'E',
+  MIXED_UTILITY_BAG: 'Mixed Utility', WICKET_KEEPER: 'Wicket Keeper',
+  BOWLER: 'Bowler', ALL_ROUNDER: 'All Rounder', MARKEE_PLAYER: 'Markee',
+};
+const catLabel = c => CAT_LABEL[c] || c;
+const catRank = c => { const i = CAT_ORDER.indexOf(c); return i < 0 ? 999 : i; };
+
 const GROUP_ORDER = {
-  category: ['A', 'B', 'C', 'D', 'E'],
+  category: CAT_ORDER,
   role: ['BATSMAN', 'ALL_ROUNDER', 'WICKETKEEPER', 'BOWLER'],
   status: ['UNDER_AUCTION', 'AVAILABLE', 'UNSOLD', 'SOLD', 'RETAINED'],
 };
 const GROUP_LABEL = {
-  category: g => 'Group ' + g,
+  category: g => catLabel(g),
   role: g => (ROLE_ICON[g] || '') + ' ' + (ROLE_NAME[g] || g),
   status: g => STATUS_LABEL[g] || g,
 };
@@ -53,9 +67,10 @@ const GROUP_KEY = { category: p => p.category, role: p => p.role, status: p => p
 
 const state = {
   scope: 'all',
-  statuses: new Set(),  // empty = every status (all players visible by default)
-  roles: new Set(),     // empty = every role
-  sort: 'battingAverage', sortDir: 'desc', group: 'none', search: '',
+  statuses: new Set(),   // empty = every status (all players visible by default)
+  roles: new Set(),      // empty = every role
+  categories: new Set(), // empty = every category/group
+  sort: 'insertion', sortDir: 'asc', group: 'none', search: '',
 };
 
 let allPlayers = [];
@@ -92,6 +107,7 @@ function filtered() {
     if (state.scope === 'mine' && p.soldToTeamId !== myTeamId) return false;
     if (state.statuses.size && !state.statuses.has(p.status)) return false;
     if (state.roles.size && !state.roles.has(p.role)) return false;
+    if (state.categories.size && !state.categories.has(p.category)) return false;
     if (state.search && !p.name.toLowerCase().includes(state.search)) return false;
     return true;
   });
@@ -157,13 +173,19 @@ async function load() {
       getJSON('/api/dashboard').catch(() => ({ teams: [] })),
     ]);
     // Only re-render when the underlying data actually changed — an unchanged
-    // 8s poll used to redraw the whole table and cause a flicker.
-    const sig = JSON.stringify(players) + '|'
-        + JSON.stringify((dash.teams || []).map(t => [t.teamId, t.name]));
+    // poll used to redraw the whole table and cause a flicker. The signature is
+    // order-independent: Postgres returns rows in no guaranteed order, so a raw
+    // JSON.stringify would differ on every poll and redraw needlessly (the table
+    // is re-sorted client-side anyway, so row order from the API is irrelevant).
+    const byId = (a, b) => (a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0);
+    const sig = JSON.stringify([...players].sort(byId)) + '|'
+        + JSON.stringify((dash.teams || []).map(t => [t.teamId, t.name]).sort());
     if (sig === lastSig) return;
     lastSig = sig;
     allPlayers = players;
+    allPlayers.forEach((p, i) => { p._ord = i; }); // insertion order (API returns seq-ordered)
     teamNames = Object.fromEntries((dash.teams || []).map(t => [t.teamId, t.name]));
+    buildCategoryChips();
     render();
   } catch (e) {
     if (!allPlayers.length) {
@@ -188,6 +210,22 @@ function buildChips() {
   $('role-chips').querySelectorAll('.fchip').forEach(c => c.onclick = () => toggleChip(c, state.roles));
 }
 
+// Category chips are data-driven — only the groups actually present in this
+// tournament's pool, in canonical order. Rebuilt only when that set changes, so
+// a live poll never wipes the admin's current selection.
+let _catSig = '';
+function buildCategoryChips() {
+  const el = $('category-chips');
+  if (!el) return;
+  const cats = [...new Set(allPlayers.map(p => p.category))].sort((a, b) => catRank(a) - catRank(b));
+  const sig = cats.join(',');
+  if (sig === _catSig) return;
+  _catSig = sig;
+  el.innerHTML = cats.map(c =>
+    `<button type="button" class="fchip${state.categories.has(c) ? ' active' : ''}" data-v="${c}">${catLabel(c)}</button>`).join('');
+  el.querySelectorAll('.fchip').forEach(c => c.onclick = () => toggleChip(c, state.categories));
+}
+
 function toggleChip(chip, set) {
   const v = chip.dataset.v;
   if (set.has(v)) { set.delete(v); chip.classList.remove('active'); }
@@ -196,6 +234,7 @@ function toggleChip(chip, set) {
 }
 
 function wire() {
+  $('sort-dir').textContent = state.sortDir === 'asc' ? '▲ Asc' : '▼ Desc';
   $('sort').onchange = e => { state.sort = e.target.value; render(); };
   $('group').onchange = e => { state.group = e.target.value; render(); };
   $('sort-dir').onclick = () => {

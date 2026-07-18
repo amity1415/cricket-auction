@@ -1,6 +1,6 @@
 package com.auctiontracker.core;
 
-import com.auctiontracker.config.AuctionProperties;
+import com.auctiontracker.tournament.RuleBook;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,11 +18,11 @@ import java.util.Map;
 public class FeasibilityService {
 
     private final PlayerRepository players;
-    private final AuctionProperties props;
+    private final RuleBook ruleBook;
 
-    public FeasibilityService(PlayerRepository players, AuctionProperties props) {
+    public FeasibilityService(PlayerRepository players, RuleBook ruleBook) {
         this.players = players;
-        this.props = props;
+        this.ruleBook = ruleBook;
     }
 
     // --- Squad-list overloads -------------------------------------------
@@ -87,7 +87,7 @@ public class FeasibilityService {
     private int categoryDeficit(Map<PlayerCategory, Integer> counts) {
         int slots = 0;
         for (PlayerCategory category : PlayerCategory.values()) {
-            slots += Math.max(0, props.minPerTeamFor(category) - counts.get(category));
+            slots += Math.max(0, ruleBook.current().minPerTeamFor(category) - counts.get(category));
         }
         return slots;
     }
@@ -128,7 +128,7 @@ public class FeasibilityService {
                     Map.of("teamId", team.getTeamId()));
         }
         PlayerCategory cat = player.getCategory();
-        Integer maxInGroup = props.maxPerTeamFor(cat);
+        Integer maxInGroup = ruleBook.current().maxPerTeamFor(cat);
         List<Player> squad = players.findBySoldToTeamId(team.getTeamId());
         int inGroup = categoryCounts(squad).get(cat);
         if (maxInGroup != null) {
@@ -142,11 +142,11 @@ public class FeasibilityService {
             // ceiling. A bid may use only what is left of that budget after
             // reserving the group's remaining allowed slots at reserve price:
             //   budget − already-spent-in-group − (remaining slots after) × reserve
-            Long budget = props.budgetFor(cat);
+            Long budget = ruleBook.current().budgetFor(cat);
             if (budget != null) {
                 long spent = groupSpend(squad, cat);
                 int remainingAfter = Math.max(0, maxInGroup - inGroup - 1);
-                long reserve = (long) remainingAfter * props.reservePerSlotFor(cat);
+                long reserve = (long) remainingAfter * ruleBook.current().reservePerSlotFor(cat);
                 long cap = budget - spent - reserve;
                 if (price > cap) {
                     throw AuctionException.conflict("GROUP_BUDGET_EXCEEDED",
@@ -207,12 +207,12 @@ public class FeasibilityService {
         }
         List<Long> mandatory = new ArrayList<>();  // group-minimum slots, priced at group base
         List<Long> optional = new ArrayList<>();   // spare capacity, cheapest wins
-        for (PlayerCategory g : PlayerCategory.values()) {
+        for (PlayerCategory g : ruleBook.current().configuredGroups()) {
             int have = held.getOrDefault(g, 0);
-            int min = props.minPerTeamFor(g);
-            Integer max = props.maxPerTeamFor(g);
+            int min = ruleBook.current().minPerTeamFor(g);
+            Integer max = ruleBook.current().maxPerTeamFor(g);
             int cap = max == null ? Integer.MAX_VALUE : max;
-            long base = props.basePriceFor(g);
+            long base = ruleBook.current().basePriceFor(g);
             for (int i = 0; i < Math.max(0, Math.min(min, cap) - have); i++) {
                 mandatory.add(base);
             }
@@ -260,9 +260,9 @@ public class FeasibilityService {
         }
         Map<PlayerCategory, Integer> counts = categoryCounts(squad);
         List<Long> mandatory = new ArrayList<>();
-        for (PlayerCategory g : PlayerCategory.values()) {
-            long base = props.basePriceFor(g);
-            for (int i = 0; i < Math.max(0, props.minPerTeamFor(g) - counts.get(g)); i++) {
+        for (PlayerCategory g : ruleBook.current().configuredGroups()) {
+            long base = ruleBook.current().basePriceFor(g);
+            for (int i = 0; i < Math.max(0, ruleBook.current().minPerTeamFor(g) - counts.get(g)); i++) {
                 mandatory.add(base);
             }
         }
@@ -270,7 +270,7 @@ public class FeasibilityService {
         // so top the list up to the role deficit at the minimum viable price.
         int roleDeficit = roleDeficit(team, roleCounts(squad));
         while (mandatory.size() < roleDeficit) {
-            mandatory.add(props.minViablePrice());
+            mandatory.add(ruleBook.current().minViablePrice());
         }
         if (mandatory.isEmpty()) {
             return team.getRemainingPurse();
@@ -279,5 +279,44 @@ public class FeasibilityService {
         long thisBidCovers = mandatory.get(mandatory.size() - 1); // fills the priciest obligation
         long reserve = mandatory.stream().mapToLong(Long::longValue).sum() - thisBidCovers;
         return Math.max(0, team.getRemainingPurse() - reserve);
+    }
+
+    /**
+     * The most this team may bid on {@code player} specifically and still pass
+     * every acquire-time check in {@link #assertCanAcquire}: its purse, the group
+     * budget ceiling for the player's group, and the reserve it must keep to fill
+     * its remaining mandatory slots at base price. Returns 0 when the team cannot
+     * sign this player at all (squad full, or its quota for the player's group is
+     * already used up). This is the player-aware companion to
+     * {@link #maxAffordableBid} — the "max next bid" a screen shows per team while
+     * a specific player is on the block.
+     */
+    public long maxBidFor(Team team, Player player, List<Player> squad) {
+        if (team.squadSize() >= team.getMaxSquadSize()) {
+            return 0;
+        }
+        PlayerCategory cat = player.getCategory();
+        int inGroup = categoryCounts(squad).get(cat);
+        Integer maxInGroup = ruleBook.current().maxPerTeamFor(cat);
+        if (maxInGroup != null && inGroup >= maxInGroup) {
+            return 0; // group quota already full — this team can't sign the player
+        }
+        long cap = team.getRemainingPurse();
+
+        // Group budget ceiling (groups with a configured budget, e.g. Group A):
+        // budget − already-spent-in-group − reserve to fill this group's other slots.
+        Long budget = ruleBook.current().budgetFor(cat);
+        if (budget != null) {
+            long spent = groupSpend(squad, cat);
+            int remainingAfter = maxInGroup == null ? 0 : Math.max(0, maxInGroup - inGroup - 1);
+            long groupReserve = (long) remainingAfter * ruleBook.current().reservePerSlotFor(cat);
+            cap = Math.min(cap, budget - spent - groupReserve);
+        }
+
+        // Must still leave enough to fill every remaining mandatory slot at base price.
+        long completionReserve = squadCompletionReserve(squad, cat, team.getMaxSquadSize(), team.squadSize());
+        cap = Math.min(cap, team.getRemainingPurse() - completionReserve);
+
+        return Math.max(0, cap);
     }
 }

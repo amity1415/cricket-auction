@@ -89,6 +89,36 @@ header nav .nav-sep {
 header nav { position: relative; }
 /* Groups the broadcast connection pill with its dropdown on the right. */
 .header-actions { display: flex; align-items: center; gap: 12px; }
+
+/* Back arrow (left of the title, injected by auth.js). Keeping the right-side
+   nav/actions pushed right means the back button + title sit together on the
+   left even though the header now holds three items. */
+header > nav, header > .header-actions { margin-left: auto; }
+.back-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; flex: 0 0 auto; padding: 0;
+  border-radius: 11px; border: 1px solid var(--border);
+  background: var(--card-2); color: var(--muted); cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s, transform .15s;
+}
+.back-btn:hover { color: var(--text); border-color: var(--border-strong);
+  background: rgba(148,163,205,.12); transform: translateX(-2px); }
+.back-btn:active { transform: translateX(-3px) scale(.95); }
+.back-btn svg { display: block; }
+
+/* Phones: the title has white-space:nowrap, so a long heading + auction pill
+   would shove the menu/status off the right edge (horizontal overflow). Trim the
+   "— Section" suffix, shrink the title, and cap the pill so the row always fits. */
+@media (max-width: 640px) {
+  header { padding: 10px 12px; gap: 8px; }
+  header h1 { font-size: 14px; min-width: 0; }
+  header h1 > .muted { display: none; }
+  .auction-pill { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
+  .back-btn { width: 34px; height: 34px; border-radius: 10px; }
+  /* Broadcast also carries a "live" status pill; drop it on phones so the
+     auction name still fits (the board itself shows the live state). */
+  body.broadcast-mode .conn-status { display: none; }
+}
 /* Hide any page's inline links (except the broadcast screen, which keeps its
    own simple nav) — the dropdown built by auth.js is the single source of nav. */
 body:not(.broadcast-mode) header nav > a,
@@ -255,6 +285,22 @@ button.primary:disabled, button.danger:disabled, button.warn:disabled {
 .filters button:hover { color: var(--text); border-color: var(--border-strong); }
 .filters button.active { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 
+/* Console 2nd-level refine tray (Role + Category) — sits under the status filters. */
+.pool-refine {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin-top: 10px; padding: 10px 12px; border-radius: 11px;
+  border: 1px dashed var(--border-strong);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
+    rgba(10,14,26,.35);
+}
+.pool-refine-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pool-refine-label {
+  font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted);
+}
+.filters--sm button { padding: 3px 11px; font-size: 11px; }
+
 .pool-search-row { display: flex; gap: 8px; align-items: center; margin: 12px 0 6px; }
 #pool-search {
   flex: 1; background: rgba(10,14,26,.5); border: 1px solid var(--border); color: var(--text);
@@ -389,7 +435,7 @@ summary { cursor: pointer; color: var(--accent); padding: 4px 0; font-weight: 60
 .profile-wrap { max-width: 780px; margin: 0 auto; padding: 20px 26px; display: flex; flex-direction: column; gap: 18px; }
 .profile-wrap > div { display: flex; flex-direction: column; gap: 18px; }
 .profile-hero {
-  display: flex; gap: 20px; align-items: center;
+  display: flex; gap: 28px; align-items: center;
   border-color: rgba(91,140,255,.4);
   background: linear-gradient(160deg, rgba(91,140,255,.10), rgba(139,92,246,.06) 50%, transparent), var(--card);
 }
@@ -400,8 +446,18 @@ summary { cursor: pointer; color: var(--accent); padding: 4px 0; font-weight: 60
   font-size: 27px; font-weight: 800; color: #fff;
   box-shadow: 0 10px 26px -8px rgba(91,140,255,.55);
 }
+/* Portrait poster on the full player page — full artwork, not cropped. Sized as
+   the page's centrepiece; capped by viewport height so it never overflows. */
+.profile-poster {
+  flex: 0 0 auto; width: 320px; max-width: 42vw; height: auto; max-height: 62vh;
+  object-fit: contain; border-radius: 18px; background: rgba(10,14,26,.4);
+  box-shadow: 0 18px 44px -14px rgba(0,0,0,.75);
+}
+/* When the poster is present the hero reads as a portrait card — top-align the
+   details so long stat blocks flow down beside the tall image, not off-centre. */
+.profile-hero:has(.profile-poster) { align-items: flex-start; }
 .hero-main { min-width: 0; }
-.pname { margin: 0 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.pname { margin: 0 0 8px; font-size: 32px; font-weight: 800; letter-spacing: -.02em; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .chips .chip { margin-left: 0; }
 .status-line { margin-top: 12px; font-size: 14px; }
@@ -548,6 +604,12 @@ dialog.profile-modal { width: min(700px, calc(100vw - 32px)); }
 a.modal-x { text-decoration: none; font-size: 15px; }
 .pm-hero { display: flex; gap: 16px; align-items: center; }
 .pm-hero .avatar { width: 62px; height: 62px; font-size: 22px; }
+/* Portrait poster in the profile popup — full artwork, not cropped. */
+.pm-photo {
+  flex: 0 0 auto; width: 130px; height: auto; max-height: 190px;
+  object-fit: contain; border-radius: 12px; background: rgba(10,14,26,.4);
+  box-shadow: 0 10px 26px -12px rgba(0,0,0,.7);
+}
 .pm-label {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .1em; color: var(--muted); margin-top: 4px;
@@ -572,36 +634,52 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
 .broadcast-player {
   background: linear-gradient(160deg, rgba(79,108,255,.12), rgba(139,92,246,.08)), var(--card);
   border: 1px solid rgba(79,108,255,.45); border-radius: var(--radius);
-  padding: 28px; margin-bottom: 28px;
+  padding: 24px 28px; margin-bottom: 20px;
   box-shadow: var(--shadow);
 }
 
+/* The hero is one horizontal band: the poster on the left, all the text and bid
+   figures in the column beside it (bid markup lives inside .player-main now). */
 .player-card {
-  display: flex; gap: 36px; align-items: center; margin-bottom: 26px;
-  padding-bottom: 26px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 48px; align-items: center;
 }
-/* Photo placeholder — a real player photo can be dropped in later via
-   background-image (it's set to cover). Initials show until then. */
+/* Initials fallback, shown only when a player has no poster. */
 .player-avatar {
-  width: 200px; height: 200px; border-radius: 22px; flex: 0 0 auto;
+  width: 260px; height: 260px; border-radius: 26px; flex: 0 0 auto;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   background-size: cover; background-position: center;
   display: flex; align-items: center; justify-content: center;
-  font-size: 72px; font-weight: 800; color: #fff;
-  box-shadow: 0 16px 38px -10px rgba(91,140,255,.55);
+  font-size: 96px; font-weight: 800; color: #fff;
+  box-shadow: 0 18px 44px -10px rgba(91,140,255,.55);
 }
-.player-main { flex: 1; min-width: 0; }
-.player-main h2 { margin: 0 0 16px; font-size: 52px; letter-spacing: -.02em; line-height: 1.05; }
-.player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
-.player-meta .chip { font-size: 24px; padding: 10px 22px; }
+/* Portrait player poster (Drive-backed). Shown instead of the initials avatar
+   when the player has an image; the full poster is preserved (object-fit:
+   contain) rather than cropped, since the artwork already carries the player's
+   name and traits. Sized to dominate the hero on a projector; the board's
+   fit-to-screen scaling still guarantees the whole page stays on one screen. */
+.player-poster {
+  flex: 0 0 auto;
+  height: 50vh; max-height: 56vh; width: auto; max-width: 44vw;
+  object-fit: contain; border-radius: 24px;
+  background: rgba(10,14,26,.4);
+  box-shadow: 0 24px 56px -14px rgba(91,140,255,.6);
+}
+.broadcast-sold .player-poster { box-shadow: 0 24px 56px -14px rgba(45,212,143,.5); }
+.player-main {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 22px;
+}
+.player-main h2 { margin: 0; font-size: 60px; letter-spacing: -.02em; line-height: 1.02; }
+.player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin: 0; }
+.player-meta .chip { font-size: 26px; padding: 11px 24px; }
 .player-status { color: var(--muted); }
 /* Bigger, evenly-spread career stats for the TV. */
 .player-status .pstats { gap: 12px 30px; padding: 20px 26px; justify-content: space-between; }
-.player-status .pstat b { font-size: 38px; }
-.player-status .pstat span { font-size: 16px; }
+.player-status .pstat b { font-size: 40px; }
+.player-status .pstat span { font-size: 17px; }
 
 .bid-display {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 6px 0 0;
 }
 .bid-amount {
   background: rgba(10,14,26,.5); border: 1px solid var(--border);
@@ -614,10 +692,10 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   letter-spacing: .06em; color: var(--muted);
 }
 .bid-value {
-  font-size: 54px; font-weight: 800; color: var(--green);
+  font-size: 64px; font-weight: 800; color: var(--green);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
-.bid-team { font-size: 22px; color: var(--text); font-weight: 600; }
+.bid-team { font-size: 24px; color: var(--text); font-weight: 600; }
 .bid-amount.next .bid-value { color: var(--accent); }
 
 .bid-info { display: flex; gap: 12px; align-items: center; }
@@ -627,44 +705,75 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   border-radius: 20px; font-size: 12px; font-weight: 700; color: #c1a8f7;
 }
 
+/* Team purses — big type but COMPACT height, so a full field lays out in one
+   row and the board fits one screen without shrinking (projector-readable). */
 .broadcast-teams {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 24px;
+  border-radius: var(--radius); padding: 22px 26px;
 }
 .broadcast-teams h2 {
-  margin: 0 0 18px; font-size: 15px; text-transform: uppercase;
+  margin: 0 0 16px; font-size: 20px; text-transform: uppercase;
   letter-spacing: .1em; color: var(--muted);
 }
 .teams-broadcast {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
 }
 .team-broadcast {
   background: var(--card-2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 16px;
-  transition: all .3s ease;
+  border-radius: 16px; padding: 16px 18px;
+  transition: border-color .3s ease, transform .2s ease, box-shadow .2s ease;
   position: relative;
 }
 .team-broadcast:hover { border-color: var(--border-strong); }
 .team-broadcast.leading {
-  border-color: var(--green); box-shadow: 0 0 0 1px var(--green);
+  border-color: var(--green); box-shadow: 0 0 0 2px var(--green);
   background: linear-gradient(160deg, rgba(45,212,143,.08), rgba(45,212,143,.02)), var(--card-2);
 }
-.team-broadcast h3 { margin: 0 0 10px; font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
-.purse-bar { height: 12px; background: rgba(148,163,205,.14); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.tb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.team-broadcast h3 {
+  margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.purse-amount {
+  font-size: 40px; font-weight: 800; color: var(--green);
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 2px 0 10px;
+}
+.purse-bar { height: 14px; background: rgba(148,163,205,.14); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
 .purse-bar i { display: block; height: 100%; background: linear-gradient(90deg, #1f8f5c, var(--green)); transition: width .6s ease; }
 .team-broadcast.leading .purse-bar i { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-.purse-amount {
-  font-size: 24px; font-weight: 800; color: var(--green);
-  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
-}
-.purse-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.squad-info { font-size: 12px; color: var(--muted); margin-top: 8px; }
-.leading-badge {
-  position: absolute; top: 10px; right: 10px;
-  font-size: 18px; font-weight: 800; animation: pulse 1.2s infinite;
-}
+.tb-meta { font-size: 16px; color: var(--muted); font-weight: 600; }
+/* Legacy stacked lines (kept for any other users of the classes). */
+.purse-detail { font-size: 16px; color: var(--muted); margin-top: 4px; }
+.squad-info { font-size: 17px; color: var(--muted); margin-top: 8px; font-weight: 600; }
+.leading-badge { font-size: 26px; font-weight: 800; line-height: 1; animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+/* Team purse cards are clickable → squad drill-down. */
+.team-broadcast { cursor: pointer; }
+.team-broadcast:hover { transform: translateY(-2px); box-shadow: 0 10px 26px -14px rgba(0,0,0,.6); }
+.team-broadcast:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.th-hint { font-size: 16px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* --- Broadcast team squad drill-down modal --- */
+#bc-team-modal.modal { width: min(680px, calc(100vw - 32px)); }
+#bc-team-modal .modal-body { padding: 16px 20px 20px; }
+.btm-summary {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;
+}
+.btm-summary > div {
+  background: var(--card-2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; text-align: center;
+}
+.btm-summary b { display: block; font-size: 22px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+.btm-summary span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.btm-scroll { max-height: 60vh; overflow: auto; }
+.btm-table { width: 100%; }
+.btm-player { display: flex; align-items: center; gap: 10px; }
+.squad-thumb {
+  width: 30px; height: 40px; object-fit: cover; border-radius: 6px; flex: 0 0 auto;
+  background: rgba(148,163,205,.14);
+}
 
 /* --- Connection status pill (broadcast header) --- */
 .conn-status {
@@ -679,7 +788,7 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   position: relative; overflow: hidden;
   background: linear-gradient(160deg, rgba(45,212,143,.16), rgba(31,142,92,.06) 55%, transparent), var(--card);
   border: 1px solid var(--green); border-radius: var(--radius);
-  padding: 28px; margin-bottom: 28px;
+  padding: 24px 28px; margin-bottom: 20px;
   box-shadow: 0 0 0 1px rgba(45,212,143,.25), 0 20px 60px -20px rgba(45,212,143,.4);
   animation: sold-pop .45s cubic-bezier(.2,.9,.3,1.25);
 }
@@ -693,19 +802,29 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   animation: stamp-in .5s cubic-bezier(.2,.9,.3,1.4) .1s both;
 }
 @keyframes stamp-in { from { opacity: 0; transform: rotate(8deg) scale(2.2); } }
+
+/* UNSOLD variant of the result panel — same layout, red instead of green. */
+.broadcast-sold.unsold {
+  border-color: rgba(240,86,74,.6);
+  background: linear-gradient(160deg, rgba(240,86,74,.16), rgba(240,86,74,.05) 55%, transparent), var(--card);
+  box-shadow: 0 0 0 1px rgba(240,86,74,.25), 0 20px 60px -20px rgba(240,86,74,.4);
+}
+.broadcast-sold.unsold .sold-stamp {
+  color: var(--red); border-color: var(--red); text-shadow: 0 2px 12px rgba(240,86,74,.4);
+}
 .sold-deal {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-  margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
+  margin-top: 6px; padding-top: 22px; border-top: 1px solid var(--border);
 }
 .sold-block {
   background: rgba(10,14,26,.45); border: 1px solid var(--border);
-  border-radius: 12px; padding: 18px;
-  display: flex; flex-direction: column; gap: 8px;
+  border-radius: 14px; padding: 22px 24px;
+  display: flex; flex-direction: column; gap: 10px;
 }
 .sold-block.price { background: rgba(45,212,143,.08); border-color: rgba(45,212,143,.4); }
-.sold-team { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+.sold-team { font-size: 38px; font-weight: 800; letter-spacing: -.02em; }
 .sold-amount {
-  font-size: 40px; font-weight: 800; color: var(--green);
+  font-size: 52px; font-weight: 800; color: var(--green);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
 
@@ -714,8 +833,41 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   /* team columns are set symmetrically by broadcast.js (layoutTeams). */
 }
 @media (max-width: 640px) {
-  .broadcast-wrap { padding: 14px 12px; }
+  /* The board is built for a big TV; scale its oversized type and photo down so
+     it fits a phone without spilling off the side. It then scrolls vertically. */
+  body.broadcast-mode { overflow-x: hidden; }
+  .broadcast-wrap { padding: 14px 12px; max-width: 100%; }
+  .broadcast-player, .broadcast-sold { padding: 16px; margin-bottom: 16px; }
+
+  /* Stack the photo above the details and centre them. */
+  .player-card {
+    flex-direction: column; align-items: center; text-align: center;
+    gap: 14px; margin-bottom: 16px; padding-bottom: 16px;
+  }
+  .player-avatar { width: 96px; height: 96px; border-radius: 16px; font-size: 36px; }
+  .player-poster { height: auto; width: min(70vw, 260px); max-width: 70vw; max-height: 60vh; }
+  .player-main { width: 100%; }
+  .player-main h2 { font-size: 26px; margin-bottom: 10px; word-break: break-word; }
+  .player-meta { justify-content: center; gap: 8px; margin-bottom: 12px; }
+  .player-meta .chip { font-size: 13px; padding: 5px 12px; }
+  .player-status .pstats { gap: 8px 16px; padding: 12px 14px; }
+  .player-status .pstat b { font-size: 20px; }
+  .player-status .pstat span { font-size: 12px; }
+
+  .bid-amount { padding: 14px 16px; }
+  .bid-label { font-size: 13px; }
+  .bid-value { font-size: 30px; }
+  .bid-team { font-size: 15px; }
+
   .broadcast-teams { padding: 16px 14px; }
+  .broadcast-teams h2 { font-size: 13px; margin-bottom: 12px; }
+  .purse-amount { font-size: 18px; }
+
+  .sold-stamp { font-size: 20px; top: 12px; right: 12px; padding: 3px 12px; }
+  .sold-deal { margin-top: 16px; padding-top: 16px; gap: 14px; }
+  .sold-block { padding: 14px; }
+  .sold-team { font-size: 20px; }
+  .sold-amount { font-size: 26px; }
 }
 /* Small screens scroll normally; only TV/desktop is locked to one screen. */
 @media (max-width: 899px) {
@@ -810,9 +962,36 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
 .nav-cta:hover { color: #fff !important; box-shadow: inset 0 0 0 1px rgba(91,140,255,.55); }
 .players-wrap { max-width: 1200px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 
-.controls { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-start; }
+.controls { display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
 .controls .ctl { display: flex; flex-direction: column; gap: 7px; }
 .ctl-group { display: flex; flex-direction: column; gap: 8px; }
+
+/* Two-level filter: primary (Status) sits above a nested "Refine" tray (Role + Category). */
+.filter-bar {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-2) 60%, transparent), transparent);
+}
+.filter-row { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-start; }
+.filter-row--primary { padding: 14px 16px; }
+.filter-row--refine {
+  padding: 13px 16px 14px; gap: 14px 20px; align-items: center;
+  border-top: 1px dashed var(--border-strong);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
+    color-mix(in srgb, var(--card-2) 45%, transparent);
+}
+.refine-badge {
+  align-self: stretch; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--accent); padding-right: 16px; margin-right: 2px;
+  border-right: 1px solid var(--border-strong);
+}
+.refine-badge::before { content: "⟲"; font-size: 13px; }
+.filter-row--tools { flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
+@media (max-width: 560px) {
+  .refine-badge { border-right: none; border-bottom: 1px solid var(--border-strong); padding: 0 0 8px; width: 100%; }
+}
 /* Highlighted control labels — bigger, bolder, brighter, with an accent bar. */
 .ctl-label {
   display: inline-flex; align-items: center; gap: 8px;
@@ -892,3 +1071,616 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
 .picker::-webkit-scrollbar, .teams-grid::-webkit-scrollbar,
 .audit::-webkit-scrollbar, #bid-history::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a4568; }
+
+/* ---- Auctions page (tournament list + full rules editor) ---------------- */
+#tournament-list { max-height: none; overflow: visible; display: grid; gap: .75rem; }
+.team-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--card-solid); padding: .85rem 1rem;
+}
+.team-card.active-tournament { border-color: var(--green); box-shadow: 0 0 0 1px var(--green-deep); }
+.tt-head { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.tt-name { font-size: 1.05rem; }
+.tt-badge { color: var(--green); font-weight: 600; font-size: .8rem; margin-left: .5rem; }
+.tt-counts { font-size: .85rem; }
+.tt-actions { display: flex; gap: .5rem; margin-top: .7rem; flex-wrap: wrap; }
+
+.rules-group { border: 1px solid var(--border); border-radius: var(--radius); padding: .8rem 1rem 1rem; margin: 0; }
+.rules-group > legend { padding: 0 .4rem; color: var(--accent); font-weight: 600; font-size: .9rem; }
+.field { display: flex; flex-direction: column; gap: .25rem; font-size: .82rem; color: var(--muted); }
+.field > span { font-size: .78rem; }
+.field input { width: 100%; }
+.grid2, .grid3, .grid5 { display: grid; gap: .6rem; }
+.grid2 { grid-template-columns: repeat(2, 1fr); }
+.grid3 { grid-template-columns: repeat(3, 1fr); }
+.grid5 { grid-template-columns: repeat(5, 1fr); }
+
+.cat-rules-head, .cat-rules-row { display: grid; grid-template-columns: 44px repeat(4, 1fr); gap: .5rem; align-items: center; }
+.cat-rules-head { font-size: .74rem; color: var(--muted); margin-bottom: .35rem; padding: 0 .1rem; }
+.cat-rules-row { margin-bottom: .4rem; }
+.cat-rules-row input { width: 100%; }
+.cat-tag { font-weight: 700; color: var(--accent); text-align: center; }
+
+.band-row { display: flex; gap: .6rem; align-items: center; margin-bottom: .45rem; flex-wrap: wrap; }
+.band-row label { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem; color: var(--muted); }
+.band-row input { width: 130px; }
+.band-del { padding: .2rem .55rem; }
+
+.check-row { display: flex; align-items: center; gap: .5rem; font-size: .88rem; }
+.check-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .5rem .9rem; }
+.editor-actions { display: flex; gap: .6rem; margin-top: .3rem; }
+
+@media (max-width: 640px) {
+  .grid2, .grid3, .grid5 { grid-template-columns: 1fr 1fr; }
+  .cat-rules-head { display: none; }
+  .cat-rules-row { grid-template-columns: 44px 1fr 1fr; }
+}
+
+/* Generic hidden helper (previously only .toast.hidden existed). */
+.hidden { display: none !important; }
+
+/* Editor inputs sit inside column-flex .field wrappers, so the .form input
+   `flex: 1 1 150px` would become a 150px HEIGHT. Pin them to auto height. */
+#form-editor input { flex: 0 0 auto; }
+#form-editor .rules-group { flex: 1 1 100%; }
+#form-editor > .field { flex: 1 1 100%; }
+
+/* Auction-context header pill (which auction this screen is bound to). */
+.auction-pill {
+  display: inline-block; margin-left: .6rem; padding: .1rem .55rem;
+  font-size: .62em; font-weight: 600; vertical-align: middle;
+  color: var(--accent); background: rgba(91,140,255,.12);
+  border: 1px solid var(--border-strong); border-radius: 999px; white-space: nowrap;
+}
+.tt-del { color: var(--red); border-color: rgba(240,86,74,.35); }
+.tt-del:hover { background: rgba(240,86,74,.12); border-color: var(--red); }
+
+/* Auctions hub search box. */
+.auction-search {
+  width: 100%; margin-top: 1rem; padding: 10px 14px;
+  background: rgba(10,14,26,.5); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.auction-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.18); }
+.auction-search::placeholder { color: var(--muted); }
+
+/* ---- Auctions hub: animated hero + livelier cards ----------------------- */
+.auctions-hero {
+  position: relative; overflow: hidden; text-align: center;
+  padding: 2.6rem 1.5rem 2.3rem; margin-bottom: 1.1rem;
+  border: 1px solid var(--border-strong); border-radius: 18px;
+  background:
+    radial-gradient(130% 150% at 50% -30%, rgba(139,92,246,.22), transparent 60%),
+    linear-gradient(160deg, rgba(91,140,255,.16), rgba(139,92,246,.05) 55%, transparent),
+    var(--card-solid);
+  box-shadow: var(--shadow);
+  animation: rise .5s ease both;
+}
+.hero-content { position: relative; z-index: 1; }
+.hero-trophy {
+  font-size: 3rem; line-height: 1; display: inline-block;
+  filter: drop-shadow(0 8px 20px rgba(245,185,66,.4));
+  animation: trophyFloat 3.6s ease-in-out infinite;
+}
+@keyframes trophyFloat {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50%      { transform: translateY(-11px) rotate(5deg); }
+}
+.hero-title {
+  margin: .55rem 0 .4rem; font-size: 1.95rem; font-weight: 800; letter-spacing: -.02em;
+  background: linear-gradient(92deg, #dbe4ff, #a7c0f4 45%, #c1a8f7);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-sub { margin: 0 auto; max-width: 36rem; color: var(--muted); font-size: .95rem; line-height: 1.5; }
+.hero-sub b { color: var(--text); }
+
+/* Soft drifting colour orbs behind the hero copy. */
+.hero-orbs span {
+  position: absolute; border-radius: 50%; filter: blur(34px); opacity: .55;
+  animation: orbDrift 10s ease-in-out infinite;
+}
+.hero-orbs span:nth-child(1) { width: 170px; height: 170px; left: -34px;  top: -46px;    background: rgba(91,140,255,.55); }
+.hero-orbs span:nth-child(2) { width: 140px; height: 140px; right: -24px; top: 6px;       background: rgba(139,92,246,.5);  animation-delay: -3.3s; }
+.hero-orbs span:nth-child(3) { width: 120px; height: 120px; left: 42%;    bottom: -56px;  background: rgba(45,212,143,.38);  animation-delay: -6.6s; }
+@keyframes orbDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(22px, 16px) scale(1.14); }
+  66%      { transform: translate(-16px, 10px) scale(.9); }
+}
+
+.auctions-bar { display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; }
+.auctions-bar .auction-search { flex: 1 1 240px; margin-top: 0; }
+.auctions-bar .primary { flex: 0 0 auto; white-space: nowrap; }
+
+/* Cards animate in (staggered via inline delay in auctions.js) and lift on hover. */
+#tournament-list .team-card {
+  position: relative; overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  animation: cardIn .45s cubic-bezier(.2,.85,.25,1) both;
+}
+#tournament-list .team-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(91,140,255,.5);
+  box-shadow: 0 16px 32px -16px rgba(91,140,255,.55);
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(14px); } }
+
+/* The active/default auction gets a gentle sweeping shimmer along its top edge. */
+.team-card.active-tournament::after {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2.8s linear infinite;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ============================================================================
+   Team-dashboard & setup polish — richer surfaces, motion, and labelled forms.
+   Appended last so these refinements win over the base rules; reduced-motion
+   still disables the animations via the global !important rule above.
+   ========================================================================== */
+
+/* ---- Team dashboard: showcase hero ---- */
+.owner-wrap .hero.card {
+  position: relative; overflow: hidden;
+  border-color: rgba(91,140,255,.45);
+  background:
+    radial-gradient(120% 170% at 100% -40%, rgba(139,92,246,.20), transparent 55%),
+    linear-gradient(160deg, rgba(91,140,255,.15), rgba(139,92,246,.04) 55%, transparent),
+    var(--card-solid);
+}
+.owner-wrap .hero.card::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(55% 80% at 12% -10%, rgba(91,140,255,.16), transparent 60%);
+}
+.owner-wrap .hero.card > * { position: relative; }
+.big-purse {
+  background: linear-gradient(92deg, #4ff0a8, #2dd48f 55%, #7ee9c2);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Animated sheen sweeping across the purse bar's filled portion. */
+.purse-bar i { position: relative; overflow: hidden; }
+.purse-bar i::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.4) 50%, transparent 70%);
+  background-size: 220% 100%; animation: sheen 2.6s linear infinite;
+}
+@keyframes sheen { from { background-position: 220% 0; } to { background-position: -220% 0; } }
+
+/* Stat tiles: lift + glow on hover, playful icon, staggered entrance. */
+.tile-row .tile {
+  position: relative; overflow: hidden;
+  background: linear-gradient(160deg, rgba(31,40,64,.92), rgba(23,30,48,.92));
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  animation: tilePop .42s cubic-bezier(.2,.8,.25,1) both;
+}
+.tile-row .tile:nth-child(2) { animation-delay: .07s; }
+.tile-row .tile:nth-child(3) { animation-delay: .14s; }
+.tile-row .tile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(91,140,255,.5);
+  box-shadow: 0 14px 30px -16px rgba(91,140,255,.65);
+}
+.tile-row .tile .ticon { font-size: 20px; transition: transform .18s ease; }
+.tile-row .tile:hover .ticon { transform: scale(1.16) rotate(-5deg); }
+.tile-row .tile b { font-size: 20px; }
+@keyframes tilePop { from { opacity: 0; transform: translateY(10px); } }
+
+/* Role chips: lift + accent wash on hover, gradient count. */
+.role-chips .rchip { transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.role-chips .rchip:hover {
+  transform: translateY(-2px); border-color: rgba(91,140,255,.5);
+  background: linear-gradient(160deg, rgba(91,140,255,.14), transparent), var(--card-2);
+}
+.role-chips .rchip b {
+  background: linear-gradient(92deg, #dbe4ff, #a7c0f4);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Requirement meters: sheen on the filled bar. */
+.req .meter i { position: relative; overflow: hidden; }
+.req .meter i::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255,255,255,.28) 50%, transparent 65%);
+  background-size: 220% 100%; animation: sheen 3s linear infinite;
+}
+
+/* Squad table: subtle accent row-hover. */
+.squad-scroll table.pool tbody tr { transition: background .15s ease; }
+.squad-scroll table.pool tbody tr:hover { background: rgba(91,140,255,.07); }
+
+/* ---- Setup page: bolder step badges + labelled forms ---- */
+.setup-wrap .card h2 { display: flex; align-items: center; gap: 4px; }
+.setup-wrap .step {
+  width: 26px; height: 26px; border-radius: 9px; font-size: 13px;
+  box-shadow: 0 6px 16px -6px rgba(91,140,255,.7); vertical-align: middle;
+}
+
+/* Labelled field form used by the team + owner setup forms. */
+.field-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; padding: 14px 0 4px; }
+.field-form .full { grid-column: 1 / -1; }
+.field-form label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 10.5px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .07em; font-weight: 700;
+}
+.field-form input, .field-form select {
+  background: rgba(10,14,26,.5); border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 400;
+  letter-spacing: 0; text-transform: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field-form input::placeholder { color: var(--muted); opacity: .7; }
+.field-form input:focus, .field-form select:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.18);
+}
+.field-form .submit-row { grid-column: 1 / -1; margin-top: 2px; }
+.field-form .submit-row button { width: 100%; }
+@media (max-width: 560px) { .field-form { grid-template-columns: 1fr; } }
+
+/* ============================================================================
+   Interactive form fields — lively focus/hover across the setup forms, the
+   auction rules editor, and the modal forms. Fields lift with a soft glow, a
+   caret-blue underline sweeps in, and the field's label lights up on focus.
+   ========================================================================== */
+:is(.field-form, .form, .form-grid, .retain-row) :is(input, select),
+#form-editor input {
+  position: relative;
+  transition: border-color .18s ease, box-shadow .18s ease,
+              background-color .18s ease, transform .16s ease;
+}
+/* Hover: a hint of life before you even click in. */
+:is(.field-form, .form, .form-grid, .retain-row) :is(input, select):hover:not(:focus),
+#form-editor input:hover:not(:focus) {
+  border-color: var(--border-strong);
+  background: rgba(91,140,255,.05);
+}
+/* Focus: lift, tinted fill, and a layered accent glow. */
+:is(.field-form, .form, .form-grid, .retain-row) :is(input, select):focus,
+#form-editor input:focus {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: rgba(91,140,255,.07);
+  box-shadow: 0 0 0 3px rgba(91,140,255,.20), 0 10px 22px -14px rgba(91,140,255,.75);
+}
+/* The label above the focused field lights up (setup + auction editor). */
+.field-form label:focus-within,
+.form-grid label:focus-within { color: var(--accent); }
+.field-form label:focus-within,
+.form-grid label:focus-within { transition: color .18s ease; }
+#form-editor .field:focus-within > span { color: var(--accent); transition: color .18s ease; }
+
+/* A blue underline that sweeps out from the centre as the field gains focus.
+   Wrapped fields (label/.field around the input) host the pseudo-element. */
+.field-form label, #form-editor .field { position: relative; }
+.field-form label::after,
+#form-editor .field::after {
+  content: ''; position: absolute; left: 50%; right: 50%; bottom: 0; height: 2px;
+  border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: left .22s ease, right .22s ease, opacity .22s ease; opacity: 0;
+}
+.field-form label:focus-within::after,
+#form-editor .field:focus-within::after { left: 10%; right: 10%; opacity: .9; }
+
+/* ============================================================================
+   Teams overview — a wide, live grid of team cards. Each card shows essentials
+   up front and pops a glassy snapshot panel on hover (pure CSS :hover), with a
+   spotlight that dims the rest of the grid. Clicking opens the full dashboard.
+   ========================================================================== */
+main.owner-wrap.wide { max-width: 1240px; }
+
+.teams-overview { display: flex; flex-direction: column; gap: 18px; animation: rise .4s ease both; }
+.overview-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.overview-head h2 { margin: 0 0 2px; font-size: 22px; letter-spacing: -.02em; }
+.overview-head p { margin: 0; font-size: 13px; }
+.overview-stats { display: flex; gap: 10px; }
+.ostat {
+  background: var(--card-2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 8px 16px; text-align: center; min-width: 74px;
+}
+.ostat b { display: block; font-size: 20px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.ostat span { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+#teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 16px; }
+
+.team-tile {
+  position: relative; display: block; text-decoration: none; color: var(--text);
+  background: var(--card-solid); border: 1px solid var(--border); border-radius: 16px;
+  padding: 18px; min-height: 274px; overflow: hidden; isolation: isolate;
+  transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease,
+              border-color .2s ease, opacity .2s ease;
+  animation: tilePop .45s cubic-bezier(.2,.8,.25,1) both;
+}
+/* A faint crest-tinted glow sitting in the top-right corner of each card. */
+.team-tile::before {
+  content: ''; position: absolute; top: -40px; right: -40px; width: 130px; height: 130px;
+  background: var(--crest, linear-gradient(135deg, var(--accent), var(--accent-2)));
+  filter: blur(46px); opacity: .22; z-index: -1; transition: opacity .2s ease;
+}
+.team-tile:hover { transform: translateY(-5px) scale(1.025); z-index: 6;
+  border-color: rgba(91,140,255,.55); box-shadow: 0 26px 50px -20px rgba(91,140,255,.6); }
+.team-tile:hover::before { opacity: .4; }
+.team-tile.mine { border-color: rgba(245,185,66,.5); }
+/* Spotlight: dim the others while one card is hovered. */
+.teams-grid:hover .team-tile:not(:hover) { opacity: .45; filter: saturate(.75); }
+
+.tile-front { display: flex; flex-direction: column; gap: 14px; height: 100%; }
+.tile-top { display: flex; align-items: center; gap: 12px; }
+.crest {
+  width: 46px; height: 46px; border-radius: 13px; flex: 0 0 auto;
+  background: var(--crest, linear-gradient(135deg, var(--accent), var(--accent-2)));
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800; color: #fff; font-size: 17px; letter-spacing: .02em;
+  box-shadow: 0 8px 18px -8px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.crest.sm { width: 26px; height: 26px; border-radius: 8px; font-size: 11px; }
+.tile-id { display: flex; flex-direction: column; min-width: 0; }
+.tile-id .tt-name { font-size: 16px; font-weight: 800; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-id .muted { font-size: 12px; }
+.tile-mid { font-size: 12.5px; }
+.tile-mid b { color: var(--text); font-variant-numeric: tabular-nums; }
+.tile-purse { margin-top: auto; }
+.tp-amount { font-size: 26px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  background: linear-gradient(92deg, #4ff0a8, #2dd48f 60%, #7ee9c2);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tile-purse .purse-bar { margin: 8px 0 6px; }
+.tp-sub { font-size: 11.5px; }
+
+/* The pop-up snapshot — covers the card, glassy, revealed on hover. */
+.tile-detail {
+  position: absolute; inset: 0; padding: 16px 16px 14px;
+  display: flex; flex-direction: column; gap: 9px;
+  background: linear-gradient(160deg, rgba(20,26,46,.95), rgba(11,15,28,.97));
+  -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  border-radius: 16px; box-shadow: inset 0 0 0 1px rgba(91,140,255,.28);
+  opacity: 0; transform: translateY(10px) scale(.98); pointer-events: none;
+  transition: opacity .2s ease, transform .22s cubic-bezier(.2,.8,.25,1);
+}
+.team-tile:hover .tile-detail { opacity: 1; transform: none; }
+.td-head { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800;
+  letter-spacing: -.01em; padding-bottom: 9px; border-bottom: 1px solid var(--border); }
+.td-purse { display: flex; align-items: baseline; gap: 8px; }
+.td-remain { font-size: 26px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  background: linear-gradient(92deg, #4ff0a8, #2dd48f 60%, #7ee9c2);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+.td-remain-cap { font-size: 11px; color: var(--muted); }
+.td-line { font-size: 12px; color: var(--muted); }
+.td-line b { color: var(--text); font-variant-numeric: tabular-nums; }
+.td-block { display: block; }
+.td-cap { display: block; margin-bottom: 5px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.rpill, .gpill {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border);
+  background: rgba(148,163,205,.07); color: var(--muted); letter-spacing: .03em;
+}
+.rpill b, .gpill b { color: var(--text); font-size: 11.5px; }
+.td-open { margin-top: auto; text-align: right; font-size: 12px; font-weight: 700; color: var(--accent); }
+
+/* Touch devices can't hover — the snapshot never shows, so keep cards compact
+   (no need to reserve its height) and don't dim on press. */
+@media (hover: none) {
+  .teams-grid:hover .team-tile:not(:hover) { opacity: 1; filter: none; }
+  .team-tile { min-height: 172px; }
+}
+@media (max-width: 560px) { .overview-stats { width: 100%; justify-content: space-between; } }
+
+/* ============================================================================
+   App-wide premium polish — a cohesive layer over the shared components used
+   across every page: data tables, filter chips, stat tiles, the player-profile
+   hero, the live "on the block" card, and the audit log. Purely presentational.
+   ========================================================================== */
+
+/* ---- Section headings inside cards: a subtle gradient accent bar ---------- */
+.card > h2 { position: relative; padding-left: 13px; }
+.card > h2::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 1.05em; border-radius: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+/* Cards that carry their own heading treatment opt out of the bar. */
+.setup-wrap .card > h2, .block-card > h2, .profile-hero > h2,
+.auctions-hero h2, .teams-overview h2 { padding-left: 0; }
+.setup-wrap .card > h2::before, .block-card > h2::before,
+.profile-hero > h2::before { content: none; }
+
+/* ---- Data tables (.pool) — crisper header, lively accent row-hover -------- */
+table.pool thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: linear-gradient(180deg, rgba(31,40,64,.96), rgba(23,30,48,.96));
+  backdrop-filter: blur(4px);
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--muted); font-weight: 700; padding: 10px 8px;
+  border-bottom: 1px solid var(--border-strong);
+}
+table.pool tbody tr { transition: background .14s ease, box-shadow .14s ease; }
+table.pool tbody tr:hover {
+  background: rgba(91,140,255,.07);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.players-table tbody tr:hover .plink { color: var(--accent); }
+
+/* ---- Status badges — a touch more definition ----------------------------- */
+.badge { border: 1px solid transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
+
+/* ---- Filter chips (players page + pool filters) — pill lift & gradient ---- */
+.fchip, .filters button {
+  transition: color .15s, border-color .15s, background .15s, transform .15s, box-shadow .15s;
+}
+.fchip:hover, .filters button:hover { transform: translateY(-1px); }
+.fchip.active, .filters button.active {
+  box-shadow: 0 6px 16px -8px rgba(91,140,255,.8);
+}
+/* The filter/controls bar reads as its own subtle console strip. */
+.players-wrap .controls {
+  background: linear-gradient(160deg, rgba(31,40,64,.5), rgba(23,30,48,.4));
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+}
+
+/* ---- Grouped-results heading (players page) ------------------------------ */
+.group-head { position: relative; padding-left: 12px; }
+.group-head::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 1em; border-radius: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+
+/* ---- Player-profile hero (player.html + profile modal) ------------------- */
+.profile-hero {
+  position: relative; overflow: hidden;
+  border-color: rgba(91,140,255,.4);
+  background:
+    radial-gradient(120% 160% at 100% -40%, rgba(139,92,246,.18), transparent 55%),
+    linear-gradient(160deg, rgba(91,140,255,.13), rgba(139,92,246,.04) 55%, transparent),
+    var(--card-solid);
+}
+.profile-hero > * { position: relative; }
+.profile-hero .avatar, .pm-hero .avatar {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 14px 30px -10px rgba(91,140,255,.6), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.profile-hero .pname {
+  background: linear-gradient(92deg, #eaf0ff, #b9cbff 55%, #cbb6f8);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ---- Stat tiles: profile "btile" + inline "pstat" — hover life ----------- */
+.btile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.btile {
+  background: linear-gradient(160deg, rgba(31,40,64,.9), rgba(23,30,48,.9));
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.btile:hover { transform: translateY(-2px); border-color: rgba(91,140,255,.5);
+  box-shadow: 0 12px 24px -16px rgba(91,140,255,.6); }
+.btile b { display: block; font-size: 20px; font-weight: 800; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums; }
+.btile span { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+
+/* ---- Auction console: make "On the Block" read as a live hero ------------- */
+.block-card {
+  position: relative; overflow: hidden;
+  border-color: rgba(245,185,66,.45);
+  background:
+    radial-gradient(120% 150% at 100% -30%, rgba(245,185,66,.14), transparent 55%),
+    linear-gradient(160deg, rgba(245,185,66,.08), transparent 55%), var(--card);
+}
+.block-card > * { position: relative; }
+
+/* ---- Audit log rows — quiet hover ---------------------------------------- */
+.audit .row { transition: background .14s ease; border-radius: 6px; padding-left: 6px; padding-right: 6px; }
+.audit .row:hover { background: rgba(148,163,205,.06); }
+
+/* ============================================================================
+   Max next bid — per team, shown while a player is on the block (team overview
+   grid + individual team dashboard). Green = can bid; red = priced out / quota.
+   ========================================================================== */
+
+/* Overview: a banner naming the on-block player above the grid. */
+#overview-block:empty { display: none; }
+.ov-block {
+  margin: 0 0 14px; padding: 12px 16px; border-radius: 12px; font-size: 14px;
+  border: 1px solid rgba(245,185,66,.4);
+  background: linear-gradient(160deg, rgba(245,185,66,.14), rgba(245,185,66,.03)), var(--card-solid);
+  animation: rise .35s ease both;
+}
+.ov-block b { color: var(--text); }
+
+/* Overview card: prominent max-next-bid chip on the front. */
+.tile-maxbid {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin: 2px 0 6px; padding: 7px 11px; border-radius: 10px;
+  background: linear-gradient(120deg, rgba(45,212,143,.18), rgba(45,212,143,.05));
+  border: 1px solid rgba(45,212,143,.45);
+}
+.tile-maxbid .mb-cap { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.tile-maxbid .mb-val { font-size: 17px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.tile-maxbid.none { background: rgba(240,86,74,.1); border-color: rgba(240,86,74,.35); }
+.tile-maxbid.none .mb-val { font-size: 13px; color: #f2988f; }
+
+/* Overview hover detail: max-next-bid row. */
+.td-maxbid {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; border-radius: 9px; margin-bottom: 4px;
+  background: rgba(45,212,143,.13); border: 1px solid rgba(45,212,143,.4);
+}
+.td-maxbid > span { font-size: 10.5px; color: var(--muted); }
+.td-maxbid b { font-size: 15px; color: var(--green); font-variant-numeric: tabular-nums; }
+.td-maxbid.none { background: rgba(240,86,74,.1); border-color: rgba(240,86,74,.3); }
+.td-maxbid.none b { color: #f2988f; font-size: 12px; }
+
+/* Individual dashboard banner: your max next bid, highlighted. */
+.bblock-maxbid {
+  display: flex; align-items: center; gap: 12px; width: fit-content; margin-top: 12px;
+  padding: 9px 16px; border-radius: 11px;
+  background: linear-gradient(120deg, rgba(45,212,143,.2), rgba(45,212,143,.05));
+  border: 1px solid rgba(45,212,143,.5);
+}
+.bblock-maxbid .bmb-cap { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.bblock-maxbid .bmb-val { font-size: 21px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.bblock-maxbid.none { background: rgba(240,86,74,.12); border-color: rgba(240,86,74,.45); }
+.bblock-maxbid.none .bmb-val { font-size: 14px; color: #f2988f; }
+
+/* Max next bid on the auction console team cards. */
+.team-maxbid {
+  margin: 7px 0; padding: 5px 10px; border-radius: 8px; font-size: 12px; color: var(--muted);
+  background: rgba(45,212,143,.14); border: 1px solid rgba(45,212,143,.4);
+}
+.team-maxbid b { color: var(--green); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.team-maxbid.none { background: rgba(240,86,74,.1); border-color: rgba(240,86,74,.35); }
+.team-maxbid.none b { color: #f2988f; font-size: 12px; }
+
+/* Max next bid on the broadcast team cards — compact stacked chip. */
+.bc-maxbid {
+  margin-top: 10px; padding: 8px 12px; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  background: rgba(45,212,143,.16); border: 1px solid rgba(45,212,143,.45);
+}
+.bc-maxbid span { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+.bc-maxbid b { font-size: 26px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; }
+.bc-maxbid.none { background: rgba(240,86,74,.12); border-color: rgba(240,86,74,.4); }
+.bc-maxbid.none b { font-size: 18px; color: #f2988f; }
+@media (max-width: 640px) { .bc-maxbid b { font-size: 17px; } .bc-maxbid { padding: 6px 10px; } }
+
+/* Manual/floor-bid entry on the auction console (amount + team). */
+.custom-bid {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 12px 0 4px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(91,140,255,.06); border: 1px solid var(--border);
+}
+.custom-bid .cb-label { font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
+.custom-bid #cb-amount { flex: 1 1 130px; min-width: 110px; padding: 9px 12px; font-size: 14px;
+  background: rgba(10,14,26,.5); border: 1px solid var(--border); border-radius: 9px; color: var(--text);
+  font-variant-numeric: tabular-nums; }
+.custom-bid #cb-team { flex: 1 1 170px; min-width: 150px; padding: 9px 12px; font-size: 13px;
+  background: rgba(10,14,26,.5); border: 1px solid var(--border); border-radius: 9px; color: var(--text); }
+.custom-bid #cb-amount:focus, .custom-bid #cb-team:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.18); }
+.custom-bid #cb-place { flex: 0 0 auto; padding: 9px 18px; }
+
+/* Dynamic per-group rules editor (auction create/edit). */
+.group-add-row { display: flex; gap: .5rem; align-items: center; margin: .3rem 0 .8rem; flex-wrap: wrap; }
+.group-add-row select { flex: 1 1 220px; }
+.grouped-head, .group-row {
+  display: grid; grid-template-columns: 108px repeat(5, 1fr) 34px; gap: .5rem; align-items: center;
+}
+.grouped-head { font-size: .74rem; color: var(--muted); margin-bottom: .35rem; padding: 0 .1rem; }
+.group-row { margin-bottom: .45rem; }
+.group-row input { width: 100%; }
+.group-row .cat-tag { font-weight: 700; color: var(--accent); font-size: .74rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.group-row .gr-del { padding: .2rem .5rem; }
+.group-row:hover .gr-del { border-color: var(--red); color: var(--red); }
+@media (max-width: 640px) {
+  .grouped-head { display: none; }
+  .group-row { grid-template-columns: 1fr 1fr 1fr; }
+  .group-row .cat-tag { grid-column: 1 / -1; }
+  .group-row .gr-del { grid-column: 1 / -1; justify-self: end; }
+}

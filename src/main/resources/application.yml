@@ -164,3 +164,18 @@ auction:
 
   # Seed demo teams/players at startup when the database is empty.
   seed-demo-data: true
+
+  # ------------------------------------------------------------------------
+  # Player poster images. Each player's poster lives in a PUBLIC Google Drive
+  # folder, one file per player named by the player's 1-based import serial
+  # (1, 2, 3, …) — i.e. the order they appear in the imported CSV/xlsx (the
+  # `seq` field + 1). At startup the app lists the folder (no API key — the
+  # public embedded-folder listing), maps each serial to the matching player in
+  # the named tournament, records the Drive file id on the player row, and warms
+  # an in-memory byte cache. Served at GET /api/players/{id}/photo. Set
+  # folder-id empty (or enabled:false) to turn the whole feature off.
+  photos:
+    enabled: ${PHOTOS_ENABLED:true}
+    folder-id: ${PHOTOS_FOLDER_ID:1Mduu7FXT7CasAoY9EfC78ThEnZxeV2FX}
+    # Which tournament the serial-numbered images belong to (seq is per-tournament).
+    tournament-slug: ${PHOTOS_TOURNAMENT_SLUG:abpl-season-2}

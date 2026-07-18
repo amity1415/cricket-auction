@@ -35,7 +35,9 @@ public final class TestFixtures {
                 new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L),
                 new AuctionProperties.TeamDefaults(150_000_000L, 8),
                 true,
-                false);
+                false,
+                null,
+                null);
     }
 
     /**
@@ -58,7 +60,9 @@ public final class TestFixtures {
                 new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L),
                 new AuctionProperties.TeamDefaults(15_000_000L, 20),
                 true,
-                false);
+                false,
+                null,
+                null);
     }
 
     public static Team team(String name, long purse, int maxSquad,

@@ -9,7 +9,7 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
       c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ROLE_NAME = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-rounder', WICKETKEEPER: 'Wicketkeeper' };
-  const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🎯', ALL_ROUNDER: '🔄', WICKETKEEPER: '🧤' };
+  const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🔴', ALL_ROUNDER: '🏏🔴', WICKETKEEPER: '🧤' };
 
   const dialog = document.createElement('dialog');
   dialog.className = 'modal profile-modal';
@@ -27,6 +27,7 @@
 
   let currentId = null;
   let timer = null;
+  let lastBodyHtml = null;   // skip the 3s redraw when nothing actually changed
 
   async function getJSON(url) {
     const res = await fetch(url);
@@ -75,9 +76,11 @@
 
       document.getElementById('ppm-title').textContent = p.name;
       document.getElementById('ppm-full').href = `player.html?playerId=${p.playerId}`;
-      document.getElementById('ppm-body').innerHTML = `
+      const html = `
         <div class="pm-hero">
-          <div class="avatar">${initials(p.name)}</div>
+          ${p.hasPhoto ? `<img class="pm-photo" src="/api/players/${p.playerId}/photo" alt=""
+             onerror="this.style.display='none';this.nextElementSibling.style.display='';">` : ''}
+          <div class="avatar"${p.hasPhoto ? ' style="display:none"' : ''}>${initials(p.name)}</div>
           <div class="hero-main">
             <div class="chips">
               <span class="chip">${ROLE_ICON[p.role] || ''} ${ROLE_NAME[p.role] || p.role}</span>
@@ -119,14 +122,22 @@
                 </tr>`).join('')}
             </tbody>
           </table>` : ''}`;
+      // Only touch the DOM when the rendered content actually changed, so the
+      // 3s live-poll doesn't visibly re-flash a player whose data is unchanged.
+      if (html !== lastBodyHtml) {
+        document.getElementById('ppm-body').innerHTML = html;
+        lastBodyHtml = html;
+      }
     } catch (e) {
       document.getElementById('ppm-body').innerHTML =
           '<p class="muted">Could not load this player — try again.</p>';
+      lastBodyHtml = null;
     }
   }
 
   function open(playerId) {
     currentId = playerId;
+    lastBodyHtml = null;   // force a fresh render for the newly opened player
     document.getElementById('ppm-body').innerHTML = '<p class="muted">Loading…</p>';
     document.getElementById('ppm-title').textContent = 'Player profile';
     dialog.showModal();

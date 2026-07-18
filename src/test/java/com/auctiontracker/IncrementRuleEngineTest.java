@@ -1,5 +1,7 @@
 package com.auctiontracker;
 
+import com.auctiontracker.tournament.RuleBook;
+
 import com.auctiontracker.bidding.IncrementRuleEngine;
 import com.auctiontracker.core.Player;
 import com.auctiontracker.core.PlayerCategory;
@@ -11,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** DESIGN.md 8.1: correct step for every price band, including exact boundaries. */
 class IncrementRuleEngineTest {
 
-    private final IncrementRuleEngine engine = new IncrementRuleEngine(TestFixtures.props());
+    private final IncrementRuleEngine engine = new IncrementRuleEngine(RuleBook.fixed(TestFixtures.props()));
 
     @Test
     void lowestBandBelowThreshold() {

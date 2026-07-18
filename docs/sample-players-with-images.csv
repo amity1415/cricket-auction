@@ -1,0 +1,6 @@
+name,role,category,basePrice,Image_location
+Player One,BATSMAN,MARKEE_PLAYER,80000,https://drive.google.com/drive/folders/1Mduu7FXT7CasAoY9EfC78ThEnZxeV2FX
+Player Two,BOWLER,BOWLER,50000,https://drive.google.com/drive/folders/1Mduu7FXT7CasAoY9EfC78ThEnZxeV2FX
+Player Three,ALL_ROUNDER,ALL_ROUNDER,60000,https://drive.google.com/drive/folders/1Mduu7FXT7CasAoY9EfC78ThEnZxeV2FX
+Player Four,WICKETKEEPER,WICKET_KEEPER,40000,https://drive.google.com/drive/folders/1Mduu7FXT7CasAoY9EfC78ThEnZxeV2FX
+Player Five,BATSMAN,MIXED_UTILITY_BAG,30000,https://drive.google.com/drive/folders/1Mduu7FXT7CasAoY9EfC78ThEnZxeV2FX

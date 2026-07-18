@@ -1,6 +1,7 @@
 package com.auctiontracker.bidding;
 
 import com.auctiontracker.core.AuctionException;
+import com.auctiontracker.core.Money;
 import com.auctiontracker.core.AuctionLock;
 import com.auctiontracker.core.FeasibilityService;
 import com.auctiontracker.core.Player;
@@ -8,6 +9,7 @@ import com.auctiontracker.core.PlayerRepository;
 import com.auctiontracker.core.PlayerStatus;
 import com.auctiontracker.core.Team;
 import com.auctiontracker.core.TeamRepository;
+import com.auctiontracker.tournament.RuleBook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -15,8 +17,10 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Facade of the bidding module: mark-under-auction, place-bid, undo-bid
@@ -26,9 +30,16 @@ import java.util.UUID;
  * the audit replay survives while mid-auction clicks stay instant and undoable.
  * Trade-off: a crash mid-bidding loses the in-flight bids; the player remains
  * UNDER_AUCTION and bidding simply restarts from base price.
+ *
+ * Each tournament keeps its OWN live session, keyed by tournament id — switching
+ * the active tournament preserves (rather than clobbers) another tournament's
+ * on-the-block player and bid trail.
  */
 @Service
 public class BiddingService {
+
+    /** Map key used before any tournament exists (fresh boot / tests). */
+    private static final UUID NO_TOURNAMENT = new UUID(0L, 0L);
 
     private final PlayerRepository players;
     private final TeamRepository teams;
@@ -36,17 +47,25 @@ public class BiddingService {
     private final IncrementRuleEngine incrementEngine;
     private final FeasibilityService feasibility;
     private final AuctionLock lock;
-    private final LiveBidSession session = new LiveBidSession();
+    private final RuleBook ruleBook;
+    private final Map<UUID, LiveBidSession> sessions = new ConcurrentHashMap<>();
 
     public BiddingService(PlayerRepository players, TeamRepository teams, BidEventRepository bidEvents,
                           IncrementRuleEngine incrementEngine, FeasibilityService feasibility,
-                          AuctionLock lock) {
+                          AuctionLock lock, RuleBook ruleBook) {
         this.players = players;
         this.teams = teams;
         this.bidEvents = bidEvents;
         this.incrementEngine = incrementEngine;
         this.feasibility = feasibility;
         this.lock = lock;
+        this.ruleBook = ruleBook;
+    }
+
+    /** The live session of the active tournament (created on first use). */
+    private LiveBidSession session() {
+        UUID tid = ruleBook.activeTournamentId();
+        return sessions.computeIfAbsent(tid == null ? NO_TOURNAMENT : tid, k -> new LiveBidSession());
     }
 
     /**
@@ -57,6 +76,7 @@ public class BiddingService {
     @Transactional
     public Player markUnderAuction(UUID playerId) {
         synchronized (lock) {
+            LiveBidSession session = session();
             Player player = requirePlayer(playerId);
             if (player.getStatus() != PlayerStatus.AVAILABLE) {
                 throw AuctionException.conflict("INVALID_STATE",
@@ -77,11 +97,24 @@ public class BiddingService {
                             long nextMinimumIncrement) {}
 
     /**
-     * Records a bid for a team — in memory only, no database write. The server
-     * computes the price; the request deliberately carries no amount (DESIGN.md 5.3).
+     * Records a bid for a team at the server-computed next increment — in memory
+     * only, no database write (DESIGN.md 5.3).
      */
     public BidResult placeBid(UUID playerId, UUID teamId) {
+        return placeBid(playerId, teamId, null);
+    }
+
+    /**
+     * Records a bid for a team. When {@code customAmount} is null the server uses
+     * the computed next increment (the normal quick-bid path). When it is set —
+     * the auctioneer typed a floor/verbal bid — that exact amount is used instead,
+     * provided it clears the base price and beats the current bid. Either way it
+     * runs the full acquire-time feasibility check (purse, squad, group quota,
+     * reserve), so a manual bid can never break the rules.
+     */
+    public BidResult placeBid(UUID playerId, UUID teamId, Long customAmount) {
         synchronized (lock) {
+            LiveBidSession session = session();
             Player player = requirePlayer(playerId);
             Team team = teams.findById(teamId).orElseThrow(() ->
                     AuctionException.notFound("TEAM_NOT_FOUND", "No team with id " + teamId));
@@ -91,7 +124,7 @@ public class BiddingService {
                         "%s is not under auction (status: %s) — mark them under auction first"
                                 .formatted(player.getName(), player.getStatus()));
             }
-            ensureSessionFor(playerId);
+            ensureSessionFor(session, playerId);
             LiveBidSession.Step leading = session.last();
             if (leading != null && teamId.equals(leading.teamId())) {
                 throw AuctionException.conflict("SELF_OUTBID",
@@ -99,13 +132,28 @@ public class BiddingService {
                                 .formatted(team.getName()));
             }
 
-            long nextAmount = incrementEngine.nextBidAmount(player.getBasePrice(),
-                    leading == null ? null : leading.amount());
-            feasibility.assertCanAcquire(team, player, nextAmount);
+            long amount;
+            if (customAmount != null) {
+                if (customAmount < player.getBasePrice()) {
+                    throw AuctionException.badRequest("BID_TOO_LOW",
+                            "Bid %s is below %s's base price of %s".formatted(
+                                    Money.inr(customAmount), player.getName(), Money.inr(player.getBasePrice())));
+                }
+                if (leading != null && customAmount <= leading.amount()) {
+                    throw AuctionException.conflict("BID_TOO_LOW",
+                            "Bid %s must be higher than the current bid of %s".formatted(
+                                    Money.inr(customAmount), Money.inr(leading.amount())));
+                }
+                amount = customAmount;
+            } else {
+                amount = incrementEngine.nextBidAmount(player.getBasePrice(),
+                        leading == null ? null : leading.amount());
+            }
+            feasibility.assertCanAcquire(team, player, amount);
 
-            session.push(teamId, nextAmount);
-            return new BidResult(player, team, nextAmount, session.count(),
-                    incrementEngine.incrementFor(nextAmount));
+            session.push(teamId, amount);
+            return new BidResult(player, team, amount, session.count(),
+                    incrementEngine.incrementFor(amount));
         }
     }
 
@@ -115,6 +163,7 @@ public class BiddingService {
      */
     public Player undoBid(UUID playerId) {
         synchronized (lock) {
+            LiveBidSession session = session();
             Player player = requirePlayer(playerId);
             if (player.getStatus() != PlayerStatus.UNDER_AUCTION || !session.isFor(playerId)) {
                 throw AuctionException.conflict("INVALID_STATE",
@@ -131,6 +180,7 @@ public class BiddingService {
     /** Current live price for the player, or null if no bids (or not live). */
     public Long currentBidAmount(UUID playerId) {
         synchronized (lock) {
+            LiveBidSession session = session();
             LiveBidSession.Step last = session.isFor(playerId) ? session.last() : null;
             return last == null ? null : last.amount();
         }
@@ -139,6 +189,7 @@ public class BiddingService {
     /** Current leading team, or null if no bids (or not live). */
     public UUID currentLeadingTeamId(UUID playerId) {
         synchronized (lock) {
+            LiveBidSession session = session();
             LiveBidSession.Step last = session.isFor(playerId) ? session.last() : null;
             return last == null ? null : last.teamId();
         }
@@ -147,6 +198,7 @@ public class BiddingService {
     /** The bid that confirm-sale would commit, if any. */
     public Optional<LeadingBid> leadingBid(UUID playerId) {
         synchronized (lock) {
+            LiveBidSession session = session();
             LiveBidSession.Step last = session.isFor(playerId) ? session.last() : null;
             return last == null ? Optional.empty()
                     : Optional.of(new LeadingBid(last.teamId(), last.amount()));
@@ -163,6 +215,7 @@ public class BiddingService {
     @Transactional
     public void flushLiveBids(UUID playerId) {
         synchronized (lock) {
+            final LiveBidSession session = session();
             if (!session.isFor(playerId)) {
                 return;
             }
@@ -198,7 +251,16 @@ public class BiddingService {
     /** Setup-time reset (player pool is being replaced). */
     public void clearLiveSession() {
         synchronized (lock) {
-            session.close();
+            session().close();
+        }
+    }
+
+    /** Drops a tournament's in-memory live session entirely (used when it is deleted). */
+    public void forgetTournament(UUID tournamentId) {
+        synchronized (lock) {
+            if (tournamentId != null) {
+                sessions.remove(tournamentId);
+            }
         }
     }
 
@@ -208,10 +270,28 @@ public class BiddingService {
         bidEvents.deleteAll();
     }
 
+    /**
+     * Drops a single player's persisted bid trail (and any stray live session for
+     * them). Called by the sale module when a sale is reverted, so the player
+     * returns to the pool clean and a fresh auction starts from base price rather
+     * than replaying the old, now-void trail.
+     */
+    @Transactional
+    public void discardBids(UUID playerId) {
+        synchronized (lock) {
+            LiveBidSession session = session();
+            if (session.isFor(playerId)) {
+                session.close();
+            }
+            bidEvents.deleteByPlayerId(playerId);
+        }
+    }
+
     /** Live trail from the cache while under auction; persisted rows afterwards. */
     public List<BidEvent> bidHistory(UUID playerId) {
         requirePlayer(playerId);
         synchronized (lock) {
+            LiveBidSession session = session();
             if (session.isFor(playerId)) {
                 int number = 0;
                 List<LiveBidSession.Step> steps = session.stepsInOrder();
@@ -227,6 +307,7 @@ public class BiddingService {
 
     public int bidCount(UUID playerId) {
         synchronized (lock) {
+            LiveBidSession session = session();
             if (session.isFor(playerId)) {
                 return session.count();
             }
@@ -244,7 +325,7 @@ public class BiddingService {
      * A player can be UNDER_AUCTION with no matching session after a restart
      * (live bids are memory-only). Reopen so bidding restarts from base price.
      */
-    private void ensureSessionFor(UUID playerId) {
+    private void ensureSessionFor(LiveBidSession session, UUID playerId) {
         if (!session.isFor(playerId)) {
             session.open(playerId);
         }

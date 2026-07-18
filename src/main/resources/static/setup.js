@@ -207,6 +207,20 @@ window.removeTeam = async teamId => {
   if (r) { toast(`Removed ${t?.name ?? 'team'}`); refresh(); }
 };
 
+/**
+ * Pre-fills the "add team" form's purse and squad size from the auction's own
+ * team defaults. Called on load AND after each add — a plain form.reset() would
+ * otherwise snap them back to the generic HTML fallback values (the bug where
+ * every team after the first defaulted to ₹15 Cr instead of the auction's purse).
+ */
+function applyTeamDefaults() {
+  const d = auctionConfig?.teamDefaults;
+  const form = document.getElementById('form-team');
+  if (!d || !form) return;
+  form.querySelector('[name=startingPurse]').value = d.startingPurse;
+  form.querySelector('[name=maxSquadSize]').value = d.maxSquadSize;
+}
+
 document.getElementById('form-team').onsubmit = async e => {
   e.preventDefault();
   const f = new FormData(e.target);
@@ -216,7 +230,7 @@ document.getElementById('form-team').onsubmit = async e => {
     startingPurse: Number(f.get('startingPurse')),
     maxSquadSize: Number(f.get('maxSquadSize')),
   });
-  if (r) { toast(`Registered ${r.name}`); e.target.reset(); refresh(); }
+  if (r) { toast(`Registered ${r.name}`); e.target.reset(); applyTeamDefaults(); refresh(); }
 };
 
 /* --- Import (replace all) --- */
@@ -261,42 +275,75 @@ document.getElementById('form-import').onsubmit = async e => {
 const retTeamSel = document.getElementById('ret-team');
 const retPlayerSel = document.getElementById('ret-player');
 
+// Only touch an element when its content actually changed. Re-assigning a
+// <select>'s innerHTML on every 3s poll was closing the dropdown mid-selection
+// (the "list keeps refreshing" bug); a no-op poll now leaves it open. Selects
+// keep their current choice across a genuine re-render.
+const _retHtml = {};
+function setRetHtml(el, html) {
+  if (!el || _retHtml[el.id] === html) return;
+  _retHtml[el.id] = html;
+  if (el.tagName === 'SELECT') {
+    const cur = el.value;
+    el.innerHTML = html;
+    if (cur && [...el.options].some(o => o.value === cur)) el.value = cur;
+  } else {
+    el.innerHTML = html;
+  }
+}
+
 async function refreshRetention(teams, players) {
   try {
-    const selected = retTeamSel.value;
-    retTeamSel.innerHTML = '<option value="">Choose a team…</option>' + teams.map(t =>
-        `<option value="${t.teamId}">${esc(t.name)} — ${fmtShort(t.remainingPurse)} left</option>`).join('');
-    if (teams.some(t => t.teamId === selected)) retTeamSel.value = selected;
+    // Sort deterministically so identical data yields identical option HTML —
+    // otherwise Postgres's unordered rows would differ every poll and re-render.
+    const byName = (a, b) => a.name.localeCompare(b.name);
+    setRetHtml(retTeamSel, '<option value="">Choose a team…</option>' + [...teams].sort(byName).map(t =>
+        `<option value="${t.teamId}">${esc(t.name)} — ${fmtShort(t.remainingPurse)} left</option>`).join(''));
 
-    const chosenPlayer = retPlayerSel.value;
-    const available = players.filter(p => p.status === 'AVAILABLE');
-    retPlayerSel.innerHTML = '<option value="">Choose a player to retain…</option>' + available.map(p =>
-        `<option value="${p.playerId}">${esc(p.name)} — Group ${p.category} (${fmtShort(p.basePrice)})</option>`).join('');
-    if (available.some(p => p.playerId === chosenPlayer)) retPlayerSel.value = chosenPlayer;
+    const available = players
+        .filter(p => p.status === 'AVAILABLE' && (!retSearch || p.name.toLowerCase().includes(retSearch)))
+        .sort(byName);
+    const placeholder = retSearch && available.length === 0
+        ? `<option value="">No available player matches “${esc(retSearch)}”</option>`
+        : '<option value="">Choose a player to retain…</option>';
+    setRetHtml(retPlayerSel, placeholder + available.map(p =>
+        `<option value="${p.playerId}">${esc(p.name)} — Group ${p.category} (${fmtShort(p.basePrice)})</option>`).join(''));
+    // Narrowed to exactly one match → pre-select it for a one-click retain.
+    if (retSearch && available.length === 1) retPlayerSel.value = available[0].playerId;
 
     const slotsEl = document.getElementById('ret-slots');
     const listEl = document.getElementById('ret-list');
-    if (!retTeamSel.value) { slotsEl.innerHTML = ''; listEl.innerHTML = ''; return; }
+    if (!retTeamSel.value) { setRetHtml(slotsEl, ''); setRetHtml(listEl, ''); return; }
 
     const detail = await getJSON(`/api/dashboard/teams/${retTeamSel.value}`);
     const retained = detail.squad.filter(p => p.retained);
     const rules = auctionConfig?.retention || { maxPerTeam: 3, maxFromGroupA: 2, maxFromLowerGroups: 1 };
     const fromA = retained.filter(p => p.category === 'A').length;
-    slotsEl.innerHTML = `Group A <b>${fromA}/${rules.maxFromGroupA}</b> ·
+    setRetHtml(slotsEl, `Group A <b>${fromA}/${rules.maxFromGroupA}</b> ·
         Lower groups <b>${retained.length - fromA}/${rules.maxFromLowerGroups}</b> ·
-        Total <b>${retained.length}/${rules.maxPerTeam}</b>`;
-    listEl.innerHTML = retained.length
+        Total <b>${retained.length}/${rules.maxPerTeam}</b>`);
+    setRetHtml(listEl, retained.length
         ? retained.map(p => `
           <div class="row">
             <span>📌 <a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a>
               <span class="chip">${p.category}</span> · ${fmtShort(p.soldPrice)}</span>
             <button class="link-btn subtle" onclick="releaseRetention('${p.playerId}')">↩ Release</button>
           </div>`).join('')
-        : '<p class="muted">No retentions yet for this team.</p>';
+        : '<p class="muted">No retentions yet for this team.</p>');
   } catch (e) { /* retry on next tick */ }
 }
 
 retTeamSel.onchange = () => refreshRetention(lastTeams, lastPlayers);
+
+// Search box that filters the "player to retain" dropdown by name.
+let retSearch = '';
+const retSearchEl = document.getElementById('ret-search');
+if (retSearchEl) {
+  retSearchEl.oninput = () => {
+    retSearch = retSearchEl.value.trim().toLowerCase();
+    refreshRetention(lastTeams, lastPlayers);
+  };
+}
 
 document.getElementById('ret-btn').onclick = async () => {
   if (!retTeamSel.value || !retPlayerSel.value) {
@@ -307,6 +354,8 @@ document.getElementById('ret-btn').onclick = async () => {
   if (r) {
     toast(`📌 Retained ${r.player.name} for ${fmtShort(r.player.soldPrice)}`);
     retPlayerSel.value = '';
+    retSearch = '';
+    if (retSearchEl) retSearchEl.value = '';   // reset the filter for the next pick
     refresh();
   }
 };
@@ -335,12 +384,7 @@ document.getElementById('sample').href =
 (async () => {
   try {
     auctionConfig = await getJSON('/api/config');
-    const d = auctionConfig.teamDefaults;
-    if (d) {
-      const form = document.getElementById('form-team');
-      form.querySelector('[name=startingPurse]').value = d.startingPurse;
-      form.querySelector('[name=maxSquadSize]').value = d.maxSquadSize;
-    }
+    applyTeamDefaults();
   } catch (e) { /* keep the HTML defaults */ }
   refresh();
 })();

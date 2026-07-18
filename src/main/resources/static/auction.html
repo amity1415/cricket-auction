@@ -20,6 +20,12 @@
       <h2>On the Block</h2>
       <div id="block-content"><p class="muted">Nobody is under auction. Pick a player from the pool →</p></div>
       <div id="bid-buttons" class="bid-buttons"></div>
+      <div id="custom-bid" class="custom-bid" style="display:none">
+        <span class="cb-label">✍️ Manual bid</span>
+        <input id="cb-amount" type="number" min="1" placeholder="Amount (₹)" autocomplete="off">
+        <select id="cb-team"><option value="">Choose team…</option></select>
+        <button id="cb-place" class="primary">Place bid</button>
+      </div>
       <div class="actions">
         <button id="btn-confirm" class="primary" disabled>Confirm Sale</button>
         <button id="btn-unsold" class="danger" disabled>Mark Unsold</button>
@@ -44,6 +50,17 @@
       <div class="pool-header">
         <h2>Player Pool</h2>
         <div id="pool-filters" class="filters"></div>
+      </div>
+      <div class="pool-refine" id="pool-refine">
+        <span class="refine-badge">Refine</span>
+        <div class="pool-refine-group">
+          <span class="pool-refine-label">Role</span>
+          <div class="filters filters--sm" id="pool-role-filters"></div>
+        </div>
+        <div class="pool-refine-group">
+          <span class="pool-refine-label">Category</span>
+          <div class="filters filters--sm" id="pool-cat-filters"></div>
+        </div>
       </div>
       <div class="pool-search-row">
         <input id="pool-search" type="search" placeholder="🔍 Search by sl. no or name…" autocomplete="off">
@@ -90,6 +107,7 @@
   </div>
 </main>
 
+<script src="tournament-context.js"></script>
 <script src="auth.js"></script>
 <script src="profile-modal.js"></script>
 <script src="app.js"></script>

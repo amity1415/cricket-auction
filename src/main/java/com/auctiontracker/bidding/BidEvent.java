@@ -19,6 +19,10 @@ public class BidEvent {
     @Id
     private UUID bidEventId;
 
+    /** Which tournament this bid belongs to (nullable for old rows; backfilled). */
+    @Column(name = "tournament_id")
+    private UUID tournamentId;
+
     @Column(nullable = false)
     private UUID playerId;
 
@@ -46,6 +50,8 @@ public class BidEvent {
     }
 
     public UUID getBidEventId() { return bidEventId; }
+    public UUID getTournamentId() { return tournamentId; }
+    public void setTournamentId(UUID tournamentId) { this.tournamentId = tournamentId; }
     public UUID getPlayerId() { return playerId; }
     public UUID getTeamId() { return teamId; }
     public long getAmount() { return amount; }

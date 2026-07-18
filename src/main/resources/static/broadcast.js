@@ -20,9 +20,35 @@ const fmtShort = n => {
 };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🎯', ALL_ROUNDER: '🔄', WICKETKEEPER: '🧤' };
+const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🔴', ALL_ROUNDER: '🏏🔴', WICKETKEEPER: '🧤' };
 
 const initials = name => String(name || '?').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+const photoUrl = id => `/api/players/${id}/photo`;
+
+// Show a player's portrait poster when they have one, falling back to the
+// initials avatar on a missing/failed image so the board is NEVER blank. Keeps
+// the avatar visible until the poster has actually loaded, and skips reloading
+// the same player's image on every 2s poll (no flicker).
+function setPoster(posterId, avatarId, player) {
+  const poster = document.getElementById(posterId);
+  const avatar = document.getElementById(avatarId);
+  if (!poster || !avatar) return;
+  const show = () => { poster.style.display = ''; avatar.style.display = 'none'; };
+  const hide = () => { poster.style.display = 'none'; avatar.style.display = ''; };
+  if (!player || !player.hasPhoto || !player.playerId) {
+    poster.removeAttribute('src'); delete poster.dataset.pid; hide(); return;
+  }
+  if (poster.dataset.pid === player.playerId) {           // already handled this player
+    if (poster.complete && poster.naturalWidth) show();
+    return;
+  }
+  poster.dataset.pid = player.playerId;
+  hide();                                                  // initials until the image is ready
+  poster.onload = show;
+  poster.onerror = hide;
+  poster.src = photoUrl(player.playerId);
+}
 
 // Null-safe DOM writers — never throw if an element is missing.
 const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -86,21 +112,21 @@ function fitToScreen() {
   wrap.style.transform = scale < 1 ? `scale(${scale})` : 'none';
 }
 
-// Lay out the team cards so every row is full — no lopsided last row. The column
-// count is always a divisor of the team count (so N/cols is a whole number), and
-// we pick the largest such count whose cards still meet a minimum width for the
-// current screen. This keeps the grid symmetrical at any screen size.
+// Lay the team cards out for a projector: up to 6 teams sit on ONE row; a
+// larger field (7, 8, 9 … up to a dozen) splits into a balanced TWO rows
+// (12→6×2, 10→5×2, 9→5+4, 8→4×2, 7→4+3) so cards stay wide and readable rather
+// than shrinking into a thin single strip. On a narrow screen that can't fit
+// that many across at a readable width, it falls back to more rows.
 let lastTeamCount = 0;
 
 function layoutTeams(n) {
   const el = document.getElementById('bc-teams');
   if (!el || !n) return;
-  const gap = 14, minCard = 150;
+  const gap = 16, minCard = 170;
   const width = el.clientWidth || el.parentElement?.clientWidth || window.innerWidth;
-  let cols = 1;
-  for (let d = 1; d <= n; d++) {
-    if (n % d === 0 && (width - gap * (d - 1)) / d >= minCard) cols = d;
-  }
+  const maxCols = Math.max(1, Math.floor((width + gap) / (minCard + gap)));
+  const target = n <= 6 ? n : Math.ceil(n / 2);   // one row up to 6, else two rows
+  const cols = Math.min(target, maxCols);
   el.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
 }
 
@@ -118,19 +144,26 @@ document.addEventListener('DOMContentLoaded', () => {
   fitToScreen();
 });
 
-function renderTeams(teams, highlightTeamId) {
+function renderTeams(teams, highlightTeamId, block) {
   lastTeamCount = (teams || []).length;
   setHTML('bc-teams', (teams || []).map(t => {
     const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
     const hot = t.teamId === highlightTeamId;
+    const mbCan = block && t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount;
+    const maxBidHtml = block
+      ? `<div class="bc-maxbid${mbCan ? '' : ' none'}"><span>🔨 Max next bid</span><b>${mbCan ? fmtShort(t.maxBidForBlockPlayer) : "Can't bid"}</b></div>`
+      : '';
     return `
-      <div class="team-broadcast ${hot ? 'leading' : ''}">
-        <h3>${esc(t.name)}</h3>
-        <div class="purse-bar"><i style="width:${pct}%"></i></div>
+      <div class="team-broadcast ${hot ? 'leading' : ''}" data-team-id="${t.teamId}"
+           role="button" tabindex="0" title="Click to see ${esc(t.name)}'s squad">
+        <div class="tb-head">
+          <h3>${esc(t.name)}</h3>
+          ${hot ? '<span class="leading-badge">👑</span>' : ''}
+        </div>
         <div class="purse-amount">${fmtShort(t.remainingPurse)}</div>
-        <div class="purse-detail">${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)}</div>
-        <div class="squad-info">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</div>
-        ${hot ? '<div class="leading-badge">👑</div>' : ''}
+        <div class="purse-bar"><i style="width:${pct}%"></i></div>
+        <div class="tb-meta">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots} · ${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)}</div>
+        ${maxBidHtml}
       </div>`;
   }).join(''));
   layoutTeams(lastTeamCount);
@@ -138,6 +171,7 @@ function renderTeams(teams, highlightTeamId) {
 
 function renderLive(player, teams) {
   setText('bc-avatar', initials(player.name));
+  setPoster('bc-poster', 'bc-avatar', player);
   setText('bc-name', player.name);
   setHTML('bc-meta', metaChips(player));
   setHTML('bc-status', statsStrip(player.stats));
@@ -152,23 +186,32 @@ function renderLive(player, teams) {
   setText('bc-next-bid', fmtINR(player.nextBidAmount));
   setHTML('bc-bid-count', player.bidCount ? `<span class="bid-count">Bid #${player.bidCount}</span>` : '');
 
-  renderTeams(teams, player.currentLeadingTeamId);
+  renderTeams(teams, player.currentLeadingTeamId, player);
   showState('live');
 }
 
 // Cache full player details for the sold screen so we don't re-fetch each tick.
 let soldDetailCache = { id: null, player: null };
 
-async function renderSold(sale, teams) {
-  // Paint the core sale facts IMMEDIATELY from the audit entry — no await. This
-  // is what the audience must see: who was sold, to whom, for how much. Waiting
-  // on the stats fetch here would leave the *previous* sale on screen for
-  // seconds (a stale player + amount flash), which is exactly the reported bug.
+async function renderResult(sale, teams) {
+  // Handles both terminal results — SOLD and UNSOLD — on the same panel. Paint
+  // the core facts IMMEDIATELY from the audit entry (no await) so a slow stats
+  // fetch can't leave the previous result on screen.
+  const sold = sale.type === 'SOLD';
+  const section = document.querySelector('#sold-state .broadcast-sold');
+  if (section) section.classList.toggle('unsold', !sold);
+  const stamp = document.querySelector('#sold-state .sold-stamp');
+  if (stamp) stamp.textContent = sold ? 'SOLD' : 'UNSOLD';
+  const deal = document.querySelector('#sold-state .sold-deal');
+  if (deal) deal.style.display = sold ? '' : 'none';
+
   setText('sold-avatar', initials(sale.playerName));
   setText('sold-name', sale.playerName);
-  setText('sold-team', sale.teamName);
-  setText('sold-amount', fmtINR(sale.amount));
-  renderTeams(teams, sale.teamId);
+  if (sold) {
+    setText('sold-team', sale.teamName);
+    setText('sold-amount', fmtINR(sale.amount));
+  }
+  renderTeams(teams, sold ? sale.teamId : null);
   showState('sold');
 
   // Enrich with role/stats asynchronously. Clear the previous player's chips
@@ -186,6 +229,7 @@ async function renderSold(sale, teams) {
     const p = soldDetailCache.player;
     setHTML('sold-meta', p ? metaChips(p) : '');
     setHTML('sold-stats', p ? statsStrip(p.stats) : '');
+    setPoster('sold-poster', 'sold-avatar', p ? { playerId: p.playerId, hasPhoto: p.hasPhoto } : null);
   }
 }
 
@@ -221,11 +265,11 @@ async function refreshLoop() {
     // audit fetch needed here, which also keeps the live board snappy.
     if (dash.onTheBlock) { renderLive(dash.onTheBlock, dash.teams); return; }
 
-    // Nobody on the block: the most recent result, if any, is a sale to show.
+    // Nobody on the block: show the most recent terminal result — sold OR unsold.
     const audit = await getJSON('/api/admin/audit').catch(() => []);
     if (!current()) return;
-    const lastSold = [].concat(audit).reverse().find(a => a.type === 'SOLD');
-    if (lastSold) { await renderSold(lastSold, dash.teams); return; }
+    const lastResult = [].concat(audit).reverse().find(a => a.type === 'SOLD' || a.type === 'UNSOLD');
+    if (lastResult) { await renderResult(lastResult, dash.teams); return; }
 
     setText('idle-title', '⏳ Waiting for the auction to begin…');
     setText('idle-sub', 'Check back when the admin puts a player on the block.');
@@ -236,6 +280,85 @@ async function refreshLoop() {
     showError();
   }
 }
+
+// ---------------------------------------------------------------------------
+// Team squad drill-down. Clicking a team purse card opens a modal listing every
+// player that team has signed and for how much — the same squad the team-owner
+// dashboard shows (/api/dashboard/teams/{id}), mirrored here for spectators. It
+// refreshes every 2.5s while open so a live signing appears in place.
+let teamModalId = null;
+let teamModalTimer = null;
+
+function teamModalHtml(t, squad) {
+  const spent = t.startingPurse - t.remainingPurse;
+  const rows = squad.length
+    ? squad.map((p, i) => `
+        <tr>
+          <td class="muted">${i + 1}</td>
+          <td class="btm-player">
+            ${p.hasPhoto ? `<img class="squad-thumb" src="${photoUrl(p.playerId)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+            <b>${esc(p.name)}</b>${p.retained ? ' <span class="rtag">RETAINED</span>' : ''}
+          </td>
+          <td>${ROLE_ICON[p.role] || ''} ${String(p.role || '').replace('_', ' ')}</td>
+          <td><span class="chip">${esc(p.category)}</span></td>
+          <td><b>${fmtINR(p.soldPrice)}</b></td>
+        </tr>`).join('')
+    : `<tr><td colspan="5" class="muted">No players signed yet.</td></tr>`;
+  return `
+    <div class="btm-summary">
+      <div><b>${fmtShort(t.remainingPurse)}</b><span>Purse left</span></div>
+      <div><b>${fmtShort(spent)}</b><span>Spent</span></div>
+      <div><b>${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</b><span>Squad</span></div>
+    </div>
+    <div class="btm-scroll">
+      <table class="pool btm-table">
+        <thead><tr><th>#</th><th>Player</th><th>Role</th><th>Group</th><th>Price</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+async function renderTeamModal() {
+  if (!teamModalId) return;
+  try {
+    const detail = await getJSON('/api/dashboard/teams/' + teamModalId);
+    const t = detail.team;
+    setText('btm-title', t.name + ' — Squad');
+    setHTML('btm-body', teamModalHtml(t, detail.squad || []));
+  } catch (e) {
+    setHTML('btm-body', '<p class="muted">Could not load this team — try again.</p>');
+  }
+}
+
+function openTeamModal(teamId) {
+  teamModalId = teamId;
+  const dlg = document.getElementById('bc-team-modal');
+  setHTML('btm-body', '<p class="muted">Loading…</p>');
+  setText('btm-title', 'Team squad');
+  if (dlg && !dlg.open) dlg.showModal();
+  renderTeamModal();
+  clearInterval(teamModalTimer);
+  teamModalTimer = setInterval(renderTeamModal, 2500);
+}
+
+(function wireTeamModal() {
+  const dlg = document.getElementById('bc-team-modal');
+  document.addEventListener('click', e => {
+    if (e.target.id === 'btm-close') { dlg && dlg.close(); return; }
+    const card = e.target.closest?.('.team-broadcast[data-team-id]');
+    if (card) openTeamModal(card.getAttribute('data-team-id'));
+  });
+  document.addEventListener('keydown', e => {                 // keyboard-open a focused card
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('team-broadcast')) {
+      e.preventDefault();
+      openTeamModal(e.target.getAttribute('data-team-id'));
+    }
+  });
+  if (dlg) {
+    dlg.addEventListener('close', () => { teamModalId = null; clearInterval(teamModalTimer); });
+    dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); }); // backdrop
+  }
+})();
 
 // Serialized polling: wait for each cycle to fully finish, then schedule the
 // next after a short gap. This guarantees only one poll is ever in flight, so

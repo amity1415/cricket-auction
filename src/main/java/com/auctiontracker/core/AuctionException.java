@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class AuctionException extends RuntimeException {
 
-    public enum Kind { NOT_FOUND, CONFLICT, BAD_REQUEST }
+    public enum Kind { NOT_FOUND, CONFLICT, BAD_REQUEST, FORBIDDEN }
 
     private final Kind kind;
     private final String code;
@@ -37,6 +37,10 @@ public class AuctionException extends RuntimeException {
 
     public static AuctionException badRequest(String code, String message) {
         return new AuctionException(Kind.BAD_REQUEST, code, message, null);
+    }
+
+    public static AuctionException forbidden(String code, String message) {
+        return new AuctionException(Kind.FORBIDDEN, code, message, null);
     }
 
     public Kind getKind() { return kind; }

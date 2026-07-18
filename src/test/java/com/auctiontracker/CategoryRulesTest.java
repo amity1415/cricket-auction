@@ -1,5 +1,7 @@
 package com.auctiontracker;
 
+import com.auctiontracker.tournament.RuleBook;
+
 import com.auctiontracker.config.AuctionProperties;
 import com.auctiontracker.config.AuctionProperties.CategoryRule;
 import com.auctiontracker.core.AuctionException;
@@ -44,7 +46,7 @@ class CategoryRulesTest {
     @Test
     void groupMaxBlocksAcquireWhenQuotaFull() {
         AuctionProperties props = TestFixtures.props(Map.of(B, new CategoryRule(1, 0, null, null)));
-        FeasibilityService feasibility = new FeasibilityService(players, props);
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(props));
         Team team = TestFixtures.team("Quota", 150_000_000L, 8, Map.of());
         squadMember(team, B); // quota of 1 already used
 
@@ -58,7 +60,7 @@ class CategoryRulesTest {
     @Test
     void groupBelowMaxIsStillAllowed() {
         AuctionProperties props = TestFixtures.props(Map.of(B, new CategoryRule(2, 0, null, null)));
-        FeasibilityService feasibility = new FeasibilityService(players, props);
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(props));
         Team team = TestFixtures.team("Quota", 150_000_000L, 8, Map.of());
         squadMember(team, B);
 
@@ -77,7 +79,7 @@ class CategoryRulesTest {
     @Test
     void firstGroupAPlayerCappedByCeilingMinusReserve() {
         // 1st group-A player: cap = ₹50L ceiling − ₹0 spent − 3×₹6L reserve = ₹32L.
-        FeasibilityService feasibility = new FeasibilityService(players, TestFixtures.realisticProps(BUDGET_RULES));
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(TestFixtures.realisticProps(BUDGET_RULES)));
         Team team = TestFixtures.team("Budget", 15_000_000L, 20, Map.of());
         Player firstA = TestFixtures.player("StarA", BATSMAN, A, 600_000L);
 
@@ -89,7 +91,7 @@ class CategoryRulesTest {
 
     @Test
     void ceilingAccountsForAmountAlreadySpentInGroupA() {
-        FeasibilityService feasibility = new FeasibilityService(players, TestFixtures.realisticProps(BUDGET_RULES));
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(TestFixtures.realisticProps(BUDGET_RULES)));
         Team team = TestFixtures.team("Budget", 15_000_000L, 20, Map.of());
         squadMember(team, A, 2_000_000L); // one group-A already bought for ₹20L
 
@@ -103,7 +105,7 @@ class CategoryRulesTest {
 
     @Test
     void lastGroupASlotUsesWholeRemainingCeiling() {
-        FeasibilityService feasibility = new FeasibilityService(players, TestFixtures.realisticProps(BUDGET_RULES));
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(TestFixtures.realisticProps(BUDGET_RULES)));
         Team team = TestFixtures.team("Budget", 15_000_000L, 20, Map.of());
         squadMember(team, A, 600_000L);
         squadMember(team, A, 600_000L);
@@ -120,7 +122,7 @@ class CategoryRulesTest {
     void unspentGroupABudgetFlowsToOtherGroups() {
         // B has NO ceiling — its only limit is the squad-completion reserve. Bought
         // 4 group-A players cheaply, so the freed money is available for a big B bid.
-        FeasibilityService feasibility = new FeasibilityService(players, TestFixtures.realisticProps(BUDGET_RULES));
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(TestFixtures.realisticProps(BUDGET_RULES)));
         Team team = TestFixtures.team("Flow", 15_000_000L, 20, Map.of());
         for (int i = 0; i < 4; i++) squadMember(team, A, 600_000L); // ₹24L spent on A, quota full
 
@@ -133,7 +135,7 @@ class CategoryRulesTest {
     void squadCompletionReserveBlocksLeavingTooLittleToFinishSquad() {
         // Small purse, empty squad of max 5. After buying one group-E player, 4 slots
         // remain; the cheapest way to fill them is 3×E(₹50K) + 1×D(₹1L) = ₹2.5L reserve.
-        FeasibilityService feasibility = new FeasibilityService(players, TestFixtures.realisticProps(BUDGET_RULES));
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(TestFixtures.realisticProps(BUDGET_RULES)));
         Team team = TestFixtures.team("Tight", 2_500_000L, 5, Map.of()); // ₹25L purse
         Player e = TestFixtures.player("Efringe", BATSMAN, E, 50_000L);
 
@@ -148,7 +150,7 @@ class CategoryRulesTest {
     void groupMinimumsFeedMandatorySlotReserve() {
         // Two mandatory group-E signings still open → reserve of max(role, group) slots.
         AuctionProperties props = TestFixtures.props(Map.of(E, new CategoryRule(null, 2, null, null)));
-        FeasibilityService feasibility = new FeasibilityService(players, props);
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(props));
         Team team = TestFixtures.team("Reserve", 150_000_000L, 8, Map.of()); // no role minimums
 
         assertEquals(2, feasibility.remainingMandatorySlots(team));
@@ -173,7 +175,7 @@ class CategoryRulesTest {
                 C, new CategoryRule(4, 0, null, null),
                 D, new CategoryRule(4, 0, null, null),
                 E, new CategoryRule(4, 0, null, null));
-        FeasibilityService feasibility = new FeasibilityService(players, TestFixtures.realisticProps(rules));
+        FeasibilityService feasibility = new FeasibilityService(players, RuleBook.fixed(TestFixtures.realisticProps(rules)));
         Team team = TestFixtures.team("Mins", 1_100_000L, 3, Map.of()); // ₹11L purse, squad of 3
 
         Player c = TestFixtures.player("Cee", BATSMAN, C, 200_000L);

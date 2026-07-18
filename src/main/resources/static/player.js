@@ -7,7 +7,7 @@ const fmtINR = n => n == null ? '—'
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ROLE_NAME = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-rounder', WICKETKEEPER: 'Wicketkeeper' };
-const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🎯', ALL_ROUNDER: '🔄', WICKETKEEPER: '🧤' };
+const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🔴', ALL_ROUNDER: '🏏🔴', WICKETKEEPER: '🧤' };
 
 const playerId = new URLSearchParams(location.search).get('playerId');
 
@@ -70,7 +70,9 @@ function render(p, current, teams, bids) {
   document.title = `${p.name} — Player Profile`;
   document.getElementById('content').innerHTML = `
     <section class="card profile-hero">
-      <div class="avatar">${initials(p.name)}</div>
+      ${p.hasPhoto ? `<img class="profile-poster" src="/api/players/${p.playerId}/photo" alt=""
+         onerror="this.style.display='none';this.nextElementSibling.style.display='';">` : ''}
+      <div class="avatar"${p.hasPhoto ? ' style="display:none"' : ''}>${initials(p.name)}</div>
       <div class="hero-main">
         <h2 class="pname">${esc(p.name)}</h2>
         <div class="chips">

@@ -1,6 +1,6 @@
 package com.auctiontracker.core;
 
-import com.auctiontracker.config.AuctionProperties;
+import com.auctiontracker.tournament.RuleBook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,14 +18,14 @@ public class CoreService {
 
     private final PlayerRepository players;
     private final TeamRepository teams;
-    private final AuctionProperties props;
+    private final RuleBook ruleBook;
     private final PlayerRowParser parser;
 
-    public CoreService(PlayerRepository players, TeamRepository teams, AuctionProperties props,
+    public CoreService(PlayerRepository players, TeamRepository teams, RuleBook ruleBook,
                        PlayerRowParser parser) {
         this.players = players;
         this.teams = teams;
-        this.props = props;
+        this.ruleBook = ruleBook;
         this.parser = parser;
     }
 
@@ -35,7 +35,7 @@ public class CoreService {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Player name must not be blank");
         }
-        long basePrice = basePriceOverride != null ? basePriceOverride : props.basePriceFor(category);
+        long basePrice = basePriceOverride != null ? basePriceOverride : ruleBook.current().basePriceFor(category);
         if (basePrice <= 0) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Base price must be positive");
         }
@@ -43,7 +43,16 @@ public class CoreService {
         if (stats != null && !stats.allNull()) {
             player.setStats(stats);
         }
+        player.setSeq(nextSeq()); // append to the end of this tournament's insertion order
         return players.save(player);
+    }
+
+    /** Next insertion-order index for the current tournament (max existing + 1). */
+    private int nextSeq() {
+        return players.findAll().stream()
+                .map(p -> p.getSeq() == null ? -1 : p.getSeq())
+                .max(Integer::compareTo)
+                .orElse(-1) + 1;
     }
 
     @Transactional
@@ -64,6 +73,7 @@ public class CoreService {
             throw AuctionException.badRequest("INVALID_TEAM",
                     "Role minimums (" + mandatorySlots + ") exceed max squad size (" + maxSquadSize + ")");
         }
+        ruleBook.current().assertSquadFits(maxSquadSize); // group min/max must fit this squad
         return teams.save(Team.register(name.trim(), ownerName, startingPurse, maxSquadSize,
                 minPerRole));
     }
@@ -92,6 +102,10 @@ public class CoreService {
             team.setRemainingPurse(team.getStartingPurse());
             teams.save(team);
         });
+        // Stamp insertion order so lists can show players exactly as imported.
+        for (int i = 0; i < newPlayers.size(); i++) {
+            newPlayers.get(i).setSeq(i);
+        }
         newPlayers.forEach(players::save);
         return newPlayers;
     }
@@ -108,7 +122,7 @@ public class CoreService {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Player name must not be blank");
         }
-        long basePrice = basePriceOverride != null ? basePriceOverride : props.basePriceFor(category);
+        long basePrice = basePriceOverride != null ? basePriceOverride : ruleBook.current().basePriceFor(category);
         if (basePrice <= 0) {
             throw AuctionException.badRequest("INVALID_PLAYER", "Base price must be positive");
         }
@@ -157,6 +171,7 @@ public class CoreService {
                     "%s already has %d player(s) — max squad size can't go below that"
                             .formatted(team.getName(), team.squadSize()));
         }
+        ruleBook.current().assertSquadFits(maxSquadSize); // group min/max must fit this squad
         team.setName(name.trim());
         team.setOwnerName(ownerName);
         team.setStartingPurse(startingPurse);
@@ -193,11 +208,12 @@ public class CoreService {
     }
 
     public List<Player> listPlayers(PlayerStatus status, PlayerRole role, PlayerCategory category) {
+        // Order is the repository's insertion order (by seq) — the pool is shown
+        // exactly as imported from the CSV, not alphabetised.
         return players.findAll().stream()
                 .filter(p -> status == null || p.getStatus() == status)
                 .filter(p -> role == null || p.getRole() == role)
                 .filter(p -> category == null || p.getCategory() == category)
-                .sorted(Comparator.comparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 

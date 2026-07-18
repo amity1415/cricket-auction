@@ -10,26 +10,43 @@
 
   // Menu entries per role. Everyone gets the players analysis; the rest depends
   // on what that role is allowed to reach (the server enforces it regardless).
-  function menuFor(role, me) {
-    const items = [{ href: 'players.html', label: '📊 Players & analysis' }];
+  // Every screen except the Auctions hub and Users & access is bound to a chosen
+  // auction. Until one is selected (window.TOURNAMENT_ID, set by
+  // tournament-context.js), the menu offers no auction-scoped destinations — just
+  // the hub (and the app admin's context-free tools). Once inside an auction the
+  // full role menu appears, and tournament-context.js stamps each link with the
+  // current auction id, so the menu only ever points within that auction.
+  function menuFor(role, me, inTournament) {
+    const items = [{ href: 'auctions.html', label: '🏆 Auctions' }];
+
+    if (inTournament) {
+      items.push({ href: 'players.html', label: '📊 Players & analysis' });
+      if (role === 'ADMIN' || role === 'TOURNAMENT_ADMIN') {
+        items.push(
+          { href: 'index.html', label: '⚙️ Setup' },
+          { href: 'auction.html', label: '🔨 Auction console' },
+          { href: 'team.html', label: '👥 Team dashboards' },
+          { href: 'broadcast.html', label: '📺 Live broadcast' },
+        );
+      } else if (role === 'FRANCHISE_OWNER') {
+        items.push(
+          { href: me && me.teamId ? 'team.html?teamId=' + me.teamId : 'team.html', label: '⭐ My team' },
+          { href: 'team.html', label: '👥 Browse teams' },
+          { href: 'broadcast.html', label: '📺 Live broadcast' },
+        );
+      } else { // guest — only the public read-only screens
+        items.push(
+          { href: 'team.html', label: '👥 Team dashboards' },
+          { href: 'broadcast.html', label: '📺 Live broadcast' },
+        );
+      }
+    }
+
+    // The app admin's account tools aren't tied to any one auction.
     if (role === 'ADMIN') {
       items.push(
-        { href: 'index.html', label: '⚙️ Setup' },
-        { href: 'auction.html', label: '🔨 Auction console' },
-        { href: 'team.html', label: '👥 Team dashboards' },
-        { href: 'broadcast.html', label: '📺 Live broadcast' },
+        { href: 'users.html', label: '👤 Users & access' },
         { href: 'swagger-ui.html', label: '📖 API docs' },
-      );
-    } else if (role === 'FRANCHISE_OWNER') {
-      items.push(
-        { href: me && me.teamId ? 'team.html?teamId=' + me.teamId : 'team.html', label: '⭐ My team' },
-        { href: 'team.html', label: '👥 Browse teams' },
-        { href: 'broadcast.html', label: '📺 Live broadcast' },
-      );
-    } else { // guest — only the public read-only screens
-      items.push(
-        { href: 'team.html', label: '👥 Team dashboards' },
-        { href: 'broadcast.html', label: '📺 Live broadcast' },
       );
     }
     return items;
@@ -44,6 +61,27 @@
     nav.innerHTML = '';
 
     const here = (location.pathname.split('/').pop() || 'index.html');
+
+    // Back arrow on the left for easier navigation. Skipped on the Auctions hub
+    // (the top of the app — nowhere sensible to go "back" to). Goes to the
+    // previous screen, falling back to the hub on a fresh/deep-linked load.
+    const NO_BACK = new Set(['auctions.html', 'login.html']);
+    if (!NO_BACK.has(here) && !header.querySelector('.back-btn')) {
+      const back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'back-btn';
+      back.setAttribute('aria-label', 'Go back');
+      back.title = 'Back';
+      back.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none"'
+        + ' stroke="currentColor" stroke-width="2.2" stroke-linecap="round"'
+        + ' stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+      back.addEventListener('click', () => {
+        const from = document.referrer;
+        if (history.length > 1 && (!from || from.startsWith(location.origin))) history.back();
+        else location.href = 'auctions.html';
+      });
+      header.insertBefore(back, header.firstChild);
+    }
 
     // Hamburger toggle.
     const btn = document.createElement('button');
@@ -62,12 +100,13 @@
     head.innerHTML = me
       ? `<span class="menu-avatar">👤</span><span class="menu-uinfo">
            <b>${esc(me.displayName || me.username)}</b>
-           <span class="menu-role">${role === 'ADMIN' ? 'Admin' : 'Owner'}</span></span>`
+           <span class="menu-role">${role === 'ADMIN' ? 'Admin'
+             : role === 'TOURNAMENT_ADMIN' ? 'Auction admin' : 'Owner'}</span></span>`
       : `<span class="menu-avatar">👁</span><span class="menu-uinfo">
            <b>Guest</b><span class="menu-role muted">read-only</span></span>`;
     panel.appendChild(head);
 
-    menuFor(role, me).forEach(it => {
+    menuFor(role, me, !!window.TOURNAMENT_ID).forEach(it => {
       const a = document.createElement('a');
       a.href = it.href;
       a.className = 'menu-item';
