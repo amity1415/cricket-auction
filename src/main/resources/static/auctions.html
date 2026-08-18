@@ -46,6 +46,16 @@
         <input id="f-name" placeholder="e.g. KCPL Season 2" required>
       </label>
 
+      <label class="field">
+        <span>Player photos — Google Drive folder link</span>
+        <input id="f-photosFolder" type="url"
+               placeholder="https://drive.google.com/drive/folders/…">
+        <small class="hint" style="margin-top:.3rem;">Optional. Paste an
+          “anyone with the link” Drive folder holding one image per player, each
+          named by the player’s import serial (1, 2, 3, …). The system loads each
+          player’s poster from here. Leave blank to use per-row image links or none.</small>
+      </label>
+
       <fieldset class="rules-group">
         <legend>Team defaults</legend>
         <div class="grid2">

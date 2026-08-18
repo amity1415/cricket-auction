@@ -3,6 +3,7 @@ package com.auctiontracker.tournament;
 import com.auctiontracker.config.AuctionProperties;
 import com.auctiontracker.core.PlayerJpaRepository;
 import com.auctiontracker.core.TeamJpaRepository;
+import com.auctiontracker.photo.PlayerPhotoService;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,12 +30,14 @@ public class TournamentController {
     private final TournamentService service;
     private final PlayerJpaRepository players;
     private final TeamJpaRepository teams;
+    private final PlayerPhotoService photos;
 
     public TournamentController(TournamentService service, PlayerJpaRepository players,
-                                TeamJpaRepository teams) {
+                                TeamJpaRepository teams, PlayerPhotoService photos) {
         this.service = service;
         this.players = players;
         this.teams = teams;
+        this.photos = photos;
     }
 
     public record TournamentSummary(UUID id, String name, String slug, boolean active,
@@ -42,12 +45,13 @@ public class TournamentController {
 
     public record CurrentTournament(UUID id, String name, String slug) {}
 
-    public record CreateRequest(@NotBlank String name, AuctionProperties rules) {}
+    public record CreateRequest(@NotBlank String name, AuctionProperties rules,
+                                String photosFolderLink) {}
 
     public record DeleteRequest(String password) {}
 
     public record TournamentDetail(UUID id, String name, String slug, boolean active,
-                                   AuctionProperties rules) {}
+                                   AuctionProperties rules, String photosFolderId) {}
 
     /** Public: every auction with its live counts — the hub list (all roles browse it). */
     @GetMapping("/api/tournaments")
@@ -68,23 +72,25 @@ public class TournamentController {
     public TournamentDetail detail(@PathVariable UUID id) {
         Tournament t = service.get(id);
         return new TournamentDetail(t.getId(), t.getName(), t.getSlug(), t.isActive(),
-                service.rulesOf(id));
+                service.rulesOf(id), t.getPhotosFolderId());
     }
 
-    /** Admin: create a new tournament (its own rules) and switch to it. */
+    /** Admin: create a new tournament (its own rules + photo folder) and switch to it. */
     @PostMapping("/api/admin/tournaments")
     public TournamentDetail create(@RequestBody CreateRequest req) {
-        Tournament t = service.create(req.name(), req.rules());
+        Tournament t = service.create(req.name(), req.rules(), req.photosFolderLink());
+        photos.syncTournamentAsync(t.getId());
         return new TournamentDetail(t.getId(), t.getName(), t.getSlug(), t.isActive(),
-                service.rulesOf(t.getId()));
+                service.rulesOf(t.getId()), t.getPhotosFolderId());
     }
 
-    /** Admin: edit an existing tournament's name/rules. */
+    /** Admin: edit an existing tournament's name/rules/photo folder. */
     @PutMapping("/api/admin/tournaments/{id}")
     public TournamentDetail update(@PathVariable UUID id, @RequestBody CreateRequest req) {
-        Tournament t = service.updateRules(id, req.name(), req.rules());
+        Tournament t = service.updateRules(id, req.name(), req.rules(), req.photosFolderLink());
+        photos.syncTournamentAsync(t.getId());
         return new TournamentDetail(t.getId(), t.getName(), t.getSlug(), t.isActive(),
-                service.rulesOf(id));
+                service.rulesOf(id), t.getPhotosFolderId());
     }
 
     /** Admin: make this tournament the default used when a request names none. */

@@ -7,6 +7,7 @@ import com.auctiontracker.bidding.BiddingService;
 import com.auctiontracker.config.AuctionProperties;
 import com.auctiontracker.core.AuctionException;
 import com.auctiontracker.core.PlayerJpaRepository;
+import com.auctiontracker.core.PlayerRowParser;
 import com.auctiontracker.core.Team;
 import com.auctiontracker.core.TeamJpaRepository;
 import com.auctiontracker.sale.SaleJpaRepository;
@@ -77,8 +78,13 @@ public class TournamentService {
      * opens it by id and drives the same setup → auction flow. The very first
      * tournament ever created becomes the default.
      */
-    @Transactional
+    /** Create a tournament with no photo folder (used by seeders). */
     public Tournament create(String name, AuctionProperties rules) {
+        return create(name, rules, null);
+    }
+
+    @Transactional
+    public Tournament create(String name, AuctionProperties rules, String photosFolderLink) {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_TOURNAMENT", "Tournament name must not be blank");
         }
@@ -87,6 +93,7 @@ public class TournamentService {
         }
         validateSquadFeasibility(rules);
         Tournament t = Tournament.create(name.trim(), uniqueSlug(name), ruleBook.serialize(rules));
+        t.setPhotosFolderId(PlayerRowParser.toPhotoFolderId(photosFolderLink));
         if (tournaments.count() == 0) {
             t.setActive(true); // first tournament is the default for id-less requests
         }
@@ -97,7 +104,7 @@ public class TournamentService {
 
     /** Updates a tournament's rule book (does not touch already-sold prices/history). */
     @Transactional
-    public Tournament updateRules(UUID id, String name, AuctionProperties rules) {
+    public Tournament updateRules(UUID id, String name, AuctionProperties rules, String photosFolderLink) {
         Tournament t = get(id);
         if (name != null && !name.isBlank()) {
             t.setName(name.trim());
@@ -106,6 +113,7 @@ public class TournamentService {
             validateSquadFeasibility(rules);
             t.setRulesJson(ruleBook.serialize(rules));
         }
+        t.setPhotosFolderId(PlayerRowParser.toPhotoFolderId(photosFolderLink));
         tournaments.save(t);
         ruleBook.rulesChanged(id);
         return t;

@@ -310,6 +310,7 @@ async function openNew() {
   } catch (e) { toast('Could not load a rules template', true); return; }
   $('edit-id').value = '';
   $('f-name').value = '';
+  $('f-photosFolder').value = '';
   $('editor-title').textContent = 'New auction';
   $('btn-save').textContent = 'Create & load';
   fillEditor(template);
@@ -323,6 +324,7 @@ async function openEditor(id) {
   } catch (e) { toast('Could not load tournament', true); return; }
   $('edit-id').value = detail.id;
   $('f-name').value = detail.name;
+  $('f-photosFolder').value = detail.photosFolderId || '';
   $('editor-title').textContent = 'Edit rules — ' + detail.name;
   $('btn-save').textContent = 'Save changes';
   fillEditor(detail.rules);
@@ -333,7 +335,7 @@ async function submitEditor(e) {
   e.preventDefault();
   const name = $('f-name').value.trim();
   if (!name) { toast('Name is required', true); return; }
-  const body = { name, rules: readRules() };
+  const body = { name, rules: readRules(), photosFolderLink: $('f-photosFolder').value.trim() };
   const id = $('edit-id').value;
   if (id) {
     const r = await send('PUT', '/api/admin/tournaments/' + id, body);
