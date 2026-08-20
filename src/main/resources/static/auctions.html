@@ -68,15 +68,26 @@
         <legend>Player groups</legend>
         <p class="hint" style="margin:.1rem 0 .6rem;">Add each group and set its <b>base price</b> and per-team <b>max</b>/<b>min</b>.
           Any blank field means no restriction — blank max = unlimited, blank min = none, blank base = players keep their own base price.
-          Reserve/slot and budget are optional advanced caps.</p>
+          Reserve/slot and budget are optional advanced caps. <b>Row order is the auction order</b> (top → bottom);
+          with carry-forward on, a group’s unspent budget rolls into the next group below it.
+          <b>Unsold →</b> sets where an unsold player from that group goes next (a self-target = no demotion, stays in the pool).</p>
         <div class="group-add-row">
           <select id="group-add-select"></select>
           <button type="button" id="group-add-btn" class="ghost">＋ Add group</button>
         </div>
         <div class="cat-rules-head grouped-head">
-          <span>Group</span><span>Base ₹</span><span>Max</span><span>Min</span><span>Reserve/slot</span><span>Budget</span><span></span>
+          <span>Group</span><span>Base ₹</span><span>Max</span><span>Min</span><span>Reserve/slot</span><span>Budget</span><span>Unsold →</span><span></span>
         </div>
         <div id="groupRules"></div>
+        <label class="check-row" style="margin-top:.7rem;">
+          <input type="checkbox" id="f-carryForward">
+          <span>Carry a group’s unspent budget forward into the next group (KCPL: Pool A → B → C → D)</span>
+        </label>
+        <label class="check-row" style="margin-top:.4rem;">
+          <input type="checkbox" id="f-preAuctionOffPools">
+          <span>Keep pre-auction (Icon/Owner) retentions <b>off</b> the pool budgets and quotas
+            (KCPL: ₹30 L of picks don’t consume the ₹120 L of pool budgets)</span>
+        </label>
       </fieldset>
 
       <fieldset class="rules-group">
@@ -95,13 +106,17 @@
       </fieldset>
 
       <fieldset class="rules-group">
-        <legend>Retention</legend>
+        <legend>Retention <span class="muted" style="font-weight:400;">— also the pre-auction Icon/Owner picks</span></legend>
+        <p class="hint" style="margin:.1rem 0 .6rem;">KCPL: up to 3 pre-auction picks — 2 Icons from Group A at ₹12 L each and
+          1 Owner/Rep from B–D at ₹6 L (₹30 L total). Set the flat costs below, or use a base-price multiplier
+          (ABPL uses 3×) to charge a multiple of each player’s own base price instead.</p>
         <div class="grid3">
           <label class="field"><span>Max per team</span><input id="f-ret-maxPerTeam" type="number" min="0" required></label>
           <label class="field"><span>Max from group A</span><input id="f-ret-maxFromGroupA" type="number" min="0" required></label>
           <label class="field"><span>Max from B–E</span><input id="f-ret-maxFromLowerGroups" type="number" min="0" required></label>
           <label class="field"><span>Cost — group A (₹)</span><input id="f-ret-costGroupA" type="number" min="0" required></label>
           <label class="field"><span>Cost — B–E (₹)</span><input id="f-ret-costOtherGroups" type="number" min="0" required></label>
+          <label class="field"><span>Base-price multiplier <span class="muted">(optional)</span></span><input id="f-ret-multiplier" type="number" min="1" placeholder="flat costs"></label>
         </div>
       </fieldset>
 
