@@ -182,7 +182,8 @@ function refreshGroupAddDropdown() {
   $('group-add-btn').disabled = avail.length === 0;
 }
 
-/** One configurable group: base price + per-team max/min (+ optional reserve/budget). */
+/** One configurable group: base price + per-team max/min (+ optional reserve/budget)
+ *  + where an unsold player from this group goes next ("Unsold →"). */
 function addGroupRow(code, v) {
   const row = document.createElement('div');
   row.className = 'group-row';
@@ -194,9 +195,44 @@ function addGroupRow(code, v) {
     <input class="gr-min" type="number" min="0" placeholder="0" value="${v.min ?? ''}">
     <input class="gr-reserve" type="number" min="0" placeholder="base" value="${v.reserve ?? ''}">
     <input class="gr-budget" type="number" min="0" placeholder="none" value="${v.budget ?? ''}">
+    <span class="gr-trans-cell">
+      <select class="gr-transition" data-selected="${v.transition ?? ''}"></select>
+      <input class="gr-transition-price" type="number" min="0" placeholder="base" value="${v.transitionPrice ?? ''}"
+             title="Base price the unsold player carries into the destination group (blank = destination’s own base)">
+    </span>
     <button type="button" class="ghost gr-del" title="Remove group">✕</button>`;
-  row.querySelector('.gr-del').addEventListener('click', () => { row.remove(); refreshGroupAddDropdown(); });
+  row.querySelector('.gr-del').addEventListener('click', () => {
+    row.remove(); refreshGroupAddDropdown(); refreshTransitionOptions();
+  });
   $('groupRules').appendChild(row);
+  refreshTransitionOptions();
+}
+
+/**
+ * Rebuild every group row's "Unsold →" dropdown from the currently-added groups,
+ * preserving each row's selection. A row's own group is offered as "stay (no
+ * demotion)"; the empty option is "(finally unsold)". Called whenever groups are
+ * added, removed, or loaded, since the options reference the other groups.
+ */
+function refreshTransitionOptions() {
+  const codes = addedGroupCodes();
+  document.querySelectorAll('#groupRules .group-row').forEach(row => {
+    const sel = row.querySelector('.gr-transition');
+    if (!sel) return;
+    const own = row.dataset.group;
+    // data-selected is the persistent DESIRED destination — never overwritten when
+    // its target group isn't added yet (a later add may make it valid), only when
+    // the user actually picks a new value (onchange below).
+    const desired = sel.dataset.selected || '';
+    const opts = ['<option value="">(finally unsold)</option>'];
+    codes.forEach(c => {
+      const label = c === own ? `${groupLabel(c)} — stay (no demotion)` : groupLabel(c);
+      opts.push(`<option value="${c}">${label}</option>`);
+    });
+    sel.innerHTML = opts.join('');
+    sel.value = [...sel.options].some(o => o.value === desired) ? desired : '';
+    sel.onchange = () => { sel.dataset.selected = sel.value; };
+  });
 }
 
 function bandRow(upTo, inc) {
@@ -227,20 +263,33 @@ function fillEditor(rules) {
   $('f-minViablePrice').value = rules.minViablePrice;
   $('f-defaultIncrement').value = rules.defaultIncrement;
   $('f-demote').checked = !!rules.demoteUnsoldPlayers;
-  // One row per group this tournament configures (base prices ∪ category rules),
-  // in the canonical ALL_GROUPS order.
+  // One row per group this tournament configures (base prices ∪ category rules).
+  // Row order = the auction/carry-forward order: the explicit groupSequence first,
+  // then any remaining configured groups in the canonical ALL_GROUPS order.
   $('groupRules').innerHTML = '';
   const codes = new Set([...Object.keys(rules.basePrices || {}),
                          ...Object.keys(rules.categoryRules || {})]);
+  const ordered = [];
+  (rules.groupSequence || []).forEach(code => {
+    if (codes.has(code) && !ordered.includes(code)) ordered.push(code);
+  });
   ALL_GROUPS.forEach(([code]) => {
-    if (!codes.has(code)) return;
+    if (codes.has(code) && !ordered.includes(code)) ordered.push(code);
+  });
+  ordered.forEach(code => {
     const c = (rules.categoryRules && rules.categoryRules[code]) || {};
+    const t = (rules.unsoldTransitions && rules.unsoldTransitions[code]) || null;
     addGroupRow(code, {
       base: rules.basePrices?.[code], max: c.maxPerTeam, min: c.minPerTeam,
       reserve: c.reservePerSlot, budget: c.budget,
+      transition: t ? t.destination : '', transitionPrice: t ? t.destinationBasePrice : '',
     });
   });
   refreshGroupAddDropdown();
+  refreshTransitionOptions();
+  $('f-carryForward').checked = !!rules.budgetCarryForward;
+  // preAuctionCountsInPools defaults true; the checkbox is the INVERSE ("off pools").
+  $('f-preAuctionOffPools').checked = rules.preAuctionCountsInPools === false;
   const bands = $('incrementRules');
   bands.innerHTML = '';
   (rules.incrementRules || []).forEach(b => bands.appendChild(bandRow(b.upTo, b.increment)));
@@ -250,6 +299,7 @@ function fillEditor(rules) {
   $('f-ret-maxFromLowerGroups').value = r.maxFromLowerGroups ?? 0;
   $('f-ret-costGroupA').value = r.costGroupA ?? 0;
   $('f-ret-costOtherGroups').value = r.costOtherGroups ?? 0;
+  $('f-ret-multiplier').value = rules.retentionBasePriceMultiplier ?? '';
 }
 
 function readRules() {
@@ -273,9 +323,23 @@ function readRules() {
     if (upTo != null && increment != null) incrementRules.push({ upTo, increment });
   });
   incrementRules.sort((a, b) => a.upTo - b.upTo);
+  // Group order (top → bottom) is the auction / carry-forward sequence.
+  const groupSequence = [...document.querySelectorAll('#groupRules .group-row')]
+    .map(r => r.dataset.group);
+  // "Unsold →" graph: one entry per group whose dropdown names a destination
+  // (blank = "finally unsold", so no entry — falls back to demote/terminal).
+  const unsoldTransitions = {};
+  document.querySelectorAll('#groupRules .group-row').forEach(row => {
+    const dest = row.querySelector('.gr-transition').value;
+    if (!dest) return;
+    const price = row.querySelector('.gr-transition-price').value;
+    unsoldTransitions[row.dataset.group] = {
+      destination: dest,
+      destinationBasePrice: price.trim() === '' ? null : Number(price),
+    };
+  });
   return {
-    // Preserve any fields the form doesn't manage (unsoldTransitions,
-    // retentionBasePriceMultiplier, …); the explicit keys below then override.
+    // Preserve any fields the form still doesn't manage; the explicit keys below override.
     ...editorBaseRules,
     minViablePrice: Number($('f-minViablePrice').value),
     basePrices,
@@ -289,12 +353,18 @@ function readRules() {
       costGroupA: Number($('f-ret-costGroupA').value),
       costOtherGroups: Number($('f-ret-costOtherGroups').value),
     },
+    retentionBasePriceMultiplier: numOrNull($('f-ret-multiplier').value),
     teamDefaults: {
       startingPurse: Number($('f-startingPurse').value),
       maxSquadSize: Number($('f-maxSquadSize').value),
     },
     demoteUnsoldPlayers: $('f-demote').checked,
     seedDemoData: false,
+    unsoldTransitions,
+    groupSequence,
+    budgetCarryForward: $('f-carryForward').checked,
+    // Unchecked ⇒ null so the server applies its legacy default (counts in pools).
+    preAuctionCountsInPools: $('f-preAuctionOffPools').checked ? false : null,
   };
 }
 
@@ -310,6 +380,7 @@ async function openNew() {
   } catch (e) { toast('Could not load a rules template', true); return; }
   $('edit-id').value = '';
   $('f-name').value = '';
+  $('f-photosFolder').value = '';
   $('editor-title').textContent = 'New auction';
   $('btn-save').textContent = 'Create & load';
   fillEditor(template);
@@ -323,6 +394,7 @@ async function openEditor(id) {
   } catch (e) { toast('Could not load tournament', true); return; }
   $('edit-id').value = detail.id;
   $('f-name').value = detail.name;
+  $('f-photosFolder').value = detail.photosFolderId || '';
   $('editor-title').textContent = 'Edit rules — ' + detail.name;
   $('btn-save').textContent = 'Save changes';
   fillEditor(detail.rules);
@@ -333,7 +405,7 @@ async function submitEditor(e) {
   e.preventDefault();
   const name = $('f-name').value.trim();
   if (!name) { toast('Name is required', true); return; }
-  const body = { name, rules: readRules() };
+  const body = { name, rules: readRules(), photosFolderLink: $('f-photosFolder').value.trim() };
   const id = $('edit-id').value;
   if (id) {
     const r = await send('PUT', '/api/admin/tournaments/' + id, body);

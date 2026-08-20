@@ -131,7 +131,10 @@ public class AbplSeeder implements CommandLineRunner {
                 false,                                          // no ordinal demotion — use transitions
                 false,                                          // seedDemoData
                 transitions,
-                3);                                             // retention = 3 × base price
+                3,                                              // retention = 3 × base price
+                null,                                           // groupSequence — role format doesn't carry forward
+                null,                                           // budgetCarryForward
+                null);                                          // preAuctionCountsInPools
     }
 
     /** The 56 named players from the ABPL Season 2 sheet, with per-player base prices. */

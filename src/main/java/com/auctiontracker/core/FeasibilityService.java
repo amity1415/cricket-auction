@@ -1,5 +1,6 @@
 package com.auctiontracker.core;
 
+import com.auctiontracker.config.AuctionProperties;
 import com.auctiontracker.tournament.RuleBook;
 import org.springframework.stereotype.Service;
 
@@ -76,12 +77,95 @@ public class FeasibilityService {
         return slots;
     }
 
-    /** RULE 1: how much a team has already spent on players in a group (sale price or retention fee). */
+    /**
+     * RULE 1: how much a team has already spent on players in a group (sale price
+     * or retention fee). When the rule book excludes pre-auction picks from the
+     * pools ({@code preAuctionCountsInPools = false}, e.g. KCPL), RETAINED players'
+     * fees are NOT counted against pool budgets — their cost is still gone from the
+     * purse, it just doesn't consume the group's auction budget.
+     */
     private long groupSpend(List<Player> squad, PlayerCategory category) {
+        boolean excludeRetained = !ruleBook.current().retentionsCountInPools();
         return squad.stream()
                 .filter(p -> p.getCategory() == category)
+                .filter(p -> !excludeRetained || p.getStatus() != PlayerStatus.RETAINED)
                 .mapToLong(p -> p.getSoldPrice() == null ? 0L : p.getSoldPrice())
                 .sum();
+    }
+
+    /**
+     * Per-group headcount used for QUOTA checks (max/min per team) and squad
+     * completion. Identical to {@link #categoryCounts} except that when the rule
+     * book excludes pre-auction picks from the pools, RETAINED players don't count
+     * toward a group's quota — so KCPL's two Grade-A Icons don't fill up "only 4
+     * from Pool A". With the default {@code preAuctionCountsInPools = true} this is
+     * exactly {@code categoryCounts}, so legacy behaviour is unchanged.
+     */
+    private Map<PlayerCategory, Integer> quotaCounts(List<Player> squad) {
+        boolean excludeRetained = !ruleBook.current().retentionsCountInPools();
+        if (!excludeRetained) {
+            return categoryCounts(squad);
+        }
+        Map<PlayerCategory, Integer> counts = new EnumMap<>(PlayerCategory.class);
+        for (PlayerCategory category : PlayerCategory.values()) {
+            counts.put(category, 0);
+        }
+        for (Player p : squad) {
+            if (p.getStatus() == PlayerStatus.RETAINED) {
+                continue;
+            }
+            counts.merge(p.getCategory(), 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    private int quotaCount(List<Player> squad, PlayerCategory category) {
+        return quotaCounts(squad).getOrDefault(category, 0);
+    }
+
+    /**
+     * Carry-forward budget: a group's spendable budget is its OWN budget plus
+     * everything the groups ahead of it in the auction sequence left unspent
+     * (KCPL: Pool A → B → C → D). Formally {@code Σ budget(k≤G) − Σ spent(k<G)}.
+     * Only called when {@link AuctionProperties#carryForwardEnabled()} is true.
+     */
+    private long effectiveBudgetFor(PlayerCategory group, List<Player> squad) {
+        AuctionProperties rules = ruleBook.current();
+        long cumulativeBudget = 0L;
+        long spentBefore = 0L;
+        for (PlayerCategory g : rules.effectiveGroupSequence()) {
+            Long budget = rules.budgetFor(g);
+            if (budget != null) {
+                cumulativeBudget += budget;
+            }
+            if (g == group) {
+                break;
+            }
+            spentBefore += groupSpend(squad, g);
+        }
+        return cumulativeBudget - spentBefore;
+    }
+
+    /**
+     * The hard spend ceiling on a bid for a player in {@code cat}, or null when the
+     * group has no configured budget (then only the shared purse / completion
+     * reserve bound it). Applies whether or not the group has a max-per-team, so
+     * KCPL's max-less Pool C/D still respect their budgets. With carry-forward on,
+     * the budget is the cumulative effective budget; otherwise it's the group's own
+     * static budget (today's Group-A ceiling).
+     */
+    private Long groupBudgetCeiling(PlayerCategory cat, List<Player> squad,
+                                    int inGroup, Integer maxInGroup) {
+        AuctionProperties rules = ruleBook.current();
+        Long ownBudget = rules.budgetFor(cat);
+        if (ownBudget == null) {
+            return null;
+        }
+        long budget = rules.carryForwardEnabled() ? effectiveBudgetFor(cat, squad) : ownBudget;
+        long spent = groupSpend(squad, cat);
+        int remainingAfter = maxInGroup == null ? 0 : Math.max(0, maxInGroup - inGroup - 1);
+        long reserve = (long) remainingAfter * rules.reservePerSlotFor(cat);
+        return budget - spent - reserve;
     }
 
     private int categoryDeficit(Map<PlayerCategory, Integer> counts) {
@@ -104,7 +188,7 @@ public class FeasibilityService {
 
     /** As above, but reusing a pre-fetched squad list (no extra query). */
     public int remainingMandatorySlots(Team team, List<Player> squad) {
-        return Math.max(roleDeficit(team, roleCounts(squad)), categoryDeficit(categoryCounts(squad)));
+        return Math.max(roleDeficit(team, roleCounts(squad)), categoryDeficit(quotaCounts(squad)));
     }
 
     /**
@@ -130,34 +214,31 @@ public class FeasibilityService {
         PlayerCategory cat = player.getCategory();
         Integer maxInGroup = ruleBook.current().maxPerTeamFor(cat);
         List<Player> squad = players.findBySoldToTeamId(team.getTeamId());
-        int inGroup = categoryCounts(squad).get(cat);
-        if (maxInGroup != null) {
-            if (inGroup >= maxInGroup) {
-                throw AuctionException.conflict("CATEGORY_QUOTA_FULL",
-                        "%s already has %d group-%s player(s) (max %d) — can't sign %s".formatted(
-                                team.getName(), inGroup, cat, maxInGroup, player.getName()),
-                        Map.of("teamId", team.getTeamId(), "category", cat, "maxPerTeam", maxInGroup));
-            }
-            // RULE 1: a group with a configured budget (Group A) has a HARD spend
-            // ceiling. A bid may use only what is left of that budget after
-            // reserving the group's remaining allowed slots at reserve price:
-            //   budget − already-spent-in-group − (remaining slots after) × reserve
-            Long budget = ruleBook.current().budgetFor(cat);
-            if (budget != null) {
-                long spent = groupSpend(squad, cat);
-                int remainingAfter = Math.max(0, maxInGroup - inGroup - 1);
-                long reserve = (long) remainingAfter * ruleBook.current().reservePerSlotFor(cat);
-                long cap = budget - spent - reserve;
-                if (price > cap) {
-                    throw AuctionException.conflict("GROUP_BUDGET_EXCEEDED",
-                            "%s can bid at most %s for this group-%s player — group %s has a %s budget, %s already spent, and %s must stay to fill its other %d slot(s) at base price"
-                                    .formatted(team.getName(), Money.inr(Math.max(0, cap)), cat, cat,
-                                            Money.inr(budget), Money.inr(spent), Money.inr(reserve), remainingAfter),
-                            Map.of("teamId", team.getTeamId(), "category", cat,
-                                    "maxBidForGroup", Math.max(0, cap),
-                                    "groupBudget", budget, "groupSpent", spent, "groupReserve", reserve));
-                }
-            }
+        int inGroup = quotaCount(squad, cat);
+        if (maxInGroup != null && inGroup >= maxInGroup) {
+            throw AuctionException.conflict("CATEGORY_QUOTA_FULL",
+                    "%s already has %d group-%s player(s) (max %d) — can't sign %s".formatted(
+                            team.getName(), inGroup, cat, maxInGroup, player.getName()),
+                    Map.of("teamId", team.getTeamId(), "category", cat, "maxPerTeam", maxInGroup));
+        }
+        // RULE 1: a group with a configured budget has a HARD spend ceiling. A bid
+        // may use only what is left of that budget after reserving the group's
+        // remaining allowed slots at reserve price. With carry-forward on, the
+        // budget is the cumulative effective budget (own budget + earlier groups'
+        // leftover); otherwise it's the group's own static budget. Applies whether
+        // or not the group has a max, so KCPL's max-less Pool C/D still obey it.
+        Long cap = groupBudgetCeiling(cat, squad, inGroup, maxInGroup);
+        if (cap != null && price > cap) {
+            boolean carry = ruleBook.current().carryForwardEnabled();
+            long spent = groupSpend(squad, cat);
+            throw AuctionException.conflict("GROUP_BUDGET_EXCEEDED",
+                    "%s can bid at most %s for this group-%s player — group %s has %s %savailable and %s already spent there"
+                            .formatted(team.getName(), Money.inr(Math.max(0, cap)), cat, cat,
+                                    Money.inr(Math.max(0, cap + spent)), carry ? "(after carry-forward) " : "",
+                                    Money.inr(spent)),
+                    Map.of("teamId", team.getTeamId(), "category", cat,
+                            "maxBidForGroup", Math.max(0, cap),
+                            "groupSpent", spent, "carryForward", carry));
         }
         // RULE 1 (all groups): every bid must leave enough purse to still fill the
         // team's remaining squad slots at base price. This — not a per-group budget —
@@ -190,7 +271,7 @@ public class FeasibilityService {
         if (roomAfter == 0) {
             return 0L;
         }
-        Map<PlayerCategory, Integer> held = new EnumMap<>(categoryCounts(squad));
+        Map<PlayerCategory, Integer> held = new EnumMap<>(quotaCounts(squad));
         held.merge(incoming, 1, Integer::sum); // this purchase fills one slot in its group
         return completionReserve(held, roomAfter);
     }
@@ -258,7 +339,7 @@ public class FeasibilityService {
         if (team.squadSize() >= team.getMaxSquadSize()) {
             return 0;
         }
-        Map<PlayerCategory, Integer> counts = categoryCounts(squad);
+        Map<PlayerCategory, Integer> counts = quotaCounts(squad);
         List<Long> mandatory = new ArrayList<>();
         for (PlayerCategory g : ruleBook.current().configuredGroups()) {
             long base = ruleBook.current().basePriceFor(g);
@@ -296,21 +377,19 @@ public class FeasibilityService {
             return 0;
         }
         PlayerCategory cat = player.getCategory();
-        int inGroup = categoryCounts(squad).get(cat);
+        int inGroup = quotaCount(squad, cat);
         Integer maxInGroup = ruleBook.current().maxPerTeamFor(cat);
         if (maxInGroup != null && inGroup >= maxInGroup) {
             return 0; // group quota already full — this team can't sign the player
         }
         long cap = team.getRemainingPurse();
 
-        // Group budget ceiling (groups with a configured budget, e.g. Group A):
-        // budget − already-spent-in-group − reserve to fill this group's other slots.
-        Long budget = ruleBook.current().budgetFor(cat);
-        if (budget != null) {
-            long spent = groupSpend(squad, cat);
-            int remainingAfter = maxInGroup == null ? 0 : Math.max(0, maxInGroup - inGroup - 1);
-            long groupReserve = (long) remainingAfter * ruleBook.current().reservePerSlotFor(cat);
-            cap = Math.min(cap, budget - spent - groupReserve);
+        // Group budget ceiling (groups with a configured budget). With carry-forward
+        // on this is the cumulative effective budget; otherwise the group's own
+        // static budget (e.g. today's Group A). Null ⇒ no group ceiling.
+        Long budgetCeiling = groupBudgetCeiling(cat, squad, inGroup, maxInGroup);
+        if (budgetCeiling != null) {
+            cap = Math.min(cap, budgetCeiling);
         }
 
         // Must still leave enough to fill every remaining mandatory slot at base price.

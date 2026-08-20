@@ -56,6 +56,18 @@ public class Tournament {
     @Column(name = "auction_rule_type")
     private String auctionRuleType;
 
+    /**
+     * Google Drive FOLDER id holding this tournament's player poster images, one
+     * per player named by the player's 1-based import serial. Set from the auction
+     * editor (the admin pastes an "anyone with the link" Drive folder link, which
+     * is normalised to its id). Null = this tournament has no photo folder, so it
+     * falls back to the app-wide {@code auction.photos.folder-id} (if any), else
+     * players render with their initials. Resolved by
+     * {@link com.auctiontracker.photo.PlayerPhotoService}.
+     */
+    @Column(name = "photos_folder_id")
+    private String photosFolderId;
+
     protected Tournament() {
         // for JPA
     }
@@ -87,4 +99,8 @@ public class Tournament {
         return auctionRuleType == null ? "STANDARD_POOL" : auctionRuleType;
     }
     public void setAuctionRuleType(String auctionRuleType) { this.auctionRuleType = auctionRuleType; }
+
+    /** Drive folder id for this tournament's player photos; null if none configured. */
+    public String getPhotosFolderId() { return photosFolderId; }
+    public void setPhotosFolderId(String photosFolderId) { this.photosFolderId = photosFolderId; }
 }

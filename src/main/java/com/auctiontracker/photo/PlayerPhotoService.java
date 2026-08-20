@@ -94,13 +94,25 @@ public class PlayerPhotoService {
     /** Kick off folder mapping + cache warm-up off the startup thread. */
     @EventListener(ApplicationReadyEvent.class)
     public void onReady() {
-        if (!enabled || folderId.isEmpty()) {
-            log.info("Player photos disabled (enabled={}, folderId={}).", enabled, folderId.isEmpty() ? "unset" : "set");
+        // Enabled and at least one folder source (app-wide config or a per-tournament
+        // folder) is needed. We can't know about per-tournament folders without a DB
+        // read, so only bail out entirely when the feature is switched off.
+        if (!enabled) {
+            log.info("Player photos disabled (enabled=false).");
             return;
         }
         CompletableFuture.runAsync(() -> {
             try {
-                syncAndWarm();
+                if (!folderId.isEmpty()) {
+                    syncAndWarm();  // app-wide folder → configured (or active) tournament
+                }
+                // Every tournament that carries its own photo folder — so photos work
+                // for all auctions, not just the app-wide/ABPL one.
+                for (Tournament t : tournaments.findAll()) {
+                    if (t.getPhotosFolderId() != null && !t.getPhotosFolderId().isBlank()) {
+                        assignAndWarm(players.findByTournamentIdOrdered(t.getId()), t.getPhotosFolderId());
+                    }
+                }
             } catch (Exception e) {
                 // Never let image plumbing affect the app — just log and move on.
                 log.warn("Player photo sync failed; players will render with initials. {}", e.toString());
@@ -127,17 +139,47 @@ public class PlayerPhotoService {
      * Resolve poster images for a freshly imported pool. Each player's image is
      * the file named by its 1-based serial ({@link Player#getSeq()} + 1) inside
      * the Drive folder given per row in the import (the {@code Image_location}
-     * column, carried on {@link Player#getPhotoFolderId()}); the configured folder
-     * is the fallback. Runs off the request thread and is fully guarded, so a
-     * slow/broken Drive can never delay or fail the import — players just render
-     * with initials until (and unless) their image resolves.
+     * column, carried on {@link Player#getPhotoFolderId()}); the tournament's own
+     * configured photo folder is the fallback, then the app-wide folder. Runs off
+     * the request thread and is fully guarded, so a slow/broken Drive can never
+     * delay or fail the import — players just render with initials until (and
+     * unless) their image resolves.
      */
     public void resolveFolderImages(List<Player> imported) {
         if (!enabled || imported == null || imported.isEmpty()) return;
+        UUID tournamentId = imported.get(0).getTournamentId();
         CompletableFuture.runAsync(() -> {
-            try { assignAndWarm(imported, folderId.isEmpty() ? null : folderId); }
+            try { assignAndWarm(imported, folderForTournament(tournamentId)); }
             catch (Exception e) { log.warn("Post-import photo mapping failed: {}", e.toString()); }
         });
+    }
+
+    /**
+     * (Re)map and warm one tournament's players against its own Drive photo folder
+     * — invoked when an admin sets or changes the folder link in the auction
+     * editor. Only players without an image yet are (re)resolved, so it's safe to
+     * call repeatedly. Runs off the request thread and never fails the caller.
+     */
+    public void syncTournamentAsync(UUID tournamentId) {
+        if (!enabled || tournamentId == null) return;
+        String folder = folderForTournament(tournamentId);
+        if (folder == null) return;   // nothing to map against
+        CompletableFuture.runAsync(() -> {
+            try { assignAndWarm(players.findByTournamentIdOrdered(tournamentId), folder); }
+            catch (Exception e) { log.warn("Tournament photo sync failed for {}: {}", tournamentId, e.toString()); }
+        });
+    }
+
+    /**
+     * The fallback folder for a tournament's players: its own configured
+     * {@code photosFolderId} when set, otherwise the app-wide folder (which may be
+     * empty). Null when neither is available.
+     */
+    private String folderForTournament(UUID tournamentId) {
+        String own = tournamentId == null ? null : tournaments.findById(tournamentId)
+                .map(Tournament::getPhotosFolderId).orElse(null);
+        if (own != null && !own.isBlank()) return own;
+        return folderId.isEmpty() ? null : folderId;
     }
 
     /**
