@@ -27,6 +27,8 @@ import java.util.UUID;
 @Service
 public class TournamentService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TournamentService.class);
+
     private final TournamentRepository tournaments;
     private final RuleBook ruleBook;
     private final PlayerJpaRepository players;
@@ -126,6 +128,40 @@ public class TournamentService {
      */
     private void validateSquadFeasibility(AuctionProperties rules) {
         rules.assertSquadFits(rules.teamDefaults() == null ? 0 : rules.teamDefaults().maxSquadSize());
+        validateCarryForward(rules);
+    }
+
+    /**
+     * When carry-forward is on, every budgeted group must appear in the auction
+     * sequence (otherwise its unspent budget has nowhere to roll to) — a hard
+     * failure. As a soft guard, warn if the pool budgets together exceed the purse
+     * left after the maximum possible retention spend; organizers may deliberately
+     * leave slack, so this only logs (see design OD-4).
+     */
+    private void validateCarryForward(AuctionProperties rules) {
+        if (rules == null || !rules.carryForwardEnabled()) {
+            return;
+        }
+        java.util.List<com.auctiontracker.core.PlayerCategory> seq = rules.effectiveGroupSequence();
+        long totalBudget = 0;
+        for (com.auctiontracker.core.PlayerCategory g : rules.configuredGroups()) {
+            Long budget = rules.budgetFor(g);
+            if (budget == null) {
+                continue;
+            }
+            totalBudget += budget;
+            if (!seq.contains(g)) {
+                throw AuctionException.badRequest("RULES_INFEASIBLE",
+                        ("Carry-forward is on but group %s has a budget yet isn't in the auction sequence — "
+                                + "add it to the group order so its unspent budget can carry forward.")
+                                .formatted(g));
+            }
+        }
+        long purse = rules.teamDefaults() == null ? 0 : rules.teamDefaults().startingPurse();
+        if (totalBudget > purse && purse > 0) {
+            log.warn("Carry-forward rule book: pool budgets sum to {} which exceeds the team purse of {} — "
+                    + "teams may be unable to use the full budget.", totalBudget, purse);
+        }
     }
 
     /** Makes this tournament the default used when a request names none. */

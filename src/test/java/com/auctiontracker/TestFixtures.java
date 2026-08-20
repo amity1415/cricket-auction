@@ -37,7 +37,10 @@ public final class TestFixtures {
                 true,
                 false,
                 null,
-                null);
+                null,
+                null,   // groupSequence
+                null,   // budgetCarryForward
+                null);  // preAuctionCountsInPools
     }
 
     /**
@@ -62,7 +65,10 @@ public final class TestFixtures {
                 true,
                 false,
                 null,
-                null);
+                null,
+                null,   // groupSequence
+                null,   // budgetCarryForward
+                null);  // preAuctionCountsInPools
     }
 
     public static Team team(String name, long purse, int maxSquad,

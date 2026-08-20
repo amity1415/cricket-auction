@@ -31,7 +31,24 @@ public record AuctionProperties(
         Map<PlayerCategory, GroupTransition> unsoldTransitions,
         // Retention fee as a multiple of the player's own base price (e.g. 3 = 3×).
         // When set it overrides the flat per-group retention cost below.
-        Integer retentionBasePriceMultiplier) {
+        Integer retentionBasePriceMultiplier,
+        // ---- KCPL carry-forward add-ons; all null/absent = legacy behaviour ----
+        // The order groups are auctioned in (e.g. [A, B, C, D]). With carry-forward
+        // on, a group's unspent budget rolls into the NEXT group in this list. Null
+        // or empty ⇒ derive the order from the configured groups' insertion order
+        // (see {@link #effectiveGroupSequence()}).
+        List<PlayerCategory> groupSequence,
+        // When true, each group's spendable budget is CUMULATIVE — its own budget
+        // plus everything the earlier groups in {@code groupSequence} left unspent
+        // (KCPL: Pool A → B → C → D). Null/false ⇒ each group's budget is an
+        // independent static ceiling, exactly as today.
+        Boolean budgetCarryForward,
+        // When false, RETAINED (pre-auction Icon/Owner) players are excluded from
+        // BOTH pool budget-spend and group min/max quota counting, so a team's
+        // pre-auction picks don't consume its auction pool budgets or slots (KCPL:
+        // ₹150L purse = ₹30L retentions + ₹120L pools). Null ⇒ true (legacy: they
+        // count everywhere).
+        Boolean preAuctionCountsInPools) {
 
     /**
      * Where an unsold player moves next and the base price they carry into that
@@ -81,6 +98,48 @@ public record AuctionProperties(
      */
     public java.util.Set<PlayerCategory> configuredGroups() {
         return basePrices == null ? java.util.Set.of() : basePrices.keySet();
+    }
+
+    /**
+     * The order groups are auctioned in for carry-forward. Uses {@code groupSequence}
+     * when set, otherwise the configured groups' own insertion order — so a rule book
+     * that never sets a sequence still yields a deterministic chain. Only groups that
+     * are actually configured are kept, so a stale sequence entry can't break maths.
+     */
+    public List<PlayerCategory> effectiveGroupSequence() {
+        java.util.Set<PlayerCategory> configured = configuredGroups();
+        if (groupSequence != null && !groupSequence.isEmpty()) {
+            List<PlayerCategory> seq = new java.util.ArrayList<>();
+            for (PlayerCategory g : groupSequence) {
+                if (configured.contains(g) && !seq.contains(g)) {
+                    seq.add(g);
+                }
+            }
+            // Append any configured group the sequence forgot, so nothing is dropped.
+            for (PlayerCategory g : configured) {
+                if (!seq.contains(g)) {
+                    seq.add(g);
+                }
+            }
+            return seq;
+        }
+        return new java.util.ArrayList<>(configured);
+    }
+
+    /** True when a group's budget carries its unspent remainder into the next group. */
+    public boolean carryForwardEnabled() {
+        return Boolean.TRUE.equals(budgetCarryForward);
+    }
+
+    /**
+     * Whether pre-auction (RETAINED) players count toward pool budgets and group
+     * quotas. Defaults to true (legacy) when unset. KCPL sets it false so its
+     * ₹30L of Icon/Owner retentions don't eat into the ₹120L of pool budgets.
+     * (Named distinctly from the {@code preAuctionCountsInPools} record accessor,
+     * which returns the raw nullable Boolean, so both can coexist.)
+     */
+    public boolean retentionsCountInPools() {
+        return preAuctionCountsInPools == null || Boolean.TRUE.equals(preAuctionCountsInPools);
     }
 
     public long basePriceFor(PlayerCategory category) {

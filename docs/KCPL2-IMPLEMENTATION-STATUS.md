@@ -11,8 +11,8 @@ Living tracker for the KCPL 2 format work. **Design spec:** [`KCPL2-FORMAT-DESIG
 ## Module status
 | Module | What | Status |
 |---|---|---|
-| M1 | Extend `AuctionProperties` (3 fields + helpers, call sites, validation, round-trip) | ⬜ not started |
-| M2 | Carry-forward pricing in `FeasibilityService` (+ retention-exclusion) | ⬜ not started |
+| M1 | Extend `AuctionProperties` (3 fields + helpers, call sites, validation, round-trip) | ✅ done |
+| M2 | Carry-forward pricing in `FeasibilityService` (+ retention-exclusion) | ✅ done |
 | M6 | `KcplSeeder` — KCPL Season 2 template (10 teams, full rule book) | ⬜ not started |
 | M3 | Editor: carry-forward toggle + group sequence (DOM order) | ⬜ not started |
 | M4 | Editor: unsold-transition graph per group row | ⬜ not started |
