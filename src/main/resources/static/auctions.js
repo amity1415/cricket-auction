@@ -35,6 +35,15 @@ async function send(method, url, body) {
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  // A write that comes back 401 means the session was lost (idle timeout, or the
+  // server restarted on a deploy — sessions are in-memory). The page still shows
+  // the admin UI from stale client state, so instead of a dead-end "Authentication
+  // required" toast, tell the user and bounce them to the login screen.
+  if (res.status === 401) {
+    toast('Your session has expired — please sign in again.', true);
+    setTimeout(() => { location.href = 'login.html'; }, 1600);
+    return null;
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     toast(data.message || data.error || ('Request failed (' + res.status + ')'), true);

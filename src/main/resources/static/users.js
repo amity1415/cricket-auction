@@ -29,6 +29,13 @@ async function send(method, url, body) {
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  // Session lost (idle timeout / server restart on deploy — sessions are
+  // in-memory): bounce to login instead of a dead-end "Authentication required".
+  if (res.status === 401) {
+    toast('Your session has expired — please sign in again.', true);
+    setTimeout(() => { location.href = 'login.html'; }, 1600);
+    return null;
+  }
   if (res.status === 204) return {};
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
