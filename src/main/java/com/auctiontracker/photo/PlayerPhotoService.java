@@ -253,16 +253,18 @@ public class PlayerPhotoService {
 
     /**
      * Parse a Drive embedded-folder-view HTML page into {@code serial -> fileId}.
-     * Each file's title is its serial number; the extension isn't shown. Only
-     * clean numeric titles are kept and normalised (e.g. "01" -> "1"); on a
-     * duplicate serial the last entry wins. Package-visible for unit testing.
+     * Each file's title is its serial number. Drive sometimes renders the title
+     * with its file extension ("1.png") and sometimes without ("1"), so we drop a
+     * single trailing extension before matching. Only clean numeric titles are
+     * kept and normalised (e.g. "01" -> "1"); on a duplicate serial the last entry
+     * wins. Package-visible for unit testing.
      */
     static Map<String, String> parseFolderListing(String html) {
         Map<String, String> map = new HashMap<>();
         Matcher m = ENTRY.matcher(html);
         while (m.find()) {
             String fileId = m.group(1);
-            String title = m.group(2).trim();
+            String title = m.group(2).trim().replaceFirst("\\.[A-Za-z0-9]+$", "");
             if (title.matches("\\d+")) {
                 map.put(String.valueOf(Integer.parseInt(title)), fileId);
             }

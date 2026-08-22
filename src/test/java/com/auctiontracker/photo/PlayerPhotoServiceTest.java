@@ -48,4 +48,33 @@ class PlayerPhotoServiceTest {
                         + "<div class=\"flip-entry-title\">README</div></div>"))
                 .isEmpty();
     }
+
+    /**
+     * Drive's embedded view renders some folders' titles WITH the file extension
+     * ("1.png", "10.jpeg"). The serial must still resolve — a single trailing
+     * extension is stripped before the numeric match, while a genuinely
+     * non-numeric base ("cover.jpg") is still ignored.
+     */
+    @Test
+    void parsesSerialsThatKeepTheirFileExtension() {
+        String html =
+                entry("FID_ONE", "1.png")
+                        + entry("FID_TEN", "10.jpeg")
+                        + entry("FID_HUND", "100.JPG")
+                        + entry("FID_PLAIN", "7")          // extension-less still works
+                        + entry("FID_COVER", "cover.jpg"); // non-numeric base ignored
+        Map<String, String> map = PlayerPhotoService.parseFolderListing(html);
+
+        assertThat(map).hasSize(4);
+        assertThat(map.get("1")).isEqualTo("FID_ONE");
+        assertThat(map.get("10")).isEqualTo("FID_TEN");
+        assertThat(map.get("100")).isEqualTo("FID_HUND");
+        assertThat(map.get("7")).isEqualTo("FID_PLAIN");
+        assertThat(map).doesNotContainKey("cover");
+    }
+
+    private static String entry(String fileId, String title) {
+        return "<div class=\"flip-entry\" id=\"entry-" + fileId + "\">"
+                + "<div class=\"flip-entry-title\">" + title + "</div></div>";
+    }
 }
