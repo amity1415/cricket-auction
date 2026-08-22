@@ -59,11 +59,19 @@ server:
   port: ${PORT:8082}
   servlet:
     session:
+      # How long a session survives with no requests before it's invalidated and
+      # the user is bounced to login. Spring's default is 30m, which signs an idle
+      # admin out mid-auction; give it real headroom. Note sessions are in-memory,
+      # so a server restart (e.g. a deploy) still ends every session regardless.
+      timeout: ${SESSION_TIMEOUT:2h}
       cookie:
         # SameSite=Lax keeps the session cookie off cross-site requests, which is
         # our CSRF defence (CSRF tokens are disabled — see SecurityConfig).
         same-site: lax
         http-only: true
+        # Keep the cookie across browser restarts for the session's full lifetime
+        # rather than dropping it when the tab/browser closes.
+        max-age: ${SESSION_TIMEOUT:2h}
 
 springdoc:
   swagger-ui:
