@@ -29,6 +29,7 @@ async function refresh() {
   } catch (e) {
     document.getElementById('content').innerHTML =
         '<p class="muted">Could not load this player — check the link or try again.</p>';
+    lastHtml = null;   // force a fresh render once the player loads again
   }
 }
 
@@ -61,6 +62,9 @@ function statTile(label, value) {
   return `<div class="btile"><b>${value ?? '—'}</b><span>${label}</span></div>`;
 }
 
+let lastHtml = null;   // skip the 3s redraw when nothing changed, so the poster
+                       // image isn't torn down and refetched on every poll.
+
 function render(p, current, teams, bids) {
   const teamName = id => teams.find(t => t.teamId === id)?.name || '?';
   const st = p.stats || {};
@@ -70,7 +74,7 @@ function render(p, current, teams, bids) {
       || st.economyRate != null || st.bestBowling != null;
 
   document.title = `${p.name} — Player Profile`;
-  document.getElementById('content').innerHTML = `
+  const html = `
     <section class="card profile-hero">
       ${p.hasPhoto ? `<img class="profile-poster" src="/api/players/${p.playerId}/photo" alt=""
          onerror="this.style.display='none';this.nextElementSibling.style.display='';">` : ''}
@@ -136,6 +140,14 @@ function render(p, current, teams, bids) {
         </table>`
       : '<p class="muted" style="margin-top:12px">No bids recorded yet.</p>'}
     </section>`;
+
+  // Only touch the DOM when the rendered content actually changed — otherwise the
+  // 3s live-poll rebuilds the section every tick and the poster <img> is recreated
+  // and refetched, which reads as the page "reloading" every few seconds.
+  if (html !== lastHtml) {
+    document.getElementById('content').innerHTML = html;
+    lastHtml = html;
+  }
 }
 
 if (!playerId) {
