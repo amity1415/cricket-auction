@@ -77,11 +77,12 @@ public class KcplSeeder implements CommandLineRunner {
             // scoped to it and validated against its rule book.
             TournamentContext.set(t.getId());
             try {
+                // Real KCPL 2 franchises — names match the Icon/Owner gradings in
+                // the CricHeroes players sheet, so the import can pre-assign each
+                // pick to its team by name.
                 for (String team : List.of(
-                        "Kolkata Titans", "Howrah Hurricanes", "Salt Lake Strikers",
-                        "Park Street Panthers", "New Town Nawabs", "Ballygunge Blasters",
-                        "Behala Bengals", "Dumdum Dynamos", "Garia Gladiators",
-                        "Sealdah Sultans")) {
+                        "Challengers", "Fighters", "Honey B", "Indians", "Knights",
+                        "Lions", "Predators", "Thunders", "Titans", "Warriors")) {
                     core.registerTeam(team, team + " Owner", 15_000_000L, 20, Map.of());
                 }
             } finally {
