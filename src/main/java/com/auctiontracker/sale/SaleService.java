@@ -165,23 +165,25 @@ public class SaleService {
         }
     }
 
+    /** Retain at the rule-book's computed fee (see {@link #retainPlayer(UUID, UUID, Long)}). */
+    public SaleResult retainPlayer(UUID teamId, UUID playerId) {
+        return retainPlayer(teamId, playerId, null);
+    }
+
     /**
-     * Pre-auction retention (rules in {@code auction.retention}): the player
-     * joins the team's squad for a flat group-based fee (RULE 2 — cost-group-a
-     * for A, cost-other-groups for B–E), deducted from the purse. Caps:
+     * Pre-auction retention (rules in {@code auction.retention}): the player joins
+     * the team's squad, deducted from the purse. The fee is {@code priceOverride}
+     * when the caller supplies one (the editable price on the retention screen),
+     * otherwise the rule-book's computed cost (RULE 2 — a flat per-group fee, or a
+     * multiple of the player's base price when a multiplier is configured). Caps:
      * max-per-team total, split between group A and the lower groups.
      */
     @Transactional
-    public SaleResult retainPlayer(UUID teamId, UUID playerId) {
+    public SaleResult retainPlayer(UUID teamId, UUID playerId, Long priceOverride) {
         synchronized (lock) {
             Player player = requirePlayer(playerId);
-            Team team = teams.findById(teamId).orElseThrow(() ->
-                    AuctionException.notFound("TEAM_NOT_FOUND", "No team with id " + teamId));
-            if (player.getStatus() != PlayerStatus.AVAILABLE) {
-                throw AuctionException.conflict("INVALID_STATE",
-                        "%s is %s — only AVAILABLE players can be retained"
-                                .formatted(player.getName(), player.getStatus()));
-            }
+            Team team = requireTeam(teamId);
+            requireAvailable(player);
 
             AuctionProperties.Retention rules = ruleBook.current().retention();
             List<Player> retained = players.findBySoldToTeamId(teamId).stream()
@@ -203,30 +205,73 @@ public class SaleService {
             }
             if (!topGroup && inSameBucket >= rules.maxFromLowerGroups()) {
                 throw AuctionException.conflict("RETENTION_LIMIT",
-                        "%s has already retained %d player(s) from the lower groups (B–E) — the maximum is %d"
+                        "%s has already retained %d player(s) from the lower groups — the maximum is %d"
                                 .formatted(team.getName(), inSameBucket, rules.maxFromLowerGroups()));
             }
 
-            // RULE 2: retention fee. Either a flat per-group fee (legacy) or, when a
-            // multiplier is configured, a multiple of the player's own base price
-            // (e.g. 3× base) — see AuctionProperties.retentionCost.
-            long price = ruleBook.current().retentionCost(player.getCategory(), player.getBasePrice());
-            // Same purse / squad-size / group-quota guards as buying at auction.
-            feasibility.assertCanAcquire(team, player, price);
+            long price = retentionPrice(player, priceOverride);
+            return applyRetention(team, player, price);
+        }
+    }
 
-            player.setStatus(PlayerStatus.RETAINED);
-            player.setSoldToTeamId(team.getTeamId());
-            player.setSoldPrice(price);
-            player.setSoldAt(Instant.now());
-            players.save(player);
+    /**
+     * Import-time pre-assignment of an Icon/Owner pick to the team named in its
+     * grading, at the given price (its base price). This bypasses the manual
+     * retention count caps because the imported sheet is authoritative — it already
+     * fixes exactly which picks each team gets — but keeps the same purse / squad
+     * guards as any acquisition. Runs inside the import's transaction and lock.
+     */
+    @Transactional
+    public SaleResult assignPreAuction(UUID teamId, UUID playerId, long price) {
+        synchronized (lock) {
+            Player player = requirePlayer(playerId);
+            Team team = requireTeam(teamId);
+            requireAvailable(player);
+            return applyRetention(team, player, price);
+        }
+    }
 
-            team.setRemainingPurse(team.getRemainingPurse() - price);
-            team.getSquadPlayerIds().add(player.getPlayerId());
-            teams.save(team);
+    /** The fee for a retention: the caller's override when given (>= 0), else the rule-book cost. */
+    private long retentionPrice(Player player, Long priceOverride) {
+        if (priceOverride != null) {
+            if (priceOverride < 0) {
+                throw AuctionException.badRequest("INVALID_PRICE", "Retention price cannot be negative");
+            }
+            return priceOverride;
+        }
+        return ruleBook.current().retentionCost(player.getCategory(), player.getBasePrice());
+    }
 
-            sales.save(Sale.retained(player.getPlayerId(), player.getName(),
-                    team.getTeamId(), team.getName(), price, RECORDED_BY));
-            return new SaleResult(player, team);
+    /** Shared retention commit: purse deducted, squad slot filled, sale audit written. */
+    private SaleResult applyRetention(Team team, Player player, long price) {
+        // Same purse / squad-size / group-quota guards as buying at auction.
+        feasibility.assertCanAcquire(team, player, price);
+
+        player.setStatus(PlayerStatus.RETAINED);
+        player.setSoldToTeamId(team.getTeamId());
+        player.setSoldPrice(price);
+        player.setSoldAt(Instant.now());
+        players.save(player);
+
+        team.setRemainingPurse(team.getRemainingPurse() - price);
+        team.getSquadPlayerIds().add(player.getPlayerId());
+        teams.save(team);
+
+        sales.save(Sale.retained(player.getPlayerId(), player.getName(),
+                team.getTeamId(), team.getName(), price, RECORDED_BY));
+        return new SaleResult(player, team);
+    }
+
+    private Team requireTeam(UUID teamId) {
+        return teams.findById(teamId).orElseThrow(() ->
+                AuctionException.notFound("TEAM_NOT_FOUND", "No team with id " + teamId));
+    }
+
+    private void requireAvailable(Player player) {
+        if (player.getStatus() != PlayerStatus.AVAILABLE) {
+            throw AuctionException.conflict("INVALID_STATE",
+                    "%s is %s — only AVAILABLE players can be retained"
+                            .formatted(player.getName(), player.getStatus()));
         }
     }
 

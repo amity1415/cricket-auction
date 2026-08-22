@@ -79,6 +79,29 @@ class RetentionTest {
     }
 
     @Test
+    void retainWithPriceOverrideUsesTheGivenPrice() {
+        Team team = saveTeam();
+        Player p = savePlayer("Star", A, 20_000_000L);
+
+        // Editable retention price from the setup screen — overrides the flat fee.
+        var result = sale.retainPlayer(team.getTeamId(), p.getPlayerId(), 1_500_000L);
+
+        assertEquals(PlayerStatus.RETAINED, p.getStatus());
+        assertEquals(1_500_000L, p.getSoldPrice());              // the override, not ₹12L
+        assertEquals(148_500_000L, team.getRemainingPurse());
+        assertEquals(team.getTeamId(), result.team().getTeamId());
+    }
+
+    @Test
+    void retainWithNegativePriceRejected() {
+        Team team = saveTeam();
+        Player p = savePlayer("Star", A, 20_000_000L);
+        var ex = assertThrows(AuctionException.class, () ->
+                sale.retainPlayer(team.getTeamId(), p.getPlayerId(), -1L));
+        assertEquals("INVALID_PRICE", ex.getCode());
+    }
+
+    @Test
     void twoFromGroupAAllowedThirdRejected() {
         Team team = saveTeam();
         sale.retainPlayer(team.getTeamId(), savePlayer("A1", A, 20_000_000L).getPlayerId());

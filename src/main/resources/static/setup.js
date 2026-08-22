@@ -286,6 +286,29 @@ document.getElementById('form-import').onsubmit = async e => {
 
 const retTeamSel = document.getElementById('ret-team');
 const retPlayerSel = document.getElementById('ret-player');
+const retPriceEl = document.getElementById('ret-price');
+
+/**
+ * The price to prefill for retaining a player — mirrors the server's retention
+ * cost so the field shows what would be charged, but stays editable. Icon/Owner
+ * picks are priced at their base price (their assignment fee); with a base-price
+ * multiplier configured it's base × multiplier; otherwise the flat per-group fee.
+ */
+function retentionPriceFor(p) {
+  if (!p) return '';
+  const cfg = auctionConfig || {};
+  if (p.category === 'ICON' || p.category === 'OWNER') return p.basePrice;
+  const mult = cfg.retentionBasePriceMultiplier;
+  if (mult != null) return Math.round(p.basePrice * mult);
+  const r = cfg.retention || {};
+  return p.category === 'A' ? (r.costGroupA ?? p.basePrice) : (r.costOtherGroups ?? p.basePrice);
+}
+
+/** Prefill the editable price box from the currently selected player. */
+function prefillRetPrice() {
+  const p = lastPlayers.find(x => x.playerId === retPlayerSel.value);
+  if (retPriceEl) retPriceEl.value = p ? retentionPriceFor(p) : '';
+}
 
 // Only touch an element when its content actually changed. Re-assigning a
 // <select>'s innerHTML on every 3s poll was closing the dropdown mid-selection
@@ -321,7 +344,10 @@ async function refreshRetention(teams, players) {
     setRetHtml(retPlayerSel, placeholder + available.map(p =>
         `<option value="${p.playerId}">${esc(p.name)} — Group ${p.category} (${fmtShort(p.basePrice)})</option>`).join(''));
     // Narrowed to exactly one match → pre-select it for a one-click retain.
-    if (retSearch && available.length === 1) retPlayerSel.value = available[0].playerId;
+    if (retSearch && available.length === 1) {
+      retPlayerSel.value = available[0].playerId;
+      prefillRetPrice();
+    }
 
     const slotsEl = document.getElementById('ret-slots');
     const listEl = document.getElementById('ret-list');
@@ -330,10 +356,18 @@ async function refreshRetention(teams, players) {
     const detail = await getJSON(`/api/dashboard/teams/${retTeamSel.value}`);
     const retained = detail.squad.filter(p => p.retained);
     const rules = auctionConfig?.retention || { maxPerTeam: 3, maxFromGroupA: 2, maxFromLowerGroups: 1 };
-    const fromA = retained.filter(p => p.category === 'A').length;
-    setRetHtml(slotsEl, `Group A <b>${fromA}/${rules.maxFromGroupA}</b> ·
-        Lower groups <b>${retained.length - fromA}/${rules.maxFromLowerGroups}</b> ·
-        Total <b>${retained.length}/${rules.maxPerTeam}</b>`);
+    const count = c => retained.filter(p => p.category === c).length;
+    const icons = count('ICON'), owners = count('OWNER'), fromA = count('A');
+    // Icon/Owner picks (pre-assigned on import) get their own tally; A and the
+    // remaining lower groups keep the manual-retention quota display.
+    const parts = [];
+    if (icons) parts.push(`Icon <b>${icons}</b>`);
+    if (owners) parts.push(`Owner <b>${owners}</b>`);
+    parts.push(`Group A <b>${fromA}/${rules.maxFromGroupA}</b>`);
+    const lower = retained.length - icons - owners - fromA;
+    if (lower || (!icons && !owners)) parts.push(`Lower groups <b>${lower}/${rules.maxFromLowerGroups}</b>`);
+    parts.push(`Total <b>${retained.length}/${rules.maxPerTeam}</b>`);
+    setRetHtml(slotsEl, parts.join(' · '));
     setRetHtml(listEl, retained.length
         ? retained.map(p => `
           <div class="row">
@@ -346,6 +380,7 @@ async function refreshRetention(teams, players) {
 }
 
 retTeamSel.onchange = () => refreshRetention(lastTeams, lastPlayers);
+retPlayerSel.onchange = prefillRetPrice;
 
 // Search box that filters the "player to retain" dropdown by name.
 let retSearch = '';
@@ -362,10 +397,13 @@ document.getElementById('ret-btn').onclick = async () => {
     toast('Pick a team and a player first', true);
     return;
   }
-  const r = await send('POST', `/api/admin/teams/${retTeamSel.value}/retain/${retPlayerSel.value}`);
+  const priceStr = retPriceEl ? retPriceEl.value.trim() : '';
+  const body = priceStr !== '' ? { price: Number(priceStr) } : undefined;
+  const r = await send('POST', `/api/admin/teams/${retTeamSel.value}/retain/${retPlayerSel.value}`, body);
   if (r) {
     toast(`📌 Retained ${r.player.name} for ${fmtShort(r.player.soldPrice)}`);
     retPlayerSel.value = '';
+    if (retPriceEl) retPriceEl.value = '';
     retSearch = '';
     if (retSearchEl) retSearchEl.value = '';   // reset the filter for the next pick
     refresh();

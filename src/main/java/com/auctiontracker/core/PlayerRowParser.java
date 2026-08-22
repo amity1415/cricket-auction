@@ -73,8 +73,9 @@ public class PlayerRowParser {
             Map.entry("imageurl", "image"), Map.entry("photo", "image"),
             Map.entry("photourl", "image"), Map.entry("photolocation", "image"));
 
-    /** Base price for a pre-auction ICON/Owner pick when the sheet gives none. */
+    /** Base prices for pre-auction picks when the sheet gives none. */
     private static final long ICON_DEFAULT_BASE_PRICE = 1_200_000L; // ₹12L Icon fee
+    private static final long OWNER_DEFAULT_BASE_PRICE = 600_000L;   // ₹6L Owner fee
 
     /** Folder id inside a Google Drive folder link (…/folders/ID or ?id=ID). */
     private static final Pattern DRIVE_FOLDER_ID =
@@ -150,12 +151,14 @@ public class PlayerRowParser {
     private Player parseByHeader(String[] parts, Map<String, Integer> cols) {
         String name = required(parts, cols, "name");
         PlayerRole role = parseRole(required(parts, cols, "role"));
-        PlayerCategory category = parseCategory(required(parts, cols, "category"));
+        String rawGrading = required(parts, cols, "category");
+        PlayerCategory category = parseCategory(rawGrading);
         String bp = value(parts, cols, "baseprice");
         long basePrice = bp != null ? Long.parseLong(bp) : defaultBasePriceFor(category);
         if (basePrice <= 0) throw new IllegalArgumentException("base price must be positive");
 
         Player player = Player.register(name, role, category, basePrice);
+        player.setPreAssignedTeamName(preAuctionTeamName(rawGrading));
         PlayerStats stats = new PlayerStats(
                 intValue(parts, cols, "matches"),
                 intValue(parts, cols, "battinginnings"), intValue(parts, cols, "runs"),
@@ -231,26 +234,43 @@ public class PlayerRowParser {
     }
 
     /**
-     * Grade/group tolerant of the KCPL sheet's values: A–E map to their tiers,
-     * and any "Icon - <Team>" / "Owner - <Team>" pre-auction grading collapses to
-     * the single {@link PlayerCategory#ICON} pool.
+     * Grade/group tolerant of the KCPL sheet's values: A–E map to their tiers, an
+     * "Icon - <Team>" grading maps to {@link PlayerCategory#ICON} and an
+     * "Owner - <Team>" grading to {@link PlayerCategory#OWNER}.
      */
     private static PlayerCategory parseCategory(String raw) {
         String s = raw.trim();
         String lower = s.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("icon") || lower.startsWith("owner")) return PlayerCategory.ICON;
+        if (lower.startsWith("icon")) return PlayerCategory.ICON;
+        if (lower.startsWith("owner")) return PlayerCategory.OWNER;
         return PlayerCategory.valueOf(s.toUpperCase(Locale.ROOT));
     }
 
     /**
-     * Base price when the sheet gives none: the group's configured base, or a
-     * nominal Icon fee for the pre-auction ICON pool (which has no auction base
-     * price — the real retention fee is set when the player is retained).
+     * The team name embedded in a pre-auction grading — "Icon - Titans" →
+     * "Titans", "Owner - Honey B" → "Honey B" — used to pre-assign the pick to its
+     * team after import. Null for A–E gradings or when no team follows the dash.
+     */
+    private static String preAuctionTeamName(String rawGrading) {
+        if (rawGrading == null) return null;
+        String s = rawGrading.trim();
+        String lower = s.toLowerCase(Locale.ROOT);
+        if (!(lower.startsWith("icon") || lower.startsWith("owner"))) return null;
+        int dash = s.indexOf('-');
+        if (dash < 0) return null;
+        String team = s.substring(dash + 1).trim();
+        return team.isEmpty() ? null : team;
+    }
+
+    /**
+     * Base price when the sheet gives none: the group's configured base, or the
+     * nominal Icon (₹12L) / Owner (₹6L) fee for the pre-auction pools (which have
+     * no configured auction base price — that fee is also their assignment price).
      */
     private long defaultBasePriceFor(PlayerCategory category) {
-        if (category == PlayerCategory.ICON
-                && !ruleBook.current().configuredGroups().contains(PlayerCategory.ICON)) {
-            return ICON_DEFAULT_BASE_PRICE;
+        if (!ruleBook.current().configuredGroups().contains(category)) {
+            if (category == PlayerCategory.ICON) return ICON_DEFAULT_BASE_PRICE;
+            if (category == PlayerCategory.OWNER) return OWNER_DEFAULT_BASE_PRICE;
         }
         return ruleBook.current().basePriceFor(category);
     }

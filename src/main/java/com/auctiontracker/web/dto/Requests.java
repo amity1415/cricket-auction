@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.util.Map;
 import java.util.UUID;
@@ -43,4 +44,11 @@ public final class Requests {
      * afford, off the increment ladder if need be.
      */
     public record PlaceBidRequest(@NotNull UUID teamId, Long amount) {}
+
+    /**
+     * Optional body for a pre-auction retention. {@code price} is the editable
+     * retention fee from the setup screen — null falls back to the rule-book's
+     * computed cost; must be >= 0 when given.
+     */
+    public record RetainRequest(@PositiveOrZero Long price) {}
 }

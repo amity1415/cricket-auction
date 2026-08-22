@@ -6,6 +6,7 @@ import com.auctiontracker.core.AuctionLock;
 import com.auctiontracker.core.CoreService;
 import com.auctiontracker.core.Player;
 import com.auctiontracker.core.PlayerRowParser;
+import com.auctiontracker.core.Team;
 import com.auctiontracker.sale.SaleService;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
@@ -18,8 +19,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Pre-auction setup orchestration: replace-import of the whole player pool
@@ -54,7 +58,32 @@ public class SetupService {
             bidding.clearLiveSession();
             bidding.deleteAllBidEvents();
             sale.deleteAllSales();
-            return core.replaceAllPlayers(parsed);
+            List<Player> saved = core.replaceAllPlayers(parsed);
+            assignPreAuctionPicks(saved);
+            // Re-read so the response reflects the post-assignment state (Icon/Owner
+            // picks now RETAINED), in import order, rather than the parsed objects.
+            return core.listPlayers(null, null, null);
+        }
+    }
+
+    /**
+     * Pre-assign the imported Icon/Owner picks to their team. Each such row carries
+     * the team name parsed from its grading ("Icon - Titans"); we match it to a
+     * team by name (case-insensitive) and retain the player there at its base price
+     * (₹12L Icon / ₹6L Owner). A pick whose team name matches no team is left
+     * AVAILABLE in its group, to be assigned by hand on the retention screen.
+     */
+    private void assignPreAuctionPicks(List<Player> players) {
+        Map<String, UUID> teamByName = new HashMap<>();
+        for (Team t : core.listTeams()) {
+            teamByName.put(t.getName().trim().toLowerCase(Locale.ROOT), t.getTeamId());
+        }
+        for (Player p : players) {
+            String teamName = p.getPreAssignedTeamName();
+            if (teamName == null || teamName.isBlank()) continue;
+            UUID teamId = teamByName.get(teamName.trim().toLowerCase(Locale.ROOT));
+            if (teamId == null) continue;   // no matching team → leave the pick unassigned
+            sale.assignPreAuction(teamId, p.getPlayerId(), p.getBasePrice());
         }
     }
 

@@ -11,6 +11,7 @@ import com.auctiontracker.setup.SetupService;
 import com.auctiontracker.web.dto.Requests.PlaceBidRequest;
 import com.auctiontracker.web.dto.Requests.RegisterPlayerRequest;
 import com.auctiontracker.web.dto.Requests.RegisterTeamRequest;
+import com.auctiontracker.web.dto.Requests.RetainRequest;
 import com.auctiontracker.web.dto.Requests.UpdateTeamRequest;
 import com.auctiontracker.web.dto.Responses.BidView;
 import com.auctiontracker.web.dto.Responses.BulkImportResponse;
@@ -137,8 +138,10 @@ public class AdminController {
 
     /** Retain an AVAILABLE player at base price (rules in auction.retention). */
     @PostMapping("/teams/{teamId}/retain/{playerId}")
-    public ConfirmSaleResponse retainPlayer(@PathVariable UUID teamId, @PathVariable UUID playerId) {
-        SaleService.SaleResult result = sale.retainPlayer(teamId, playerId);
+    public ConfirmSaleResponse retainPlayer(@PathVariable UUID teamId, @PathVariable UUID playerId,
+                                            @Valid @RequestBody(required = false) RetainRequest body) {
+        Long price = body == null ? null : body.price();
+        SaleService.SaleResult result = sale.retainPlayer(teamId, playerId, price);
         return new ConfirmSaleResponse(
                 PlayerView.from(result.player()),
                 List.of(dashboard.snapshot(result.team())),

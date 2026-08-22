@@ -29,7 +29,7 @@
         Accepts <b>.csv</b> or Excel <b>.xlsx</b> (first sheet). Columns, header row optional:<br>
         <code>name, role, category, basePrice, matches, battingInnings, runs, highestScore,
         battingAvg, strikeRate, bowlingInnings, wickets, economy, bestBowling</code><br>
-        role: BATSMAN · BOWLER · ALL_ROUNDER · WICKETKEEPER &nbsp;·&nbsp; category (group): A · B · C · D · E · ICON<br>
+        role: BATSMAN · BOWLER · ALL_ROUNDER · WICKETKEEPER &nbsp;·&nbsp; category (group): A · B · C · D · E · ICON · OWNER<br>
         Also reads the KCPL CricHeroes export directly — its two-row <b>Batting / Bowling</b>
         banner, <b>Grading</b> column (<i>Icon/Owner → Icon pool</i>) and spaced role names are handled automatically.<br>
         ⚠️ Importing <b>deletes all existing players</b> and resets auction progress (bids, sales, squads, purses).
@@ -66,7 +66,9 @@
       <h2><span class="step">4</span>Retentions <span class="muted">· optional</span></h2>
       <p class="hint">Each team may retain up to <b>3 players</b> before the auction —
         at most <b>2 from group A</b> and <b>1 from groups B–E</b> — at base price,
-        deducted from the purse. Release refunds it.</p>
+        deducted from the purse. Release refunds it. <b>Icon/Owner</b> picks are
+        assigned to their team automatically on import (₹12L / ₹6L); the price
+        field below is prefilled but editable for any manual retention.</p>
       <div class="retain-row">
         <select id="ret-team"><option value="">Choose a team…</option></select>
       </div>
@@ -76,6 +78,8 @@
              autocomplete="off" style="margin:10px 0 8px;">
       <div class="retain-row">
         <select id="ret-player"><option value="">Choose a player to retain…</option></select>
+        <label class="ret-price-label">₹ <input id="ret-price" type="number" min="0" step="1"
+               placeholder="Retention price" title="Prefilled with the player's price — edit if it differs"></label>
         <button id="ret-btn" class="primary">📌 Retain</button>
       </div>
     </section>
@@ -124,7 +128,7 @@
       <label>Group
         <select name="category">
           <option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option>
-          <option>ICON</option>
+          <option>ICON</option><option>OWNER</option>
         </select>
       </label>
       <label>Base price (blank = group default) <input name="basePrice" type="number" min="1"></label>

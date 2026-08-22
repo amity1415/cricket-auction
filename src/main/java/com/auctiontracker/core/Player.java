@@ -71,6 +71,17 @@ public class Player {
     @jakarta.persistence.Transient
     private String photoFolderId;
 
+    /**
+     * Transient (never persisted) team NAME parsed from a pre-auction grading such
+     * as {@code Icon - Titans} / {@code Owner - Warriors}. It carries the intended
+     * team from the import parser to the setup step that retains the player to that
+     * team by name (see {@code setup.SetupService}); if no team matches, the player
+     * is simply imported AVAILABLE in its ICON/OWNER group. In-memory only — the
+     * durable link is the normal RETAINED sale, not a column here.
+     */
+    @jakarta.persistence.Transient
+    private String preAssignedTeamName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlayerStatus status;
@@ -125,6 +136,11 @@ public class Player {
 
     public String getPhotoFolderId() { return photoFolderId; }
     public void setPhotoFolderId(String photoFolderId) { this.photoFolderId = photoFolderId; }
+
+    public String getPreAssignedTeamName() { return preAssignedTeamName; }
+    public void setPreAssignedTeamName(String preAssignedTeamName) {
+        this.preAssignedTeamName = preAssignedTeamName;
+    }
 
     /** True when this player has a poster image mapped (served at /api/players/{id}/photo). */
     public boolean hasPhoto() { return photoFileId != null && !photoFileId.isBlank(); }

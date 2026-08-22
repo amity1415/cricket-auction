@@ -511,6 +511,8 @@ input[type=file]::file-selector-button {
 /* Retention manager (setup page) */
 .retain-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
 .retain-row select { flex: 1 1 180px; }
+.ret-price-label { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); flex: 0 1 160px; }
+.ret-price-label input { width: 100%; }
 .ret-list .row {
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
   padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;

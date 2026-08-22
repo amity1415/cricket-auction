@@ -45,10 +45,10 @@ const SORTS = {
 
 // Category = the player's group/pool. Both formats' groups, in a sensible order,
 // with short display labels for the chips and group headings.
-const CAT_ORDER = ['ICON', 'A', 'B', 'C', 'D', 'E',
+const CAT_ORDER = ['ICON', 'OWNER', 'A', 'B', 'C', 'D', 'E',
   'MIXED_UTILITY_BAG', 'WICKET_KEEPER', 'BOWLER', 'ALL_ROUNDER', 'MARKEE_PLAYER'];
 const CAT_LABEL = {
-  ICON: 'Icon', A: 'A', B: 'B', C: 'C', D: 'D', E: 'E',
+  ICON: 'Icon', OWNER: 'Owner', A: 'A', B: 'B', C: 'C', D: 'D', E: 'E',
   MIXED_UTILITY_BAG: 'Mixed Utility', WICKET_KEEPER: 'Wicket Keeper',
   BOWLER: 'Bowler', ALL_ROUNDER: 'All Rounder', MARKEE_PLAYER: 'Markee',
 };

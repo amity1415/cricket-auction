@@ -30,9 +30,11 @@ import java.util.Map;
 import static com.auctiontracker.core.PlayerCategory.A;
 import static com.auctiontracker.core.PlayerCategory.B;
 import static com.auctiontracker.core.PlayerCategory.ICON;
+import static com.auctiontracker.core.PlayerCategory.OWNER;
 import static com.auctiontracker.core.PlayerRole.ALL_ROUNDER;
 import static com.auctiontracker.core.PlayerRole.BATSMAN;
 import static com.auctiontracker.core.PlayerRole.WICKETKEEPER;
+import com.auctiontracker.core.PlayerStatus;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -211,6 +213,71 @@ class SetupServiceTest {
             assertEquals(WICKETKEEPER, aakash.getRole());
             assertEquals("155*", aakash.getStats().highestScore()); // not-out marker preserved
             assertEquals("5/13", aakash.getStats().bestBowling());
+        }
+    }
+
+    /**
+     * Icon/Owner picks land in their own ICON/OWNER groups and are pre-assigned to
+     * the team named in the grading — RETAINED at the base price (₹12L Icon / ₹6L
+     * Owner), purse deducted. A pick whose team name matches no team is left
+     * AVAILABLE in its group for manual assignment.
+     */
+    @Test
+    void xlsxImportAssignsIconAndOwnerPicksToTheirTeams() throws Exception {
+        // Teams the gradings reference (matched by name); purse reset to starting on import.
+        // Fixture scale (see other retention tests): purse 150M, squad 8.
+        Team titans = teams.save(TestFixtures.team("Titans", 150_000_000L, 8, Map.of()));
+        Team warriors = teams.save(TestFixtures.team("Warriors", 150_000_000L, 8, Map.of()));
+
+        byte[] xlsx = kcplSheet(new String[][]{
+            {"1", "Icon Guy", "Icon - Titans", "All Rounder"},
+            {"2", "Owner Guy", "Owner - Warriors", "Batsman"},
+            {"3", "Orphan Icon", "Icon - Nomads", "Bowler"},   // no such team
+        });
+        var imported = setup.replaceImport("KCPL2.xlsx", xlsx);
+        assertEquals(3, imported.size());
+
+        Player icon = byName("Icon Guy");
+        assertEquals(ICON, icon.getCategory());
+        assertEquals(PlayerStatus.RETAINED, icon.getStatus());
+        assertEquals(titans.getTeamId(), icon.getSoldToTeamId());
+        assertEquals(1_200_000L, icon.getSoldPrice());            // ₹12L Icon base
+        assertEquals(148_800_000L, titans.getRemainingPurse());   // 150M purse − 12L
+
+        Player owner = byName("Owner Guy");
+        assertEquals(OWNER, owner.getCategory());
+        assertEquals(PlayerStatus.RETAINED, owner.getStatus());
+        assertEquals(warriors.getTeamId(), owner.getSoldToTeamId());
+        assertEquals(600_000L, owner.getSoldPrice());             // ₹6L Owner base
+        assertEquals(149_400_000L, warriors.getRemainingPurse()); // 150M purse − 6L
+
+        Player orphan = byName("Orphan Icon");                  // team not found → unassigned
+        assertEquals(ICON, orphan.getCategory());
+        assertEquals(PlayerStatus.AVAILABLE, orphan.getStatus());
+        assertNull(orphan.getSoldToTeamId());
+    }
+
+    private Player byName(String name) {
+        return players.findAll().stream().filter(p -> p.getName().equals(name)).findFirst().orElseThrow();
+    }
+
+    /** Build a minimal KCPL-shaped .xlsx: banner + column header, then the given rows. */
+    private static byte[] kcplSheet(String[][] rows) throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Sheet sheet = wb.createSheet("KCPL 2 Players + Stats");
+            Row banner = sheet.createRow(0);
+            banner.createCell(0).setCellValue("PLAYER DETAILS");
+            banner.createCell(4).setCellValue("BATTING STATS (CricHeroes career)");
+            Row header = sheet.createRow(1);
+            String[] cols = {"Player's No.", "Name", "Grading", "Player's Role", "Runs"};
+            for (int i = 0; i < cols.length; i++) header.createCell(i).setCellValue(cols[i]);
+            for (int r = 0; r < rows.length; r++) {
+                Row row = sheet.createRow(r + 2);
+                for (int c = 0; c < rows[r].length; c++) row.createCell(c).setCellValue(rows[r][c]);
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            wb.write(out);
+            return out.toByteArray();
         }
     }
 }

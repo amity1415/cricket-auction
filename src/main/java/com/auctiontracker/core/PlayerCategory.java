@@ -30,12 +30,15 @@ public enum PlayerCategory {
     MARKEE_PLAYER,
 
     /**
-     * Pre-auction pick pool — the KCPL "Icon" and "Owner" players who are graded
-     * outside the A–D auction tiers and pre-assigned to teams via retention rather
-     * than bid on. Not part of any carry-forward sequence and, like the role-based
-     * groups, it does not use ordinal demotion ({@link #nextLower()} returns null).
+     * Pre-auction pick pools — the KCPL "Icon" and "Owner" players who are graded
+     * outside the A–D auction tiers and pre-assigned to their team (RETAINED at the
+     * category base price) rather than bid on. Neither is part of a carry-forward
+     * sequence and, like the role-based groups, neither uses ordinal demotion
+     * ({@link #nextLower()} returns null). Icon and Owner are kept as distinct
+     * groups because they carry different base prices (₹12L vs ₹6L).
      */
-    ICON;
+    ICON,
+    OWNER;
 
     /**
      * The next lower A–E tier for the legacy linear demotion, or null. Only the
