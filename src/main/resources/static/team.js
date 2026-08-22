@@ -168,8 +168,11 @@ async function refresh() {
 function profileStats(st) {
   if (!st) return '';
   const items = [
-    ['Matches', st.matches], ['Runs', st.runs], ['Avg', st.battingAverage],
-    ['SR', st.strikeRate], ['Wickets', st.wickets], ['Econ', st.economyRate],
+    ['Matches', st.matches],
+    ['Bat Inns', st.battingInnings], ['Runs', st.runs], ['HS', st.highestScore],
+    ['Avg', st.battingAverage], ['SR', st.strikeRate],
+    ['Bowl Inns', st.bowlingInnings], ['Wickets', st.wickets],
+    ['Econ', st.economyRate], ['BB', st.bestBowling],
   ].filter(([, v]) => v != null);
   if (!items.length) return '';
   return `<div class="pstats">${items.map(([label, v]) =>

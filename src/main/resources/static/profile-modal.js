@@ -71,8 +71,10 @@
       ]);
       const teamName = id => dash.teams.find(t => t.teamId === id)?.name || '(removed team)';
       const st = p.stats || {};
-      const hasBatting = st.runs != null || st.battingAverage != null || st.strikeRate != null;
-      const hasBowling = st.wickets != null || st.economyRate != null;
+      const hasBatting = st.battingInnings != null || st.runs != null || st.battingAverage != null
+          || st.strikeRate != null || st.highestScore != null;
+      const hasBowling = st.bowlingInnings != null || st.wickets != null
+          || st.economyRate != null || st.bestBowling != null;
 
       document.getElementById('ppm-title').textContent = p.name;
       document.getElementById('ppm-full').href = `player.html?playerId=${p.playerId}`;
@@ -92,12 +94,20 @@
         </div>
 
         ${hasBatting || hasBowling || st.matches != null ? `
-          <div class="pm-label">Career</div>
-          <div class="btile-grid">
-            ${tile('Matches', st.matches)}
-            ${hasBatting ? tile('Runs', st.runs) + tile('Batting Avg', st.battingAverage) + tile('Strike Rate', st.strikeRate) : ''}
-            ${hasBowling ? tile('Wickets', st.wickets) + tile('Economy', st.economyRate) : ''}
-          </div>` : '<p class="muted">No career stats on record.</p>'}
+          <div class="pm-label">Career${st.matches != null ? ` · ${st.matches} matches` : ''}</div>
+          ${hasBatting ? `
+            <div class="pm-sub">Batting</div>
+            <div class="btile-grid">
+              ${tile('Innings', st.battingInnings)}${tile('Runs', st.runs)}${tile('Highest', st.highestScore)}
+              ${tile('Average', st.battingAverage)}${tile('Strike Rate', st.strikeRate)}
+            </div>` : ''}
+          ${hasBowling ? `
+            <div class="pm-sub">Bowling</div>
+            <div class="btile-grid">
+              ${tile('Innings', st.bowlingInnings)}${tile('Wickets', st.wickets)}
+              ${tile('Economy', st.economyRate)}${tile('Best Bowling', st.bestBowling)}
+            </div>` : ''}`
+        : '<p class="muted">No career stats on record.</p>'}
 
         <div class="pm-label">Auction</div>
         <div class="btile-grid">

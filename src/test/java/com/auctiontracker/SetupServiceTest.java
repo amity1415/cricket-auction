@@ -27,8 +27,12 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import static com.auctiontracker.core.PlayerCategory.A;
 import static com.auctiontracker.core.PlayerCategory.B;
+import static com.auctiontracker.core.PlayerCategory.ICON;
+import static com.auctiontracker.core.PlayerRole.ALL_ROUNDER;
 import static com.auctiontracker.core.PlayerRole.BATSMAN;
+import static com.auctiontracker.core.PlayerRole.WICKETKEEPER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -139,6 +143,74 @@ class SetupServiceTest {
             assertEquals(27.7, p.getStats().battingAverage());
             assertEquals(66, p.getStats().wickets());
             assertEquals(8.3, p.getStats().economyRate());
+        }
+    }
+
+    /**
+     * The KCPL CricHeroes export: a two-row header (a BATTING/BOWLING banner over
+     * a column row that repeats Innings/Runs/Avg/SR), a Grading column with
+     * Icon/Owner pre-auction picks, and roles spelled with spaces. All of it must
+     * import — sections disambiguated, grading collapsed to the ICON pool, and the
+     * free-text Highest score / Best bowling captured verbatim.
+     */
+    @Test
+    void xlsxImportReadsKcplTwoRowHeaderSheet() throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("KCPL 2 Players + Stats");
+
+            // Column layout: 0 No, 1 Name, 2 Grading, 3 Role, 4 Speciality, 5 Link,
+            // 6-12 batting (Matches,Innings,Not out,Runs,Highest Runs,Avg,SR),
+            // 13-17 bowling (Matches,Innings,Wickets,Economy,Best Bowling).
+            Row banner = sheet.createRow(0);
+            banner.createCell(0).setCellValue("PLAYER DETAILS (from KCPL 2 list)");
+            banner.createCell(6).setCellValue("BATTING STATS (CricHeroes career)");
+            banner.createCell(13).setCellValue("BOWLING STATS (CricHeroes career)");
+
+            Row header = sheet.createRow(1);
+            String[] cols = {"Player's No.", "Name", "Grading", "Player's Role",
+                    "Player's Speciality", "CricHeroes Profile Link",
+                    "Matches", "Innings", "Not out", "Runs", "Highest Runs", "Avg", "SR",
+                    "Matches", "Innings", "Wickets", "Economy", "Best Bowling"};
+            for (int i = 0; i < cols.length; i++) header.createCell(i).setCellValue(cols[i]);
+
+            Row icon = sheet.createRow(2);
+            String[] iconRow = {"1", "Dharam Paramanik", "Icon - Titans", "All Rounder",
+                    "Middle Order Batsman", "https://chshare.link/player/x",
+                    "106", "100", "8", "1806", "97", "19.63", "179.52",
+                    "106", "49", "46", "9.46", "3/16"};
+            for (int i = 0; i < iconRow.length; i++) icon.createCell(i).setCellValue(iconRow[i]);
+
+            Row keeper = sheet.createRow(3);
+            String[] keeperRow = {"2", "Aakash Banka", "A", "Wicket Keeper",
+                    "Top Order Batsman", "https://chshare.link/player/y",
+                    "847", "774", "169", "21347", "155*", "35.28", "193.8",
+                    "847", "587", "633", "9.75", "5/13"};
+            for (int i = 0; i < keeperRow.length; i++) keeper.createCell(i).setCellValue(keeperRow[i]);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            var imported = setup.replaceImport("KCPL2.xlsx", out.toByteArray());
+            assertEquals(2, imported.size());
+
+            Player dharam = players.findAll().stream()
+                    .filter(p -> p.getName().equals("Dharam Paramanik")).findFirst().orElseThrow();
+            assertEquals(ICON, dharam.getCategory());
+            assertEquals(ALL_ROUNDER, dharam.getRole());
+            assertEquals(1_200_000L, dharam.getBasePrice()); // Icon default — no base in the sheet
+            assertEquals(100, dharam.getStats().battingInnings());
+            assertEquals(1806, dharam.getStats().runs());
+            assertEquals("97", dharam.getStats().highestScore());
+            assertEquals(49, dharam.getStats().bowlingInnings());
+            assertEquals(46, dharam.getStats().wickets());
+            assertEquals(9.46, dharam.getStats().economyRate());
+            assertEquals("3/16", dharam.getStats().bestBowling());
+
+            Player aakash = players.findAll().stream()
+                    .filter(p -> p.getName().equals("Aakash Banka")).findFirst().orElseThrow();
+            assertEquals(A, aakash.getCategory());
+            assertEquals(WICKETKEEPER, aakash.getRole());
+            assertEquals("155*", aakash.getStats().highestScore()); // not-out marker preserved
+            assertEquals("5/13", aakash.getStats().bestBowling());
         }
     }
 }

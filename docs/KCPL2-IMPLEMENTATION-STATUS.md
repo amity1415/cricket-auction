@@ -19,6 +19,7 @@ Living tracker for the KCPL 2 format work. **Design spec:** [`KCPL2-FORMAT-DESIG
 | M5 | Editor: retention multiplier + KCPL labels | ✅ done |
 | M7 | Tests + regression | ✅ done |
 | M8 | Docs polish | ⬜ not started |
+| M9 | Player-pool import from the KCPL CricHeroes stats sheet + expanded stats | ✅ done |
 
 Legend: ⬜ not started · 🟡 in progress · ✅ done
 
@@ -36,5 +37,14 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done
 - **OD-4** Enforce Σ pool budgets ≤ purse − retentions at save, or warn only?
 
 ## Change log
+- 2026-08-22 — **M9**: `PlayerStats` gained batting innings, highest score (text, keeps the
+  `*` not-out marker), bowling innings, and best bowling (text, e.g. `5/13`). The `.xlsx`
+  importer now reads the KCPL CricHeroes export directly: `SetupService` collapses the two-row
+  `BATTING/BOWLING` banner + column header into one disambiguated header row; `PlayerRowParser`
+  maps `Grading`→category (Icon/Owner → the new `PlayerCategory.ICON` pool, base ₹12 L when the
+  rule book has no ICON base), tolerates spaced role names, and reads the new stat columns. All
+  player views (profile page, modal, list table, auction/broadcast strips) and the setup add/edit
+  form show the new fields; the profile page/image space was already present. Verified: real
+  200-row sheet maps to A=40/B=60/C=45/D=25/ICON=30. 86 tests green.
 - 2026-08-20 — Design spec written.
 - 2026-08-20 — M1, M2, M6, M7, M3–M5 implemented & verified (85 tests green; editor round-trip verified in browser). Remaining: M8 docs polish; OD-1…OD-4 to confirm with organizer.

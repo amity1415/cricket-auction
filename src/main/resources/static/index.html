@@ -27,8 +27,11 @@
       </form>
       <p class="hint">
         Accepts <b>.csv</b> or Excel <b>.xlsx</b> (first sheet). Columns, header row optional:<br>
-        <code>name, role, category, basePrice, matches, runs, battingAvg, strikeRate, wickets, economy</code><br>
-        role: BATSMAN · BOWLER · ALL_ROUNDER · WICKETKEEPER &nbsp;·&nbsp; category (group): A · B · C · D · E<br>
+        <code>name, role, category, basePrice, matches, battingInnings, runs, highestScore,
+        battingAvg, strikeRate, bowlingInnings, wickets, economy, bestBowling</code><br>
+        role: BATSMAN · BOWLER · ALL_ROUNDER · WICKETKEEPER &nbsp;·&nbsp; category (group): A · B · C · D · E · ICON<br>
+        Also reads the KCPL CricHeroes export directly — its two-row <b>Batting / Bowling</b>
+        banner, <b>Grading</b> column (<i>Icon/Owner → Icon pool</i>) and spaced role names are handled automatically.<br>
         ⚠️ Importing <b>deletes all existing players</b> and resets auction progress (bids, sales, squads, purses).
         <a id="sample" href="#" download="players-sample.csv">Download a sample CSV</a>
       </p>
@@ -121,15 +124,20 @@
       <label>Group
         <select name="category">
           <option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option>
+          <option>ICON</option>
         </select>
       </label>
       <label>Base price (blank = group default) <input name="basePrice" type="number" min="1"></label>
       <label>Matches <input name="matches" type="number" min="0"></label>
+      <label>Batting innings <input name="battingInnings" type="number" min="0"></label>
       <label>Runs <input name="runs" type="number" min="0"></label>
+      <label>Highest score <input name="highestScore" type="text" placeholder="e.g. 132 or 155*"></label>
       <label>Batting avg <input name="battingAverage" type="number" step="0.01" min="0"></label>
       <label>Strike rate <input name="strikeRate" type="number" step="0.01" min="0"></label>
+      <label>Bowling innings <input name="bowlingInnings" type="number" min="0"></label>
       <label>Wickets <input name="wickets" type="number" min="0"></label>
       <label>Economy <input name="economyRate" type="number" step="0.01" min="0"></label>
+      <label>Best bowling <input name="bestBowling" type="text" placeholder="e.g. 5/13"></label>
     </div>
     <div class="modal-foot">
       <button type="button" class="ghost" onclick="document.getElementById('player-modal').close()">Cancel</button>

@@ -45,20 +45,36 @@ public class PlayerRowParser {
      */
     private static final Map<String, String> HEADER_ALIASES = Map.ofEntries(
             Map.entry("name", "name"),
-            Map.entry("role", "role"),
+            Map.entry("role", "role"), Map.entry("playersrole", "role"),
             Map.entry("category", "category"), Map.entry("group", "category"),
+            Map.entry("grading", "category"), Map.entry("grade", "category"),
             Map.entry("baseprice", "baseprice"), Map.entry("base", "baseprice"),
-            Map.entry("matches", "matches"),
-            Map.entry("runs", "runs"),
+            Map.entry("matches", "matches"), Map.entry("battingmatches", "matches"),
+            // Batting. In the KCPL CricHeroes sheet the batting/bowling sections
+            // repeat "Innings", "Runs", "Avg" and "SR"; the xlsx reader prefixes
+            // them with the section banner (Batting…/Bowling…) so they don't clash.
+            Map.entry("innings", "battinginnings"), Map.entry("battinginnings", "battinginnings"),
+            Map.entry("runs", "runs"), Map.entry("battingruns", "runs"),
             Map.entry("battingavg", "battingavg"), Map.entry("battingaverage", "battingavg"),
             Map.entry("avg", "battingavg"),
             Map.entry("strikerate", "strikerate"), Map.entry("sr", "strikerate"),
-            Map.entry("wickets", "wickets"),
+            Map.entry("battingsr", "strikerate"),
+            Map.entry("highestscore", "highestscore"), Map.entry("highestruns", "highestscore"),
+            Map.entry("highest", "highestscore"), Map.entry("hs", "highestscore"),
+            Map.entry("battinghighestruns", "highestscore"),
+            // Bowling.
+            Map.entry("bowlinginnings", "bowlinginnings"),
+            Map.entry("wickets", "wickets"), Map.entry("bowlingwickets", "wickets"),
             Map.entry("economy", "economy"), Map.entry("economyrate", "economy"),
-            Map.entry("econ", "economy"),
+            Map.entry("econ", "economy"), Map.entry("bowlingeconomy", "economy"),
+            Map.entry("bestbowling", "bestbowling"), Map.entry("bb", "bestbowling"),
+            Map.entry("bowlingbestbowling", "bestbowling"),
             Map.entry("imagelocation", "image"), Map.entry("image", "image"),
             Map.entry("imageurl", "image"), Map.entry("photo", "image"),
             Map.entry("photourl", "image"), Map.entry("photolocation", "image"));
+
+    /** Base price for a pre-auction ICON/Owner pick when the sheet gives none. */
+    private static final long ICON_DEFAULT_BASE_PRICE = 1_200_000L; // ₹12L Icon fee
 
     /** Folder id inside a Google Drive folder link (…/folders/ID or ?id=ID). */
     private static final Pattern DRIVE_FOLDER_ID =
@@ -133,18 +149,20 @@ public class PlayerRowParser {
 
     private Player parseByHeader(String[] parts, Map<String, Integer> cols) {
         String name = required(parts, cols, "name");
-        PlayerRole role = PlayerRole.valueOf(required(parts, cols, "role").toUpperCase(Locale.ROOT));
-        PlayerCategory category =
-                PlayerCategory.valueOf(required(parts, cols, "category").toUpperCase(Locale.ROOT));
+        PlayerRole role = parseRole(required(parts, cols, "role"));
+        PlayerCategory category = parseCategory(required(parts, cols, "category"));
         String bp = value(parts, cols, "baseprice");
-        long basePrice = bp != null ? Long.parseLong(bp) : ruleBook.current().basePriceFor(category);
+        long basePrice = bp != null ? Long.parseLong(bp) : defaultBasePriceFor(category);
         if (basePrice <= 0) throw new IllegalArgumentException("base price must be positive");
 
         Player player = Player.register(name, role, category, basePrice);
         PlayerStats stats = new PlayerStats(
-                intValue(parts, cols, "matches"), intValue(parts, cols, "runs"),
+                intValue(parts, cols, "matches"),
+                intValue(parts, cols, "battinginnings"), intValue(parts, cols, "runs"),
                 doubleValue(parts, cols, "battingavg"), doubleValue(parts, cols, "strikerate"),
-                intValue(parts, cols, "wickets"), doubleValue(parts, cols, "economy"));
+                value(parts, cols, "highestscore"),
+                intValue(parts, cols, "bowlinginnings"), intValue(parts, cols, "wickets"),
+                doubleValue(parts, cols, "economy"), value(parts, cols, "bestbowling"));
         player.setStats(stats.allNull() ? null : stats);
         player.setPhotoFolderId(toPhotoFolderId(value(parts, cols, "image")));
         return player;
@@ -182,17 +200,59 @@ public class PlayerRowParser {
         }
         String name = parts[0].trim();
         if (name.isEmpty()) throw new IllegalArgumentException("name is blank");
-        PlayerRole role = PlayerRole.valueOf(parts[1].trim().toUpperCase(Locale.ROOT));
-        PlayerCategory category = PlayerCategory.valueOf(parts[2].trim().toUpperCase(Locale.ROOT));
-        long basePrice = hasValue(parts, 3) ? Long.parseLong(parts[3].trim()) : ruleBook.current().basePriceFor(category);
+        PlayerRole role = parseRole(parts[1]);
+        PlayerCategory category = parseCategory(parts[2]);
+        long basePrice = hasValue(parts, 3) ? Long.parseLong(parts[3].trim()) : defaultBasePriceFor(category);
         if (basePrice <= 0) throw new IllegalArgumentException("base price must be positive");
 
         Player player = Player.register(name, role, category, basePrice);
+        // Legacy fixed order carries the original six metrics only; the newer
+        // batting-innings / highest-score / bowling-innings / best-bowling fields
+        // are available through a header row.
         PlayerStats stats = new PlayerStats(
-                intAt(parts, 4), intAt(parts, 5), doubleAt(parts, 6),
-                doubleAt(parts, 7), intAt(parts, 8), doubleAt(parts, 9));
+                intAt(parts, 4), null, intAt(parts, 5), doubleAt(parts, 6),
+                doubleAt(parts, 7), null, null, intAt(parts, 8), doubleAt(parts, 9), null);
         player.setStats(stats.allNull() ? null : stats);
         return player;
+    }
+
+    // --- Value normalisation (shared by both layouts) ----------------------
+
+    /** Role tolerant of spacing/case: "All Rounder", "Wicket Keeper", etc. */
+    private static PlayerRole parseRole(String raw) {
+        String key = raw.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z]", "");
+        return switch (key) {
+            case "BATSMAN", "BATTER" -> PlayerRole.BATSMAN;
+            case "BOWLER" -> PlayerRole.BOWLER;
+            case "ALLROUNDER" -> PlayerRole.ALL_ROUNDER;
+            case "WICKETKEEPER", "WICKETKEEPERBATSMAN", "KEEPER", "WK" -> PlayerRole.WICKETKEEPER;
+            default -> PlayerRole.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        };
+    }
+
+    /**
+     * Grade/group tolerant of the KCPL sheet's values: A–E map to their tiers,
+     * and any "Icon - <Team>" / "Owner - <Team>" pre-auction grading collapses to
+     * the single {@link PlayerCategory#ICON} pool.
+     */
+    private static PlayerCategory parseCategory(String raw) {
+        String s = raw.trim();
+        String lower = s.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("icon") || lower.startsWith("owner")) return PlayerCategory.ICON;
+        return PlayerCategory.valueOf(s.toUpperCase(Locale.ROOT));
+    }
+
+    /**
+     * Base price when the sheet gives none: the group's configured base, or a
+     * nominal Icon fee for the pre-auction ICON pool (which has no auction base
+     * price — the real retention fee is set when the player is retained).
+     */
+    private long defaultBasePriceFor(PlayerCategory category) {
+        if (category == PlayerCategory.ICON
+                && !ruleBook.current().configuredGroups().contains(PlayerCategory.ICON)) {
+            return ICON_DEFAULT_BASE_PRICE;
+        }
+        return ruleBook.current().basePriceFor(category);
     }
 
     private static boolean hasValue(String[] parts, int i) {

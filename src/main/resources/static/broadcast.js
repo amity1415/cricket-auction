@@ -77,8 +77,11 @@ function metaChips(p) {
 function statsStrip(stats) {
   if (!stats) return '';
   const items = [
-    ['Matches', stats.matches], ['Runs', stats.runs], ['Avg', stats.battingAverage],
-    ['SR', stats.strikeRate], ['Wickets', stats.wickets], ['Econ', stats.economyRate],
+    ['Matches', stats.matches],
+    ['Bat Inns', stats.battingInnings], ['Runs', stats.runs], ['HS', stats.highestScore],
+    ['Avg', stats.battingAverage], ['SR', stats.strikeRate],
+    ['Bowl Inns', stats.bowlingInnings], ['Wickets', stats.wickets],
+    ['Econ', stats.economyRate], ['BB', stats.bestBowling],
   ].filter(([, v]) => v != null);
   if (!items.length) return '';
   return `<div class="pstats">${items.map(([l, v]) =>

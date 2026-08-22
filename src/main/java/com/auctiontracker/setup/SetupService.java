@@ -79,10 +79,55 @@ public class SetupService {
                 }
                 if (hasContent) rows.add(new PlayerRowParser.Row(row.getRowNum() + 1, fields));
             }
+            mergeSectionHeader(rows);
             return rows;
         } catch (IOException | RuntimeException e) {
             throw AuctionException.badRequest("INVALID_IMPORT",
                     "Could not read the .xlsx file: " + e.getMessage());
         }
+    }
+
+    /**
+     * Collapse a two-row "section banner + column" header into one header row.
+     * The KCPL CricHeroes export puts a merged {@code BATTING STATS / BOWLING
+     * STATS} banner above a column row that repeats {@code Innings}, {@code Runs},
+     * {@code Avg} and {@code SR} in both sections. Forward-filling the banner and
+     * prefixing each column with its section ({@code Batting Innings}, {@code
+     * Bowling Innings}, …) makes those columns unambiguous for the parser. A file
+     * with an ordinary single header row (no banner) is left untouched.
+     */
+    private static void mergeSectionHeader(List<PlayerRowParser.Row> rows) {
+        if (rows.size() < 2) return;
+        String[] banner = rows.get(0).fields();
+        String[] header = rows.get(1).fields();
+        if (!hasSectionBanner(banner) || !isHeaderRow(header)) return;
+        String[] combined = new String[header.length];
+        String section = "";
+        for (int c = 0; c < header.length; c++) {
+            if (c < banner.length && banner[c] != null && !banner[c].isBlank()) {
+                String b = banner[c].toLowerCase(Locale.ROOT);
+                section = b.contains("batting") ? "Batting " : b.contains("bowling") ? "Bowling " : "";
+            }
+            String h = header[c] == null ? "" : header[c];
+            combined[c] = section.isEmpty() || h.isBlank() ? h : section + h;
+        }
+        rows.set(1, new PlayerRowParser.Row(rows.get(1).number(), combined));
+        rows.remove(0);
+    }
+
+    private static boolean hasSectionBanner(String[] cells) {
+        for (String c : cells) {
+            if (c == null) continue;
+            String s = c.toLowerCase(Locale.ROOT);
+            if (s.contains("batting") || s.contains("bowling")) return true;
+        }
+        return false;
+    }
+
+    private static boolean isHeaderRow(String[] cells) {
+        for (String c : cells) {
+            if (c != null && c.trim().equalsIgnoreCase("name")) return true;
+        }
+        return false;
     }
 }

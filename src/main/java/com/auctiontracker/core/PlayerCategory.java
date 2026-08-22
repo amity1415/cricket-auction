@@ -27,7 +27,15 @@ public enum PlayerCategory {
     WICKET_KEEPER,
     BOWLER,
     ALL_ROUNDER,
-    MARKEE_PLAYER;
+    MARKEE_PLAYER,
+
+    /**
+     * Pre-auction pick pool — the KCPL "Icon" and "Owner" players who are graded
+     * outside the A–D auction tiers and pre-assigned to teams via retention rather
+     * than bid on. Not part of any carry-forward sequence and, like the role-based
+     * groups, it does not use ordinal demotion ({@link #nextLower()} returns null).
+     */
+    ICON;
 
     /**
      * The next lower A–E tier for the legacy linear demotion, or null. Only the

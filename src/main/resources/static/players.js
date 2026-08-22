@@ -35,18 +35,20 @@ const SORTS = {
   soldPrice:      { label: 'Sold price',          get: p => p.soldPrice,            type: 'num' },
   battingAverage: { label: 'Batting average',     get: p => p.stats?.battingAverage, type: 'num' },
   strikeRate:     { label: 'Batting strike rate', get: p => p.stats?.strikeRate,    type: 'num' },
+  battingInnings: { label: 'Batting innings',     get: p => p.stats?.battingInnings, type: 'num' },
   economyRate:    { label: 'Bowling economy',     get: p => p.stats?.economyRate,   type: 'num' },
   wickets:        { label: 'Wickets',             get: p => p.stats?.wickets,       type: 'num' },
+  bowlingInnings: { label: 'Bowling innings',     get: p => p.stats?.bowlingInnings, type: 'num' },
   runs:           { label: 'Runs',                get: p => p.stats?.runs,          type: 'num' },
   matches:        { label: 'Matches',             get: p => p.stats?.matches,       type: 'num' },
 };
 
 // Category = the player's group/pool. Both formats' groups, in a sensible order,
 // with short display labels for the chips and group headings.
-const CAT_ORDER = ['A', 'B', 'C', 'D', 'E',
+const CAT_ORDER = ['ICON', 'A', 'B', 'C', 'D', 'E',
   'MIXED_UTILITY_BAG', 'WICKET_KEEPER', 'BOWLER', 'ALL_ROUNDER', 'MARKEE_PLAYER'];
 const CAT_LABEL = {
-  A: 'A', B: 'B', C: 'C', D: 'D', E: 'E',
+  ICON: 'Icon', A: 'A', B: 'B', C: 'C', D: 'D', E: 'E',
   MIXED_UTILITY_BAG: 'Mixed Utility', WICKET_KEEPER: 'Wicket Keeper',
   BOWLER: 'Bowler', ALL_ROUNDER: 'All Rounder', MARKEE_PLAYER: 'Markee',
 };
@@ -125,11 +127,15 @@ function rowHtml(p, i) {
       <td>${fmtShort(p.basePrice)}</td>
       <td>${p.soldPrice != null ? `${fmtShort(p.soldPrice)} <span class="muted">· ${esc(teamName(p.soldToTeamId))}</span>` : '—'}</td>
       <td class="numc">${num(st.matches)}</td>
+      <td class="numc">${num(st.battingInnings)}</td>
       <td class="numc">${num(st.runs)}</td>
+      <td class="numc">${num(st.highestScore)}</td>
       <td class="numc">${num(st.battingAverage)}</td>
       <td class="numc">${num(st.strikeRate)}</td>
+      <td class="numc">${num(st.bowlingInnings)}</td>
       <td class="numc">${num(st.wickets)}</td>
       <td class="numc">${num(st.economyRate)}</td>
+      <td class="numc">${num(st.bestBowling)}</td>
     </tr>`;
 }
 
@@ -138,12 +144,14 @@ function tableHtml(list) {
     <thead><tr>
       <th>#</th><th>Player</th><th>Role</th><th>Grp</th><th>Status</th>
       <th>Base</th><th>Bought</th>
-      <th class="numc">Mat</th><th class="numc">Runs</th><th class="numc">Bat Avg</th>
-      <th class="numc">Bat SR</th><th class="numc">Wkts</th><th class="numc">Econ</th>
+      <th class="numc">Mat</th>
+      <th class="numc">Bat Inns</th><th class="numc">Runs</th><th class="numc">HS</th>
+      <th class="numc">Bat Avg</th><th class="numc">Bat SR</th>
+      <th class="numc">Bwl Inns</th><th class="numc">Wkts</th><th class="numc">Econ</th><th class="numc">BB</th>
     </tr></thead>`;
   const body = list.length
       ? list.map((p, i) => rowHtml(p, i)).join('')
-      : '<tr><td colspan="13" class="muted">No players match these filters.</td></tr>';
+      : '<tr><td colspan="17" class="muted">No players match these filters.</td></tr>';
   return `<div class="table-scroll"><table class="pool players-table">${head}<tbody>${body}</tbody></table></div>`;
 }
 

@@ -123,7 +123,8 @@ window.openPlayerModal = playerId => {
     playerForm.role.value = p.role;
     playerForm.category.value = p.category;
     playerForm.basePrice.value = p.basePrice;
-    for (const key of ['matches', 'runs', 'battingAverage', 'strikeRate', 'wickets', 'economyRate']) {
+    for (const key of ['matches', 'battingInnings', 'runs', 'battingAverage', 'strikeRate',
+                       'highestScore', 'bowlingInnings', 'wickets', 'economyRate', 'bestBowling']) {
       playerForm[key].value = p.stats?.[key] ?? '';
     }
   }
@@ -137,14 +138,18 @@ playerForm.onsubmit = async e => {
   e.preventDefault();
   const f = playerForm;
   const num = el => f[el].value !== '' ? Number(f[el].value) : null;
+  const str = el => f[el].value.trim() !== '' ? f[el].value.trim() : null;
   const body = {
     name: f.name.value,
     role: f.role.value,
     category: f.category.value,
     basePrice: num('basePrice'),
     stats: {
-      matches: num('matches'), runs: num('runs'), battingAverage: num('battingAverage'),
-      strikeRate: num('strikeRate'), wickets: num('wickets'), economyRate: num('economyRate'),
+      matches: num('matches'),
+      battingInnings: num('battingInnings'), runs: num('runs'), highestScore: str('highestScore'),
+      battingAverage: num('battingAverage'), strikeRate: num('strikeRate'),
+      bowlingInnings: num('bowlingInnings'), wickets: num('wickets'),
+      economyRate: num('economyRate'), bestBowling: str('bestBowling'),
     },
   };
   const r = editingPlayerId
@@ -378,12 +383,12 @@ window.releaseRetention = async playerId => {
 /* --- Sample CSV + boot --- */
 
 const SAMPLE = [
-  'name,role,category,basePrice,matches,runs,battingAvg,strikeRate,wickets,economy',
-  'Rohit Verma,BATSMAN,A,20000000,150,5100,42.5,139.8,,',
-  'James Wood,BOWLER,B,10000000,95,120,8.9,90.5,115,7.6',
-  'Aman Singh,ALL_ROUNDER,C,,70,1100,24.4,128.0,52,8.3',
-  'Ryan Cole,WICKETKEEPER,D,,40,860,26.1,124.5,,',
-  'Sunil Yadav,BOWLER,E,,15,20,6.0,70.0,18,7.9',
+  'name,role,category,basePrice,matches,battingInnings,runs,highestScore,battingAvg,strikeRate,bowlingInnings,wickets,economy,bestBowling',
+  'Rohit Verma,BATSMAN,A,20000000,150,148,5100,132,42.5,139.8,,,,',
+  'James Wood,BOWLER,B,10000000,95,40,120,22,8.9,90.5,90,115,7.6,5/23',
+  'Aman Singh,ALL_ROUNDER,C,,70,66,1100,86*,24.4,128.0,60,52,8.3,4/19',
+  'Ryan Cole,WICKETKEEPER,D,,40,38,860,74,26.1,124.5,,,,',
+  'Sunil Yadav,BOWLER,E,,15,6,20,9,6.0,70.0,14,18,7.9,3/12',
 ].join('\n');
 document.getElementById('sample').href =
     URL.createObjectURL(new Blob([SAMPLE], { type: 'text/csv' }));

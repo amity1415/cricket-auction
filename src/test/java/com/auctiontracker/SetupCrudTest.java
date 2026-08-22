@@ -91,7 +91,7 @@ class SetupCrudTest {
         Player p = players.save(TestFixtures.player("Typo Naem", BATSMAN, B, 5_000_000L));
 
         core.updatePlayer(p.getPlayerId(), "Fixed Name", BOWLER, C, null,
-                new PlayerStats(50, 100, 8.0, 80.0, 60, 7.5));
+                new PlayerStats(50, null, 100, 8.0, 80.0, null, null, 60, 7.5, null));
 
         assertEquals("Fixed Name", p.getName());
         assertEquals(BOWLER, p.getRole());

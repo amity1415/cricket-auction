@@ -64,8 +64,10 @@ function statTile(label, value) {
 function render(p, current, teams, bids) {
   const teamName = id => teams.find(t => t.teamId === id)?.name || '?';
   const st = p.stats || {};
-  const hasBatting = st.matches != null || st.runs != null || st.battingAverage != null || st.strikeRate != null;
-  const hasBowling = st.wickets != null || st.economyRate != null;
+  const hasBatting = st.battingInnings != null || st.runs != null || st.battingAverage != null
+      || st.strikeRate != null || st.highestScore != null;
+  const hasBowling = st.bowlingInnings != null || st.wickets != null
+      || st.economyRate != null || st.bestBowling != null;
 
   document.title = `${p.name} — Player Profile`;
   document.getElementById('content').innerHTML = `
@@ -86,16 +88,26 @@ function render(p, current, teams, bids) {
 
     <section class="card">
       <h2>Career</h2>
-      ${hasBatting || hasBowling ? `
+      ${st.matches != null ? `<div class="btile-grid">${statTile('Matches', st.matches)}</div>` : ''}
+      ${hasBatting ? `
+        <div class="pm-label">Batting</div>
         <div class="btile-grid">
-          ${statTile('Matches', st.matches)}
-          ${hasBatting ? statTile('Runs', st.runs) : ''}
-          ${hasBatting ? statTile('Batting Avg', st.battingAverage) : ''}
-          ${hasBatting ? statTile('Strike Rate', st.strikeRate) : ''}
-          ${hasBowling ? statTile('Wickets', st.wickets) : ''}
-          ${hasBowling ? statTile('Economy', st.economyRate) : ''}
-        </div>`
-      : '<p class="muted">No career stats on record for this player.</p>'}
+          ${statTile('Innings', st.battingInnings)}
+          ${statTile('Runs', st.runs)}
+          ${statTile('Highest', st.highestScore)}
+          ${statTile('Average', st.battingAverage)}
+          ${statTile('Strike Rate', st.strikeRate)}
+        </div>` : ''}
+      ${hasBowling ? `
+        <div class="pm-label">Bowling</div>
+        <div class="btile-grid">
+          ${statTile('Innings', st.bowlingInnings)}
+          ${statTile('Wickets', st.wickets)}
+          ${statTile('Economy', st.economyRate)}
+          ${statTile('Best Bowling', st.bestBowling)}
+        </div>` : ''}
+      ${!hasBatting && !hasBowling && st.matches == null
+          ? '<p class="muted">No career stats on record for this player.</p>' : ''}
     </section>
 
     <section class="card">
