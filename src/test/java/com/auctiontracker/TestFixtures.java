@@ -32,7 +32,7 @@ public final class TestFixtures {
                         new AuctionProperties.IncrementRule(20_000_000L, 2_000_000L)),
                 2_500_000L,
                 categoryRules,
-                new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L),
+                new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L, null),
                 new AuctionProperties.TeamDefaults(150_000_000L, 8),
                 true,
                 false,
@@ -41,6 +41,25 @@ public final class TestFixtures {
                 null,   // groupSequence
                 null,   // budgetCarryForward
                 null);  // preAuctionCountsInPools
+    }
+
+    /** Props whose retention uses KCPL per-category caps: 2 Icons + 1 Owner, nothing else. */
+    public static AuctionProperties propsWithPerGroupRetention() {
+        return new AuctionProperties(
+                2_000_000L,
+                Map.of(PlayerCategory.A, 20_000_000L, PlayerCategory.B, 5_000_000L,
+                        PlayerCategory.C, 2_000_000L, PlayerCategory.D, 1_500_000L,
+                        PlayerCategory.E, 1_000_000L,
+                        PlayerCategory.ICON, 1_200_000L, PlayerCategory.OWNER, 600_000L),
+                List.of(new AuctionProperties.IncrementRule(2_000_000L, 500_000L),
+                        new AuctionProperties.IncrementRule(10_000_000L, 1_000_000L),
+                        new AuctionProperties.IncrementRule(20_000_000L, 2_000_000L)),
+                2_500_000L,
+                Map.of(),
+                new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L,
+                        Map.of(PlayerCategory.ICON, 2, PlayerCategory.OWNER, 1)),
+                new AuctionProperties.TeamDefaults(150_000_000L, 8),
+                true, false, null, null, null, null, null);
     }
 
     /**
@@ -60,7 +79,7 @@ public final class TestFixtures {
                         new AuctionProperties.IncrementRule(2_000_000L, 50_000L)),
                 250_000L,
                 categoryRules,
-                new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L),
+                new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L, null),
                 new AuctionProperties.TeamDefaults(15_000_000L, 20),
                 true,
                 false,

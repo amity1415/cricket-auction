@@ -126,7 +126,7 @@ public class AbplSeeder implements CommandLineRunner {
                         new IncrementRule(500_000L, 10_000L)),  // increment bands
                 20_000L,                                        // defaultIncrement
                 quotas,
-                new Retention(3, 0, 3, 0L, 0L),                 // up to 3 retentions; cost via multiplier
+                new Retention(3, 0, 3, 0L, 0L, null),           // up to 3 retentions; cost via multiplier
                 new TeamDefaults(1_500_000L, 8),                // purse ₹15L, squad 8
                 false,                                          // no ordinal demotion — use transitions
                 false,                                          // seedDemoData

@@ -357,15 +357,20 @@ async function refreshRetention(teams, players) {
     const retained = detail.squad.filter(p => p.retained);
     const rules = auctionConfig?.retention || { maxPerTeam: 3, maxFromGroupA: 2, maxFromLowerGroups: 1 };
     const count = c => retained.filter(p => p.category === c).length;
-    const icons = count('ICON'), owners = count('OWNER'), fromA = count('A');
-    // Icon/Owner picks (pre-assigned on import) get their own tally; A and the
-    // remaining lower groups keep the manual-retention quota display.
     const parts = [];
-    if (icons) parts.push(`Icon <b>${icons}</b>`);
-    if (owners) parts.push(`Owner <b>${owners}</b>`);
-    parts.push(`Group A <b>${fromA}/${rules.maxFromGroupA}</b>`);
-    const lower = retained.length - icons - owners - fromA;
-    if (lower || (!icons && !owners)) parts.push(`Lower groups <b>${lower}/${rules.maxFromLowerGroups}</b>`);
+    const perGroup = rules.maxPerGroup;   // KCPL: {ICON:2, OWNER:1}; null for generic/ABPL
+    if (perGroup && Object.keys(perGroup).length) {
+      // Per-category caps (KCPL): one tally per configured group, e.g. Icon 2/2 · Owner 1/1.
+      const LABEL = { ICON: 'Icon', OWNER: 'Owner' };
+      for (const [cat, cap] of Object.entries(perGroup)) {
+        parts.push(`${LABEL[cat] || cat} <b>${count(cat)}/${cap}</b>`);
+      }
+    } else {
+      // Legacy top-group (A) vs lower-group split.
+      const fromA = count('A');
+      parts.push(`Group A <b>${fromA}/${rules.maxFromGroupA}</b>`);
+      parts.push(`Lower groups <b>${retained.length - fromA}/${rules.maxFromLowerGroups}</b>`);
+    }
     parts.push(`Total <b>${retained.length}/${rules.maxPerTeam}</b>`);
     setRetHtml(slotsEl, parts.join(' · '));
     setRetHtml(listEl, retained.length

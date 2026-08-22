@@ -25,6 +25,8 @@ import java.util.Map;
 import static com.auctiontracker.core.PlayerCategory.A;
 import static com.auctiontracker.core.PlayerCategory.C;
 import static com.auctiontracker.core.PlayerCategory.E;
+import static com.auctiontracker.core.PlayerCategory.ICON;
+import static com.auctiontracker.core.PlayerCategory.OWNER;
 import static com.auctiontracker.core.PlayerRole.BATSMAN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -59,6 +61,62 @@ class RetentionTest {
 
     private Player savePlayer(String name, PlayerCategory category, long basePrice) {
         return players.save(TestFixtures.player(name, BATSMAN, category, basePrice));
+    }
+
+    /** A SaleService whose rule book uses KCPL per-category caps (2 Icons + 1 Owner). */
+    private SaleService saleWithPerGroupCaps() {
+        var props = TestFixtures.propsWithPerGroupRetention();
+        var feasibility = new FeasibilityService(players, RuleBook.fixed(props));
+        return new SaleService(players, teams, sales, feasibility, new AuctionLock(),
+                RuleBook.fixed(props), bidding);
+    }
+
+    @Test
+    void kcplPerGroupCapsAllowTwoIconsAndOneOwner() {
+        var s = saleWithPerGroupCaps();
+        Team team = saveTeam();
+        s.retainPlayer(team.getTeamId(), savePlayer("Icon1", ICON, 1_200_000L).getPlayerId());
+        s.retainPlayer(team.getTeamId(), savePlayer("Icon2", ICON, 1_200_000L).getPlayerId());
+        s.retainPlayer(team.getTeamId(), savePlayer("Owner1", OWNER, 600_000L).getPlayerId());
+
+        long retained = players.findBySoldToTeamId(team.getTeamId()).stream()
+                .filter(p -> p.getStatus() == PlayerStatus.RETAINED).count();
+        assertEquals(3, retained);   // exactly 2 Icons + 1 Owner accepted
+    }
+
+    @Test
+    void kcplCapRejectsAThirdIcon() {
+        var s = saleWithPerGroupCaps();
+        Team team = saveTeam();
+        s.retainPlayer(team.getTeamId(), savePlayer("Icon1", ICON, 1_200_000L).getPlayerId());
+        s.retainPlayer(team.getTeamId(), savePlayer("Icon2", ICON, 1_200_000L).getPlayerId());
+
+        var ex = assertThrows(AuctionException.class, () ->        // total 2 < 3, but Icon cap is 2
+                s.retainPlayer(team.getTeamId(), savePlayer("Icon3", ICON, 1_200_000L).getPlayerId()));
+        assertEquals("RETENTION_LIMIT", ex.getCode());
+        assertTrue(ex.getMessage().contains("ICON"));
+    }
+
+    @Test
+    void kcplCapRejectsASecondOwner() {
+        var s = saleWithPerGroupCaps();
+        Team team = saveTeam();
+        s.retainPlayer(team.getTeamId(), savePlayer("Owner1", OWNER, 600_000L).getPlayerId());
+
+        var ex = assertThrows(AuctionException.class, () ->
+                s.retainPlayer(team.getTeamId(), savePlayer("Owner2", OWNER, 600_000L).getPlayerId()));
+        assertEquals("RETENTION_LIMIT", ex.getCode());
+        assertTrue(ex.getMessage().contains("OWNER"));
+    }
+
+    @Test
+    void kcplCapRejectsANonPickCategory() {
+        var s = saleWithPerGroupCaps();
+        Team team = saveTeam();
+        // A/B/C/D aren't pre-auction picks under KCPL per-group caps (cap 0).
+        var ex = assertThrows(AuctionException.class, () ->
+                s.retainPlayer(team.getTeamId(), savePlayer("RegularA", A, 20_000_000L).getPlayerId()));
+        assertEquals("RETENTION_LIMIT", ex.getCode());
     }
 
     @Test

@@ -132,7 +132,10 @@ public class KcplSeeder implements CommandLineRunner {
                         new IncrementRule(300_000L, 20_000L)),  // ₹1L–3L    → +₹20K
                 25_000L,                                        // ₹3L onwards → +₹25K
                 quotas,
-                new Retention(3, 2, 1, 1_200_000L, 600_000L),   // 2 Icon @ ₹12L + 1 Owner @ ₹6L = ₹30L
+                // 2 Icon @ ₹12L + 1 Owner @ ₹6L = ₹30L. Per-group caps enforce the
+                // KCPL split (2 Icons, 1 Owner) rather than the generic A/lower one.
+                new Retention(3, 2, 1, 1_200_000L, 600_000L,
+                        Map.of(PlayerCategory.ICON, 2, PlayerCategory.OWNER, 1)),
                 new TeamDefaults(15_000_000L, 20),              // purse ₹1.5Cr, squad 20
                 false,                                          // no ordinal demotion — use transitions
                 false,                                          // seedDemoData

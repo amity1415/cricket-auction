@@ -73,7 +73,7 @@ class KcplFormatTest {
                         new IncrementRule(100_000L, 10_000L),
                         new IncrementRule(300_000L, 20_000L)),
                 25_000L, quotas,
-                new Retention(3, 2, 1, 1_200_000L, 600_000L),
+                new Retention(3, 2, 1, 1_200_000L, 600_000L, null),
                 new TeamDefaults(15_000_000L, 20),
                 false, false, transitions, null,
                 List.of(A, B, C, D), carryForward, preAuctionCountsInPools);

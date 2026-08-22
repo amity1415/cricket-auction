@@ -194,20 +194,7 @@ public class SaleService {
                         "%s has already retained %d player(s) — the maximum is %d"
                                 .formatted(team.getName(), retained.size(), rules.maxPerTeam()));
             }
-            boolean topGroup = player.getCategory() == PlayerCategory.A;
-            long inSameBucket = retained.stream()
-                    .filter(p -> (p.getCategory() == PlayerCategory.A) == topGroup)
-                    .count();
-            if (topGroup && inSameBucket >= rules.maxFromGroupA()) {
-                throw AuctionException.conflict("RETENTION_LIMIT",
-                        "%s has already retained %d group-A player(s) — the maximum is %d"
-                                .formatted(team.getName(), inSameBucket, rules.maxFromGroupA()));
-            }
-            if (!topGroup && inSameBucket >= rules.maxFromLowerGroups()) {
-                throw AuctionException.conflict("RETENTION_LIMIT",
-                        "%s has already retained %d player(s) from the lower groups — the maximum is %d"
-                                .formatted(team.getName(), inSameBucket, rules.maxFromLowerGroups()));
-            }
+            assertGroupRetentionCap(team, player, retained, rules);
 
             long price = retentionPrice(player, priceOverride);
             return applyRetention(team, player, price);
@@ -260,6 +247,46 @@ public class SaleService {
         sales.save(Sale.retained(player.getPlayerId(), player.getName(),
                 team.getTeamId(), team.getName(), price, RECORDED_BY));
         return new SaleResult(player, team);
+    }
+
+    /**
+     * Enforce the per-team retention split. A KCPL rule book caps each group
+     * directly ({@code maxPerGroup}, e.g. 2 Icons + 1 Owner and nothing else);
+     * every other rule book keeps the legacy top-group (A) vs lower-group split.
+     */
+    private static void assertGroupRetentionCap(Team team, Player player,
+                                                List<Player> retained,
+                                                AuctionProperties.Retention rules) {
+        PlayerCategory cat = player.getCategory();
+        if (rules.hasPerGroupCaps()) {
+            int cap = rules.maxForGroup(cat);   // 0 for a group not listed → not retainable
+            if (cap <= 0) {
+                throw AuctionException.conflict("RETENTION_LIMIT",
+                        "%s players are not a pre-auction pick in this auction — only %s can be retained"
+                                .formatted(cat, rules.maxPerGroup().keySet()));
+            }
+            long inGroup = retained.stream().filter(p -> p.getCategory() == cat).count();
+            if (inGroup >= cap) {
+                throw AuctionException.conflict("RETENTION_LIMIT",
+                        "%s has already retained %d %s pick(s) — the maximum is %d"
+                                .formatted(team.getName(), inGroup, cat, cap));
+            }
+            return;
+        }
+        boolean topGroup = cat == PlayerCategory.A;
+        long inSameBucket = retained.stream()
+                .filter(p -> (p.getCategory() == PlayerCategory.A) == topGroup)
+                .count();
+        if (topGroup && inSameBucket >= rules.maxFromGroupA()) {
+            throw AuctionException.conflict("RETENTION_LIMIT",
+                    "%s has already retained %d group-A player(s) — the maximum is %d"
+                            .formatted(team.getName(), inSameBucket, rules.maxFromGroupA()));
+        }
+        if (!topGroup && inSameBucket >= rules.maxFromLowerGroups()) {
+            throw AuctionException.conflict("RETENTION_LIMIT",
+                    "%s has already retained %d player(s) from the lower groups — the maximum is %d"
+                            .formatted(team.getName(), inSameBucket, rules.maxFromLowerGroups()));
+        }
     }
 
     private Team requireTeam(UUID teamId) {

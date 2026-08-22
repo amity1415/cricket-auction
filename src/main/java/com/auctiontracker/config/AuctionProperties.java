@@ -65,9 +65,27 @@ public record AuctionProperties(
      * Pre-auction retention rules: total cap per team, split between the top
      * group (A) and the lower groups (B–E), plus the flat cost charged for a
      * retention (group A vs. any lower group).
+     *
+     * <p>{@code maxPerGroup} is an optional per-category cap that supersedes the
+     * A/lower split when present (nullable, opt-in — null keeps the legacy A-vs-lower
+     * behaviour byte-identical). KCPL uses it to allow exactly 2 Icons + 1 Owner:
+     * {@code {ICON:2, OWNER:1}}. When it is set, a category absent from the map is
+     * not retainable (cap 0), and the {@code maxPerTeam} total still applies.
      */
     public record Retention(int maxPerTeam, int maxFromGroupA, int maxFromLowerGroups,
-                            long costGroupA, long costOtherGroups) {}
+                            long costGroupA, long costOtherGroups,
+                            Map<PlayerCategory, Integer> maxPerGroup) {
+
+        /** Per-category retention cap when configured, else null (use the A/lower split). */
+        public Integer maxForGroup(PlayerCategory category) {
+            return maxPerGroup == null ? null : maxPerGroup.getOrDefault(category, 0);
+        }
+
+        /** True when this rule book uses per-category retention caps (KCPL). */
+        public boolean hasPerGroupCaps() {
+            return maxPerGroup != null && !maxPerGroup.isEmpty();
+        }
+    }
 
     /** One band of the increment table. {@code upTo} is an inclusive upper bound. */
     public record IncrementRule(long upTo, long increment) {}
