@@ -1582,11 +1582,11 @@ main.owner-wrap.wide { max-width: 1240px; }
 .tb-head .leading-badge { margin-left: auto; }
 
 /* Team dashboard grid tiles: a prominent franchise crest. */
-.tile-top .team-logo, .tile-top .crest { width: 68px; height: 68px; }
+.tile-top .team-logo, .tile-top .crest { width: 92px; height: 92px; }
 
 /* Team-owner hero: crest sits left of the franchise name. */
 .hero-id { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.team-logo.hero-crest, .crest.hero-crest { width: 76px; height: 76px; }
+.team-logo.hero-crest, .crest.hero-crest { width: 96px; height: 96px; }
 
 /* Sold screen: the winning franchise's crest beside its name. */
 .sold-team-row { display: inline-flex; align-items: center; gap: 16px; }
@@ -1691,7 +1691,7 @@ main.owner-wrap.wide { max-width: 1240px; }
 /* Shorter wide displays (720p/768p): trim the crest and spacing so 2 rows fit. */
 @media (min-width: 900px) and (max-height: 850px) {
   body.picker-mode .tile-top .team-logo, body.picker-mode .tile-top .crest {
-    width: clamp(44px, 6vh, 68px); height: clamp(44px, 6vh, 68px);
+    width: clamp(52px, 8vh, 92px); height: clamp(52px, 8vh, 92px);
   }
   body.picker-mode .tp-amount { font-size: clamp(20px, 3.2vh, 26px); }
 }
