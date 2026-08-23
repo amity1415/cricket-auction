@@ -704,13 +704,27 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 .broadcast-sold .player-poster { box-shadow: 0 24px 56px -14px rgba(45,212,143,.5); }
 .player-main {
   flex: 1; min-width: 0;
-  display: flex; flex-direction: column; justify-content: center;
-  gap: clamp(10px, 1.8vh, 22px);
+  /* Fill the hero's height and clip INSIDE this column, so the text is never
+     pushed past the hero's edge (which used to cut the player's name in half).
+     Only the stats strip below gives way when space is tight — see .player-status. */
+  align-self: stretch; overflow: hidden;
+  display: flex; flex-direction: column;
+  /* "safe center" centres the block when it fits but falls back to top-aligned
+     when the hero is tight — so the name is never pushed off the top edge. */
+  justify-content: safe center;
+  gap: clamp(8px, 1.6vh, 22px);
 }
-.player-main h2 { margin: 0; font-size: clamp(30px, 4vh, 60px); letter-spacing: -.02em; line-height: 1.02; }
-.player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin: 0; }
+/* Name and bid must always render whole — never shrink or clip them. line-height
+   1.12 leaves room for descenders (g/y/j) so no glyph is half-cut. */
+.player-main h2 {
+  margin: 0; font-size: clamp(28px, 3.8vh, 58px); letter-spacing: -.02em; line-height: 1.12;
+  flex: 0 0 auto; overflow-wrap: anywhere;
+}
+.player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin: 0; flex: 0 0 auto; }
 .player-meta .chip { font-size: clamp(16px, 2.2vh, 26px); padding: clamp(6px, 1vh, 11px) clamp(14px, 2vw, 24px); }
-.player-status { color: var(--muted); }
+/* The career-stats strip is the one element allowed to shrink/clip when the hero
+   is tight; the name, tags and bid figures stay intact. */
+.player-status { color: var(--muted); flex: 0 1 auto; min-height: 0; overflow: hidden; }
 /* Bigger, evenly-spread career stats for the TV — sized in vh so the whole hero
    scales down to fit shorter screens (720p/768p) without clipping. */
 .player-status .pstats { gap: clamp(4px, .8vh, 10px) 28px; padding: clamp(8px, 1.4vh, 16px) 24px; justify-content: space-between; }
@@ -719,6 +733,7 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 
 .bid-display {
   display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 1.6vw, 22px); margin: 0;
+  flex: 0 0 auto;
 }
 .bid-amount {
   background: rgba(10,14,26,.5); border: 1px solid var(--border);
@@ -737,7 +752,7 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 .bid-team { font-size: clamp(16px, 2vh, 24px); color: var(--text); font-weight: 600; }
 .bid-amount.next .bid-value { color: var(--accent); }
 
-.bid-info { display: flex; gap: 12px; align-items: center; }
+.bid-info { display: flex; gap: 12px; align-items: center; flex: 0 0 auto; }
 .bid-count {
   display: inline-block;
   padding: 6px 14px; background: rgba(139,92,246,.18);
@@ -867,6 +882,7 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 .sold-deal {
   display: grid; grid-template-columns: 1fr 1fr; gap: 22px;
   margin-top: 6px; padding-top: 22px; border-top: 1px solid var(--border);
+  flex: 0 0 auto;
 }
 .sold-block {
   background: rgba(10,14,26,.45); border: 1px solid var(--border);
