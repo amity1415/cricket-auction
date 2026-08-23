@@ -80,7 +80,7 @@ function teamCard(t, block) {
        style="--crest:${crestFor(t.teamId)}">
       <div class="tile-front">
         <div class="tile-top">
-          <span class="crest">${esc(initials(t.name))}</span>
+          ${TeamLogo.teamCrest(t.name, { gradient: crestFor(t.teamId) })}
           <span class="tile-id">
             <b class="tt-name">${esc(t.name)}</b>
             <span class="muted">${esc(t.ownerName)}${mine ? ' · ⭐ you' : ''}</span>
@@ -94,7 +94,7 @@ function teamCard(t, block) {
         </div>
       </div>
       <div class="tile-detail" aria-hidden="true">
-        <div class="td-head"><span class="crest sm">${esc(initials(t.name))}</span>${esc(t.name)}</div>
+        <div class="td-head">${TeamLogo.teamCrest(t.name, { cls: 'sm', gradient: crestFor(t.teamId) })}${esc(t.name)}</div>
         ${block ? `<div class="td-maxbid${(t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount) ? '' : ' none'}">
           <span>🔨 Max next bid · ${esc(block.name)}</span>
           <b>${(t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount) ? fmtShort(t.maxBidForBlockPlayer) : "Can't bid"}</b>
@@ -233,7 +233,10 @@ function renderHead(t, squad) {
   const maxRetained = auctionConfig?.retention?.maxPerTeam ?? 3;
   setHTMLIfChanged('team-head', `
     <div class="hero-top">
-      <h2>${esc(t.name)} <span class="muted">· ${esc(t.ownerName)}</span>${teamId === myTeamId ? ' <span class="chip">⭐ Your team</span>' : ''}</h2>
+      <div class="hero-id">
+        ${TeamLogo.teamCrest(t.name, { cls: 'hero-crest', gradient: crestFor(t.teamId) })}
+        <h2>${esc(t.name)} <span class="muted">· ${esc(t.ownerName)}</span>${teamId === myTeamId ? ' <span class="chip">⭐ Your team</span>' : ''}</h2>
+      </div>
       <span class="live"><i></i>LIVE</span>
     </div>
     <div class="big-purse">${fmtINR(t.remainingPurse)}</div>

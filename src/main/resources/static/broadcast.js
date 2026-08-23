@@ -160,6 +160,7 @@ function renderTeams(teams, highlightTeamId, block) {
       <div class="team-broadcast ${hot ? 'leading' : ''}" data-team-id="${t.teamId}"
            role="button" tabindex="0" title="Click to see ${esc(t.name)}'s squad">
         <div class="tb-head">
+          ${TeamLogo.teamCrest(t.name, { cls: 'tb-crest' })}
           <h3>${esc(t.name)}</h3>
           ${hot ? '<span class="leading-badge">👑</span>' : ''}
         </div>
@@ -212,7 +213,10 @@ async function renderResult(sale, teams) {
   setText('sold-name', sale.playerName);
   if (sold) {
     setText('sold-team', sale.teamName);
+    setHTML('sold-team-logo', TeamLogo.teamCrest(sale.teamName, { cls: 'lg' }));
     setText('sold-amount', fmtINR(sale.amount));
+  } else {
+    setHTML('sold-team-logo', '');
   }
   renderTeams(teams, sold ? sale.teamId : null);
   showState('sold');
@@ -326,7 +330,7 @@ async function renderTeamModal() {
   try {
     const detail = await getJSON('/api/dashboard/teams/' + teamModalId);
     const t = detail.team;
-    setText('btm-title', t.name + ' — Squad');
+    setHTML('btm-title', `${TeamLogo.teamCrest(t.name, { cls: 'sm' })} ${esc(t.name)} — Squad`);
     setHTML('btm-body', teamModalHtml(t, detail.squad || []));
   } catch (e) {
     setHTML('btm-body', '<p class="muted">Could not load this team — try again.</p>');

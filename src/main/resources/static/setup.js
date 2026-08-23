@@ -175,9 +175,10 @@ function renderTeams() {
   document.getElementById('team-list').innerHTML = lastTeams.length
       ? lastTeams.map(t => `
         <div class="row">
-          <span><b>${esc(t.name)}</b> <span class="muted">· ${esc(t.ownerName)}</span><br>
+          <span class="row-team">${TeamLogo.teamCrest(t.name, { cls: 'sm' })}
+            <span><b>${esc(t.name)}</b> <span class="muted">· ${esc(t.ownerName)}</span><br>
             <span class="muted">${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)} ·
-            squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</span></span>
+            squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots}</span></span></span>
           <div class="row-actions">
             <button class="link-btn" onclick="openTeamModal('${t.teamId}')">✏️ Edit</button>
             <button class="link-btn subtle" onclick="removeTeam('${t.teamId}')" title="Remove team (squad must be empty)">🗑</button>

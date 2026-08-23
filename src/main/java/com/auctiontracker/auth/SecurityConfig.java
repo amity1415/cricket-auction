@@ -47,10 +47,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Static assets (JS/CSS/icons/fonts) carry no secrets — the data
                 // behind them is guarded at the API layer, so serve them freely.
-                // All static files live at the root path, so single-segment
-                // patterns suffice (PathPattern forbids anything after "**").
+                // Root-level files use single-segment patterns; team crest logos
+                // live under /img/teams/, so that subtree is permitted too (the
+                // public broadcast board must render them without a login).
                 .requestMatchers("/*.js", "/*.css", "/*.ico",
                         "/*.png", "/*.svg", "/*.woff2", "/*.map").permitAll()
+                .requestMatchers("/img/**").permitAll()
 
                 // Public pages (guest access): login, the auctions hub (everyone
                 // lands here and picks an auction), the live broadcast, and the

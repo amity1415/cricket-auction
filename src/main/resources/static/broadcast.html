@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cricket Auction — Live Broadcast</title>
-  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="style.css?v=21">
 </head>
 <body class="broadcast-mode">
 <header>
@@ -71,7 +71,10 @@
           <div class="sold-deal">
             <div class="sold-block">
               <span class="bid-label">Sold To</span>
-              <span class="sold-team" id="sold-team"></span>
+              <span class="sold-team-row">
+                <span class="sold-team-logo" id="sold-team-logo"></span>
+                <span class="sold-team" id="sold-team"></span>
+              </span>
             </div>
             <div class="sold-block price">
               <span class="bid-label">Winning Bid</span>
@@ -104,6 +107,7 @@
 <script src="tournament-context.js"></script>
 <script src="auth.js"></script>
 <script src="profile-modal.js?v=12"></script>
-<script src="broadcast.js?v=20"></script>
+<script src="team-logo.js?v=1"></script>
+<script src="broadcast.js?v=21"></script>
 </body>
 </html>

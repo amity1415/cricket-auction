@@ -1425,6 +1425,47 @@ main.owner-wrap.wide { max-width: 1240px; }
   box-shadow: 0 8px 18px -8px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.25);
 }
 .crest.sm { width: 26px; height: 26px; border-radius: 8px; font-size: 11px; }
+.crest.lg { width: 96px; height: 96px; border-radius: 22px; font-size: 34px; }
+
+/* ── Franchise crest logos ───────────────────────────────────────────────
+   Real team logos (img/teams/<slug>.png), matched to a team by name in
+   team-logo.js. A .team-logo drops in wherever an initials .crest used to
+   sit and shares its sizing, so a team with no logo (renamed / non-KCPL)
+   still renders its initials tile and nothing shifts. */
+.team-logo {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; vertical-align: middle;
+}
+.team-logo img {
+  max-width: 100%; max-height: 100%; width: auto; height: auto;
+  object-fit: contain; display: block;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.45));
+}
+.team-logo.no-img { display: none; }      /* image 404'd — collapse quietly */
+.team-logo.sm { width: 26px; height: 26px; }
+.team-logo.lg { width: 96px; height: 96px; }
+
+/* Broadcast board team cards: logo | name (fills) | 👑 badge. */
+.tb-head { justify-content: flex-start; }
+.tb-head .team-logo, .tb-head .crest { width: 38px; height: 38px; }
+.team-broadcast h3 { flex: 1 1 auto; min-width: 0; }
+.tb-head .leading-badge { margin-left: auto; }
+
+/* Team-owner hero: crest sits left of the franchise name. */
+.hero-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.team-logo.hero-crest, .crest.hero-crest { width: 54px; height: 54px; }
+
+/* Sold screen: the winning franchise's crest beside its name. */
+.sold-team-row { display: inline-flex; align-items: center; gap: 16px; }
+
+/* Admin console team grid + bid buttons carry a small crest. */
+.team .tname { display: flex; align-items: center; gap: 8px; }
+.team .tname .team-logo, .team .tname .crest { width: 24px; height: 24px; }
+.bid-buttons button.bid-btn { display: flex; align-items: center; gap: 9px; text-align: left; }
+.bid-btn .team-logo, .bid-btn .crest { width: 30px; height: 30px; }
+.bid-btn-txt { min-width: 0; }
+.row-team { display: inline-flex; align-items: center; gap: 9px; }
+
 .tile-id { display: flex; flex-direction: column; min-width: 0; }
 .tile-id .tt-name { font-size: 16px; font-weight: 800; letter-spacing: -.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

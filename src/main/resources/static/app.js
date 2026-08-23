@@ -141,8 +141,10 @@ function renderBlock(dash) {
     const leading = t.teamId === block.currentLeadingTeamId;
     btn.disabled = leading;
     if (!leading && block.nextBidAmount > t.remainingPurse) btn.classList.add('cant-afford');
-    btn.innerHTML = `<b>${esc(t.name)}</b>${leading ? ' 👑' : ''}
-      <span class="sub">${fmtShort(t.remainingPurse)} left</span>`;
+    btn.classList.add('bid-btn');
+    btn.innerHTML = `${TeamLogo.teamCrest(t.name, { cls: 'sm' })}
+      <span class="bid-btn-txt"><b>${esc(t.name)}</b>${leading ? ' 👑' : ''}
+      <span class="sub">${fmtShort(t.remainingPurse)} left</span></span>`;
     btn.onclick = async () => {
       const r = await post(`/api/admin/players/${block.playerId}/place-bid`, { teamId: t.teamId });
       if (r) toast(`Bid #${r.bidNumber}: ${r.currentLeadingTeamName} → ${fmtINR(r.currentBidAmount)}`);
@@ -234,7 +236,7 @@ function renderTeams(dash) {
       : '';
     return `
       <div class="team ${t.teamId === leadingId ? 'leading' : ''}">
-        <div class="tname">${esc(t.name)} ${t.teamId === leadingId ? '👑' : ''}</div>
+        <div class="tname">${TeamLogo.teamCrest(t.name, { cls: 'sm' })} <span>${esc(t.name)}</span> ${t.teamId === leadingId ? '👑' : ''}</div>
         <div class="purse">${fmtShort(t.remainingPurse)}</div>
         <div class="bar"><i style="width:${pct}%"></i></div>
         ${maxBidHtml}
