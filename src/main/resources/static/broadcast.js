@@ -96,23 +96,15 @@ function showState(which) {
   fitToScreen();
 }
 
-// Broadcast is shown on a big TV — it must fit on one screen with no scroll.
-// Measure the content's natural height and, if it exceeds the space below the
-// header, scale the whole board down uniformly so everything stays visible.
+// Broadcast fills the whole screen via a flex column (see .broadcast-wrap in
+// style.css): a capped hero on top, the team grid stretching to fill the rest.
+// The layout fits by construction, so we no longer scale the board with a
+// transform (that shrank it uniformly and left empty side/bottom margins). Any
+// stray transform from an older cached run is cleared here.
 let fitTimer = null;
 function fitToScreen() {
   const wrap = document.querySelector('.broadcast-wrap');
-  if (!wrap) return;
-  wrap.style.transform = 'none';                       // reset to measure natural size
-  // Only fit-to-screen on TV / desktop-sized displays; small screens scroll
-  // normally (scaling a full board down on a phone would make it unreadable).
-  if (window.innerWidth < 900) return;
-  const headerH = document.querySelector('header')?.offsetHeight || 0;
-  const avail = window.innerHeight - headerH;
-  const natural = wrap.scrollHeight;
-  const scale = natural > avail && natural > 0 ? avail / natural : 1;
-  wrap.style.transformOrigin = 'top center';
-  wrap.style.transform = scale < 1 ? `scale(${scale})` : 'none';
+  if (wrap) wrap.style.transform = 'none';
 }
 
 // Lay the team cards out for a projector: up to 6 teams sit on ONE row; a
@@ -152,10 +144,6 @@ function renderTeams(teams, highlightTeamId, block) {
   setHTML('bc-teams', (teams || []).map(t => {
     const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
     const hot = t.teamId === highlightTeamId;
-    const mbCan = block && t.maxBidForBlockPlayer != null && t.maxBidForBlockPlayer >= block.nextBidAmount;
-    const maxBidHtml = block
-      ? `<div class="bc-maxbid${mbCan ? '' : ' none'}"><span>🔨 Max next bid</span><b>${mbCan ? fmtShort(t.maxBidForBlockPlayer) : "Can't bid"}</b></div>`
-      : '';
     return `
       <div class="team-broadcast ${hot ? 'leading' : ''}" data-team-id="${t.teamId}"
            role="button" tabindex="0" title="Click to see ${esc(t.name)}'s squad">
@@ -167,7 +155,6 @@ function renderTeams(teams, highlightTeamId, block) {
         <div class="purse-amount">${fmtShort(t.remainingPurse)}</div>
         <div class="purse-bar"><i style="width:${pct}%"></i></div>
         <div class="tb-meta">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots} · ${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)}</div>
-        ${maxBidHtml}
       </div>`;
   }).join(''));
   layoutTeams(lastTeamCount);

@@ -624,11 +624,39 @@ a.modal-x { text-decoration: none; font-size: 15px; }
 /* --- Broadcast/Spectator Dashboard ----------------------------------------- */
 /* Broadcast fills exactly one screen and never scrolls — it's shown on a TV.
    broadcast.js scales the content down to fit when needed. */
-body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
-.broadcast-wrap { max-width: 1600px; margin: 0 auto; padding: 20px 26px; }
+/* The broadcast board is a full-viewport flex column: header on top, then the
+   live/sold hero (capped height) and the team grid (fills the rest). Everything
+   is sized to fill the screen edge-to-edge — no max-width letterboxing and no
+   uniform transform-scaling that would shrink the board into empty margins. */
+body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column; }
+body.broadcast-mode > header { flex: 0 0 auto; }
+.broadcast-wrap {
+  flex: 1 1 auto; min-height: 0;
+  width: 100%; max-width: none; margin: 0; padding: 16px 22px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+/* The active state wrappers pass their flex sizing through to the hero. The hero
+   sizes to its (viewport-scaled) content and never shrinks below it, so the bid
+   figures are never clipped; the team grid takes whatever height remains. */
+#live-state, #sold-state {
+  display: flex; flex-direction: column; min-height: 0; flex: 0 0 auto;
+  max-height: 58vh;
+}
+/* On shorter displays (720p/768p projectors) give the two team rows more room so
+   their cards don't clip — the hero content is already vh-scaled to keep up. */
+@media (min-width: 900px) and (max-height: 850px) {
+  #live-state, #sold-state { max-height: 40vh; }
+  /* Tighten the cards so a full 5×2 grid fits without clipping: drop the
+     secondary squad line and trim internal spacing (logo/name/purse stay big). */
+  .team-broadcast { padding: 6px 16px; gap: 2px; }
+  .team-broadcast .tb-meta { display: none; }
+  .team-broadcast .purse-amount { margin: 0; }
+  .team-broadcast .purse-bar { margin-bottom: 0; }
+}
 .broadcast-idle {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 60vh;
+  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  min-height: 0;
 }
 .idle-card {
   text-align: center; padding: 40px;
@@ -640,14 +668,17 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
 .broadcast-player {
   background: linear-gradient(160deg, rgba(79,108,255,.12), rgba(139,92,246,.08)), var(--card);
   border: 1px solid rgba(79,108,255,.45); border-radius: var(--radius);
-  padding: 24px 28px; margin-bottom: 20px;
+  padding: 20px 28px; margin: 0;
   box-shadow: var(--shadow);
+  flex: 1 1 auto; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center;
 }
 
 /* The hero is one horizontal band: the poster on the left, all the text and bid
    figures in the column beside it (bid markup lives inside .player-main now). */
 .player-card {
   display: flex; gap: 48px; align-items: center;
+  min-height: 0; height: 100%;
 }
 /* Initials fallback, shown only when a player has no poster. */
 .player-avatar {
@@ -665,7 +696,7 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
    fit-to-screen scaling still guarantees the whole page stays on one screen. */
 .player-poster {
   flex: 0 0 auto;
-  height: 50vh; max-height: 56vh; width: auto; max-width: 44vw;
+  height: 100%; max-height: 44vh; width: auto; max-width: 36vw;
   object-fit: contain; border-radius: 24px;
   background: rgba(10,14,26,.4);
   box-shadow: 0 24px 56px -14px rgba(91,140,255,.6);
@@ -673,35 +704,37 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
 .broadcast-sold .player-poster { box-shadow: 0 24px 56px -14px rgba(45,212,143,.5); }
 .player-main {
   flex: 1; min-width: 0;
-  display: flex; flex-direction: column; justify-content: center; gap: 22px;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: clamp(10px, 1.8vh, 22px);
 }
-.player-main h2 { margin: 0; font-size: 60px; letter-spacing: -.02em; line-height: 1.02; }
+.player-main h2 { margin: 0; font-size: clamp(30px, 4vh, 60px); letter-spacing: -.02em; line-height: 1.02; }
 .player-meta { display: flex; gap: 14px; flex-wrap: wrap; margin: 0; }
-.player-meta .chip { font-size: 26px; padding: 11px 24px; }
+.player-meta .chip { font-size: clamp(16px, 2.2vh, 26px); padding: clamp(6px, 1vh, 11px) clamp(14px, 2vw, 24px); }
 .player-status { color: var(--muted); }
-/* Bigger, evenly-spread career stats for the TV. */
-.player-status .pstats { gap: 12px 30px; padding: 20px 26px; justify-content: space-between; }
-.player-status .pstat b { font-size: 40px; }
-.player-status .pstat span { font-size: 17px; }
+/* Bigger, evenly-spread career stats for the TV — sized in vh so the whole hero
+   scales down to fit shorter screens (720p/768p) without clipping. */
+.player-status .pstats { gap: clamp(4px, .8vh, 10px) 28px; padding: clamp(8px, 1.4vh, 16px) 24px; justify-content: space-between; }
+.player-status .pstat b { font-size: clamp(20px, 2.8vh, 36px); }
+.player-status .pstat span { font-size: clamp(12px, 1.5vh, 16px); }
 
 .bid-display {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 6px 0 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 1.6vw, 22px); margin: 0;
 }
 .bid-amount {
   background: rgba(10,14,26,.5); border: 1px solid var(--border);
-  border-radius: 14px; padding: 24px 26px;
-  display: flex; flex-direction: column; gap: 10px;
+  border-radius: 14px; padding: clamp(10px, 1.5vh, 18px) 24px;
+  display: flex; flex-direction: column; gap: clamp(3px, .7vh, 8px);
 }
 .bid-amount.next { background: rgba(45,212,143,.06); border-color: rgba(45,212,143,.4); }
 .bid-label {
-  font-size: 22px; font-weight: 800; text-transform: uppercase;
+  font-size: clamp(14px, 1.8vh, 22px); font-weight: 800; text-transform: uppercase;
   letter-spacing: .06em; color: var(--muted);
 }
 .bid-value {
-  font-size: 64px; font-weight: 800; color: var(--green);
-  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  font-size: clamp(30px, 4vh, 54px); font-weight: 800; color: var(--green);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.05;
 }
-.bid-team { font-size: 24px; color: var(--text); font-weight: 600; }
+.bid-team { font-size: clamp(16px, 2vh, 24px); color: var(--text); font-weight: 600; }
 .bid-amount.next .bid-value { color: var(--accent); }
 
 .bid-info { display: flex; gap: 12px; align-items: center; }
@@ -715,21 +748,30 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
    row and the board fits one screen without shrinking (projector-readable). */
 .broadcast-teams {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 22px 26px;
+  border-radius: var(--radius); padding: 18px 22px;
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
 }
 .broadcast-teams h2 {
-  margin: 0 0 16px; font-size: 20px; text-transform: uppercase;
+  flex: 0 0 auto;
+  margin: 0 0 12px; font-size: 20px; text-transform: uppercase;
   letter-spacing: .1em; color: var(--muted);
 }
+/* The grid fills the section's remaining height; equal rows (grid-auto-rows:1fr)
+   stretch the cards so the two rows cover the whole area — no empty band below.
+   Column count is set by layoutTeams() in JS (5 for a 10-team field → 5×2). */
 .teams-broadcast {
+  flex: 1 1 auto; min-height: 0;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 16px;
+  grid-auto-rows: 1fr; align-content: stretch;
+  gap: 14px;
 }
 .team-broadcast {
   background: var(--card-2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 16px 18px;
+  border-radius: 16px; padding: clamp(7px, 1vh, 12px) 18px;
   transition: border-color .3s ease, transform .2s ease, box-shadow .2s ease;
-  position: relative;
+  position: relative; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center; gap: clamp(2px, .5vh, 5px);
 }
 .team-broadcast:hover { border-color: var(--border-strong); }
 .team-broadcast.leading {
@@ -738,17 +780,19 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
 }
 .tb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .team-broadcast h3 {
-  margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em;
+  margin: 0; font-size: clamp(17px, 2.6vh, 26px); font-weight: 800; letter-spacing: -.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .purse-amount {
-  font-size: 40px; font-weight: 800; color: var(--green);
-  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 2px 0 10px;
+  font-size: clamp(24px, 4vh, 40px); font-weight: 800; color: var(--green); line-height: 1.05;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 2px 0 clamp(5px, 1vh, 10px);
 }
 .purse-bar { height: 14px; background: rgba(148,163,205,.14); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.team-broadcast .purse-bar { height: clamp(8px, 1.4vh, 14px); margin-bottom: clamp(5px, 1vh, 10px); }
 .purse-bar i { display: block; height: 100%; background: linear-gradient(90deg, #1f8f5c, var(--green)); transition: width .6s ease; }
 .team-broadcast.leading .purse-bar i { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-.tb-meta { font-size: 16px; color: var(--muted); font-weight: 600; }
+.tb-meta { font-size: clamp(12px, 1.7vh, 16px); color: var(--muted); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Legacy stacked lines (kept for any other users of the classes). */
 .purse-detail { font-size: 16px; color: var(--muted); margin-top: 4px; }
 .squad-info { font-size: 17px; color: var(--muted); margin-top: 8px; font-weight: 600; }
@@ -794,9 +838,11 @@ body.broadcast-mode { background: var(--bg); height: 100vh; overflow: hidden; }
   position: relative; overflow: hidden;
   background: linear-gradient(160deg, rgba(45,212,143,.16), rgba(31,142,92,.06) 55%, transparent), var(--card);
   border: 1px solid var(--green); border-radius: var(--radius);
-  padding: 24px 28px; margin-bottom: 20px;
+  padding: 20px 28px; margin: 0;
   box-shadow: 0 0 0 1px rgba(45,212,143,.25), 0 20px 60px -20px rgba(45,212,143,.4);
   animation: sold-pop .45s cubic-bezier(.2,.9,.3,1.25);
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; justify-content: center;
 }
 @keyframes sold-pop { from { opacity: 0; transform: scale(.96); } }
 .sold-stamp {
@@ -1447,13 +1493,16 @@ main.owner-wrap.wide { max-width: 1240px; }
 
 /* Broadcast board team cards: logo | name (fills) | 👑 badge. */
 .tb-head { justify-content: flex-start; }
-.tb-head .team-logo, .tb-head .crest { width: 38px; height: 38px; }
+.tb-head .team-logo, .tb-head .crest { width: clamp(40px, 5.6vh, 62px); height: clamp(40px, 5.6vh, 62px); }
 .team-broadcast h3 { flex: 1 1 auto; min-width: 0; }
 .tb-head .leading-badge { margin-left: auto; }
 
+/* Team dashboard grid tiles: a prominent franchise crest. */
+.tile-top .team-logo, .tile-top .crest { width: 68px; height: 68px; }
+
 /* Team-owner hero: crest sits left of the franchise name. */
-.hero-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.team-logo.hero-crest, .crest.hero-crest { width: 54px; height: 54px; }
+.hero-id { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.team-logo.hero-crest, .crest.hero-crest { width: 76px; height: 76px; }
 
 /* Sold screen: the winning franchise's crest beside its name. */
 .sold-team-row { display: inline-flex; align-items: center; gap: 16px; }
