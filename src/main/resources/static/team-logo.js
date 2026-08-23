@@ -10,7 +10,11 @@
  * only, lower-cased) team name wins. Keep more specific keywords listed on the
  * franchise they belong to so e.g. "strikers" never leaks onto another crest. */
 (function (global) {
+  // Version the logo URLs so a client that cached a pre-launch failure for the
+  // bare path (e.g. the 302→login served before /img/** was public) fetches a
+  // brand-new URL instead of reusing that stale entry. Bump on any logo change.
   const BASE = '/img/teams/';
+  const VER = '?v=2';
 
   // slug -> keywords that identify the franchise, in priority order.
   const LOGOS = [
@@ -46,7 +50,7 @@
   /** The logo image URL for a team name, or null if we don't have one. */
   function teamLogoUrl(name) {
     const slug = teamLogoSlug(name);
-    return slug ? BASE + slug + '.png' : null;
+    return slug ? BASE + slug + '.png' + VER : null;
   }
 
   /** True when we have a real crest for this team. */
