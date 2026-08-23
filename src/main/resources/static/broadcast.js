@@ -169,7 +169,10 @@ function renderLive(player, teams) {
 
   if (player.currentBidAmount) {
     setText('bc-current-bid', fmtINR(player.currentBidAmount));
-    setText('bc-leading-team', esc(player.currentLeadingTeamName));
+    // Show the leading team's crest right beside its name.
+    setHTML('bc-leading-team',
+        TeamLogo.teamCrest(player.currentLeadingTeamName, { cls: 'bidder' })
+        + `<span>${esc(player.currentLeadingTeamName)}</span>`);
   } else {
     setText('bc-current-bid', fmtINR(player.basePrice) + ' (opening)');
     setText('bc-leading-team', 'No bids yet');
@@ -179,6 +182,22 @@ function renderLive(player, teams) {
 
   renderTeams(teams, player.currentLeadingTeamId, player);
   showState('live');
+}
+
+// Play the "sold → team bag" celebration exactly once per NEW sale. The first
+// result seen after page load only establishes a baseline (never replays an old
+// sale on refresh); a later SOLD with a new saleId triggers the animation.
+let soldFxBaseline = false, lastFxSaleId = null;
+function maybePlaySoldFx(result) {
+  const id = result.saleId;
+  if (!soldFxBaseline) { soldFxBaseline = true; lastFxSaleId = id; return; }
+  if (id && id !== lastFxSaleId) {
+    lastFxSaleId = id;
+    if (result.type === 'SOLD' && typeof playSoldToTeam === 'function') {
+      playSoldToTeam({ playerName: result.playerName, playerId: result.playerId,
+                       teamName: result.teamName, amount: result.amount });
+    }
+  }
 }
 
 // Cache full player details for the sold screen so we don't re-fetch each tick.
@@ -263,7 +282,7 @@ async function refreshLoop() {
     const audit = await getJSON('/api/admin/audit').catch(() => []);
     if (!current()) return;
     const lastResult = [].concat(audit).reverse().find(a => a.type === 'SOLD' || a.type === 'UNSOLD');
-    if (lastResult) { await renderResult(lastResult, dash.teams); return; }
+    if (lastResult) { maybePlaySoldFx(lastResult); await renderResult(lastResult, dash.teams); return; }
 
     setText('idle-title', '⏳ Waiting for the auction to begin…');
     setText('idle-sub', 'Check back when the admin puts a player on the block.');

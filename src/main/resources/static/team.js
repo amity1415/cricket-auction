@@ -147,6 +147,9 @@ window.addEventListener('resize', () => layoutTeamsGrid(overviewCount));
 async function renderOverview() {
   let dash;
   try { dash = await getJSON('/api/dashboard'); } catch (e) { return; }
+  // Detect sales here too, so the "sold → team bag" celebration also plays on the
+  // all-teams overview (not only a single team's dashboard).
+  getJSON('/api/admin/audit').then(updateLastResult).catch(() => {});
   const teams = dash.teams || [];
   const block = dash.onTheBlock;
   const totalSpent = teams.reduce((s, t) => s + (t.startingPurse - t.remainingPurse), 0);
@@ -205,7 +208,7 @@ let bannerPlayerId = null;
 
 function bannerBidHtml(block, leading) {
   return block.currentBidAmount != null
-    ? `current bid <b>${fmtINR(block.currentBidAmount)}</b> by <b>${esc(block.currentLeadingTeamName)}</b>${leading ? ' — 👑 that\'s you!' : ''}`
+    ? `current bid <b>${fmtINR(block.currentBidAmount)}</b> by ${TeamLogo.teamCrest(block.currentLeadingTeamName, { cls: 'bidder' })}<b>${esc(block.currentLeadingTeamName)}</b>${leading ? ' — 👑 that\'s you!' : ''}`
     : `opens at <b>${fmtINR(block.basePrice)}</b>`;
 }
 
@@ -400,7 +403,15 @@ function updateLastResult(audit) {
   }
   if (key && key !== lastResultKey) {
     lastResultKey = key;
-    playReveal(last);
+    // A sale flies the player's photo into the buyer's team bag; an unsold result
+    // keeps the existing reveal card. Either way the corner mini-card updates.
+    if (last.type === 'SOLD' && typeof playSoldToTeam === 'function') {
+      playSoldToTeam({ playerName: last.playerName, playerId: last.playerId,
+                       teamName: last.teamName, amount: last.amount });
+      showMini(last);
+    } else {
+      playReveal(last);
+    }
   }
 }
 

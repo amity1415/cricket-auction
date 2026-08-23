@@ -1591,6 +1591,15 @@ main.owner-wrap.wide { max-width: 1240px; }
 /* Sold screen: the winning franchise's crest beside its name. */
 .sold-team-row { display: inline-flex; align-items: center; gap: 16px; }
 
+/* Bidding team's crest shown right beside the current bid. Inline + sized so it
+   never pushes other content: the broadcast bid line is a flex row; the team
+   dashboard banner is running text (the crest sits inline, mid-aligned). */
+.bid-team { display: inline-flex; align-items: center; gap: 8px; }
+.bid-team .team-logo.bidder, .bid-team .crest.bidder { width: clamp(24px, 3vh, 36px); height: clamp(24px, 3vh, 36px); }
+.banner .team-logo.bidder, .banner .crest.bidder {
+  width: 22px; height: 22px; vertical-align: middle; margin: 0 3px; flex: 0 0 auto;
+}
+
 /* Admin console team grid + bid buttons carry a small crest. */
 .team .tname { display: flex; align-items: center; gap: 8px; }
 .team .tname .team-logo, .team .tname .crest { width: 24px; height: 24px; }
