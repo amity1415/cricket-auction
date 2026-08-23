@@ -37,6 +37,15 @@ Legend: ⬜ not started · 🟡 in progress · ✅ done
 - **OD-4** Enforce Σ pool budgets ≤ purse − retentions at save, or warn only?
 
 ## Change log
+- 2026-08-23 — **Rule re-sync**: `KcplSeeder` now, when "KCPL Season 2" already
+  exists, brings an older rule book up to canonical **once** — guarded on
+  `retention.maxPerGroup` being null (the marker of a pre-cap seed). It rewrites
+  `rules_json` to `kcplRules()` (2 Icon @ ₹12L + 1 Owner @ ₹6L per-category caps,
+  budgets 60/50/8/2 L carry-forward, retentions off pool budgets, no ordinal
+  demotion) via `TournamentService.updateRules`, preserving teams/players/owners/
+  photo folder. Fixes the live tournament (seeded before the per-category cap) on
+  next deploy without a manual admin edit. Idempotent: once `maxPerGroup` is set it
+  never re-runs. 94 tests green.
 - 2026-08-22 — **M9**: `PlayerStats` gained batting innings, highest score (text, keeps the
   `*` not-out marker), bowling innings, and best bowling (text, e.g. `5/13`). The `.xlsx`
   importer now reads the KCPL CricHeroes export directly: `SetupService` collapses the two-row

@@ -63,10 +63,17 @@ public class KcplSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        boolean exists = tournamentRepo.findAllByOrderByCreatedAtAsc().stream()
-                .anyMatch(t -> NAME.equalsIgnoreCase(t.getName()));
-        if (exists) {
-            return; // already seeded — leave it (and everything else) alone
+        Tournament existing = tournamentRepo.findAllByOrderByCreatedAtAsc().stream()
+                .filter(t -> NAME.equalsIgnoreCase(t.getName()))
+                .findFirst().orElse(null);
+        if (existing != null) {
+            // Already seeded — leave its teams/players/owners alone, but bring an
+            // older rule book (seeded before the per-category Icon/Owner retention
+            // cap existed) up to the canonical KCPL 2 config once. Keyed on the new
+            // retention.maxPerGroup field so it runs exactly once and never clobbers
+            // a later deliberate edit.
+            resyncRulesIfStale(existing);
+            return;
         }
         try {
             Tournament t = tournaments.create(NAME, kcplRules());
@@ -93,6 +100,28 @@ public class KcplSeeder implements CommandLineRunner {
         } catch (Exception e) {
             TournamentContext.clear();
             log.warn("KCPL Season 2 seed skipped: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * One-time rule-book migration for an already-seeded KCPL Season 2: if the
+     * stored rules predate the per-category retention cap (retention.maxPerGroup
+     * null), overwrite them with the canonical {@link #kcplRules()} — 2 Icons @
+     * ₹12L + 1 Owner @ ₹6L, budgets 60/50/8/2 L, carry-forward, retentions off the
+     * pool budgets. Teams, players, owners and the photo folder are preserved.
+     */
+    private void resyncRulesIfStale(Tournament t) {
+        try {
+            AuctionProperties cur = tournaments.rulesOf(t.getId());
+            boolean stale = cur.retention() == null || cur.retention().maxPerGroup() == null;
+            if (!stale) {
+                return; // already canonical — nothing to do
+            }
+            tournaments.updateRules(t.getId(), null, kcplRules(), t.getPhotosFolderId());
+            log.info("Re-synced '{}' ({}) to the canonical KCPL 2 rule book "
+                    + "(2 Icon @ ₹12L + 1 Owner @ ₹6L caps, no ordinal demotion).", NAME, t.getId());
+        } catch (Exception e) {
+            log.warn("KCPL Season 2 rule re-sync skipped: {}", e.getMessage());
         }
     }
 
