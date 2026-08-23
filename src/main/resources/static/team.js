@@ -122,10 +122,27 @@ function teamCard(t, block) {
 let pickerTimer = null;
 async function showPicker() {
   document.querySelector('main').classList.add('wide');
+  document.body.classList.add('picker-mode');   // fit-to-screen board layout
   document.getElementById('picker').style.display = '';
   await renderOverview();
   if (!pickerTimer) pickerTimer = setInterval(renderOverview, 3000);
 }
+
+// Lay the team tiles out to fill the screen: up to 6 teams on one row, a larger
+// field (7–12) splits into a balanced TWO rows (10→5×2), capped by how many fit
+// at a readable width. Mirrors the broadcast board's layoutTeams().
+function layoutTeamsGrid(n) {
+  const el = document.getElementById('teams-grid');
+  if (!el || !n) return;
+  const gap = 14, minCard = 190;
+  const width = el.clientWidth || el.parentElement?.clientWidth || window.innerWidth;
+  const maxCols = Math.max(1, Math.floor((width + gap) / (minCard + gap)));
+  const target = n <= 6 ? n : Math.ceil(n / 2);   // one row up to 6, else two rows
+  const cols = Math.min(target, maxCols);
+  el.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+}
+let overviewCount = 0;
+window.addEventListener('resize', () => layoutTeamsGrid(overviewCount));
 
 async function renderOverview() {
   let dash;
@@ -147,6 +164,8 @@ async function renderOverview() {
   setHTMLIfChanged('teams-grid', teams.length
     ? teams.map(t => teamCard(t, block)).join('')
     : '<p class="muted">No teams registered yet.</p>');
+  overviewCount = teams.length;
+  layoutTeamsGrid(teams.length);
 }
 
 async function refresh() {
