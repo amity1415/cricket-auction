@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cricket Auction — Setup</title>
-  <link rel="stylesheet" href="style.css?v=43">
+  <link rel="stylesheet" href="style.css?v=44">
 </head>
 <body>
 <header>
@@ -14,100 +14,106 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<main class="layout setup-wrap">
-  <div class="col">
-    <section class="card">
-      <h2><span class="step">1</span>Import player pool</h2>
-      <p id="pool-status" class="muted">Loading…</p>
-      <form id="form-import">
-        <div class="file-row">
-          <input type="file" id="file" accept=".csv,.xlsx" required>
-          <button class="danger" type="submit">Import &amp; replace all</button>
+<main class="setup-wrap">
+  <section class="setup-hero">
+    <div class="sh-info">
+      <h2>⚙️ Auction Setup</h2>
+      <p class="muted">Import your players, register the teams, lock in retentions &amp; owners — then start the auction.</p>
+    </div>
+    <div id="setup-stats" class="overview-stats sh-stats"></div>
+    <a class="go-btn sh-cta" href="auction.html">Start the auction →</a>
+  </section>
+
+  <div class="setup-grid">
+    <div class="col">
+      <section class="card">
+        <h2><span class="step">1</span>Import player pool</h2>
+        <p id="pool-status" class="muted">Loading…</p>
+        <form id="form-import">
+          <div class="file-row">
+            <input type="file" id="file" accept=".csv,.xlsx" required>
+            <button class="danger" type="submit">Import &amp; replace all</button>
+          </div>
+        </form>
+        <details class="hint-details">
+          <summary>Accepted format &amp; columns</summary>
+          <p class="hint">
+            Accepts <b>.csv</b> or Excel <b>.xlsx</b> (first sheet). Columns, header row optional:<br>
+            <code>name, role, category, basePrice, matches, battingInnings, runs, highestScore,
+            battingAvg, strikeRate, bowlingInnings, wickets, economy, bestBowling</code><br>
+            role: BATSMAN · BOWLER · ALL_ROUNDER · WICKETKEEPER &nbsp;·&nbsp; category (group): A · B · C · D · E · ICON · OWNER<br>
+            Also reads the KCPL CricHeroes export directly — its two-row <b>Batting / Bowling</b>
+            banner, <b>Grading</b> column (<i>Icon/Owner → Icon pool</i>) and spaced role names are handled automatically.<br>
+            ⚠️ Importing <b>deletes all existing players</b> and resets auction progress (bids, sales, squads, purses).
+            <a id="sample" href="#" download="players-sample.csv">Download a sample CSV</a>
+          </p>
+        </details>
+        <div id="import-result"></div>
+        <div class="pool-actions">
+          <a href="players.html" class="go-btn go-secondary">📊 Players &amp; analysis <span id="pm-count" class="muted"></span></a>
+          <button id="pm-add" class="primary">＋ Add player</button>
         </div>
-      </form>
-      <p class="hint">
-        Accepts <b>.csv</b> or Excel <b>.xlsx</b> (first sheet). Columns, header row optional:<br>
-        <code>name, role, category, basePrice, matches, battingInnings, runs, highestScore,
-        battingAvg, strikeRate, bowlingInnings, wickets, economy, bestBowling</code><br>
-        role: BATSMAN · BOWLER · ALL_ROUNDER · WICKETKEEPER &nbsp;·&nbsp; category (group): A · B · C · D · E · ICON · OWNER<br>
-        Also reads the KCPL CricHeroes export directly — its two-row <b>Batting / Bowling</b>
-        banner, <b>Grading</b> column (<i>Icon/Owner → Icon pool</i>) and spaced role names are handled automatically.<br>
-        ⚠️ Importing <b>deletes all existing players</b> and resets auction progress (bids, sales, squads, purses).
-        <a id="sample" href="#" download="players-sample.csv">Download a sample CSV</a>
-      </p>
-      <div id="import-result"></div>
-    </section>
+      </section>
 
-    <section class="card">
-      <h2><span class="step">2</span>Players <span id="pm-count" class="muted"></span></h2>
-      <p class="hint">View, filter, sort and analyse the full player pool on the dedicated Players page.
-        Add individual players below, or import in bulk above.</p>
-      <a href="players.html" class="go-btn">📊 Open Players &amp; analysis →</a>
-      <div class="pm-actions">
-        <button id="pm-add" class="primary">＋ Add player</button>
-      </div>
-    </section>
-  </div>
+      <section class="card">
+        <h2><span class="step">2</span>Teams</h2>
+        <div id="team-list" class="team-list"><p class="muted">Loading…</p></div>
+        <form id="form-team" class="field-form">
+          <label>Team name <input name="name" placeholder="e.g. Chennai Chargers" required></label>
+          <label>Owner name <input name="ownerName" placeholder="e.g. R. Mehta" required></label>
+          <label>Starting purse (₹) <input name="startingPurse" type="number" required min="1" value="150000000"></label>
+          <label>Max squad size <input name="maxSquadSize" type="number" required min="1" value="20"></label>
+          <div class="submit-row"><button class="primary">＋ Add team</button></div>
+        </form>
+      </section>
+    </div>
 
-  <div class="col">
-    <section class="card">
-      <h2><span class="step">3</span>Teams</h2>
-      <div id="team-list" class="team-list"><p class="muted">Loading…</p></div>
-      <form id="form-team" class="field-form">
-        <label>Team name <input name="name" placeholder="e.g. Chennai Chargers" required></label>
-        <label>Owner name <input name="ownerName" placeholder="e.g. R. Mehta" required></label>
-        <label>Starting purse (₹) <input name="startingPurse" type="number" required min="1" value="150000000"></label>
-        <label>Max squad size <input name="maxSquadSize" type="number" required min="1" value="20"></label>
-        <div class="submit-row"><button class="primary">＋ Add team</button></div>
-      </form>
-    </section>
+    <div class="col">
+      <section class="card">
+        <h2><span class="step">3</span>Retentions <span class="muted">· optional</span></h2>
+        <p class="hint">Each team may retain up to <b>3 players</b> before the auction —
+          at most <b>2 from group A</b> and <b>1 from groups B–E</b> — at base price,
+          deducted from the purse. Release refunds it. <b>Icon/Owner</b> picks are
+          assigned to their team automatically on import (₹12L / ₹6L); the price
+          field below is prefilled but editable for any manual retention.</p>
+        <div class="retain-row">
+          <select id="ret-team"><option value="">Choose a team…</option></select>
+        </div>
+        <div id="ret-slots" class="ret-slots"></div>
+        <div id="ret-list" class="ret-list"></div>
+        <input id="ret-search" type="search" class="search-input" placeholder="🔍 Search players by name to retain…"
+               autocomplete="off" style="margin:10px 0 8px;">
+        <div class="retain-row">
+          <select id="ret-player"><option value="">Choose a player to retain…</option></select>
+          <label class="ret-price-label">₹ <input id="ret-price" type="number" min="0" step="1"
+                 placeholder="Retention price" title="Prefilled with the player's price — edit if it differs"></label>
+          <button id="ret-btn" class="primary">📌 Retain</button>
+        </div>
+      </section>
 
-    <section class="card">
-      <h2><span class="step">4</span>Retentions <span class="muted">· optional</span></h2>
-      <p class="hint">Each team may retain up to <b>3 players</b> before the auction —
-        at most <b>2 from group A</b> and <b>1 from groups B–E</b> — at base price,
-        deducted from the purse. Release refunds it. <b>Icon/Owner</b> picks are
-        assigned to their team automatically on import (₹12L / ₹6L); the price
-        field below is prefilled but editable for any manual retention.</p>
-      <div class="retain-row">
-        <select id="ret-team"><option value="">Choose a team…</option></select>
-      </div>
-      <div id="ret-slots" class="ret-slots"></div>
-      <div id="ret-list" class="ret-list"></div>
-      <input id="ret-search" type="search" class="search-input" placeholder="🔍 Search players by name to retain…"
-             autocomplete="off" style="margin:10px 0 8px;">
-      <div class="retain-row">
-        <select id="ret-player"><option value="">Choose a player to retain…</option></select>
-        <label class="ret-price-label">₹ <input id="ret-price" type="number" min="0" step="1"
-               placeholder="Retention price" title="Prefilled with the player's price — edit if it differs"></label>
-        <button id="ret-btn" class="primary">📌 Retain</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2><span class="step">5</span>Franchise owners <span id="owners-count" class="muted"></span></h2>
-      <p class="hint">Create a franchise-owner login below — they get a read-only view of their team
-        (players &amp; analysis, team dashboards). Remove an account to revoke its access.</p>
-      <form id="owner-form" class="field-form">
-        <label>Owner name <input name="displayName" placeholder="Full name" required></label>
-        <label>Username <input name="username" placeholder="login username" required minlength="3"></label>
-        <label>Password <input name="password" type="password" placeholder="min 6 characters" required minlength="6"></label>
-        <label>Team
-          <select name="teamId" required>
-            <option value="" disabled selected>Choose team…</option>
-          </select>
-        </label>
-        <div class="submit-row"><button class="primary">＋ Create owner</button></div>
-      </form>
-      <div class="table-scroll list-scroll owners-scroll">
-        <table class="pool">
-          <thead><tr><th>Owner</th><th>Team</th><th>Joined</th><th></th></tr></thead>
-          <tbody id="owners-body"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-    <a class="go-btn" href="auction.html">Start the auction →</a>
+      <section class="card">
+        <h2><span class="step">4</span>Franchise owners <span id="owners-count" class="muted"></span></h2>
+        <p class="hint">Create a franchise-owner login below — they get a read-only view of their team
+          (players &amp; analysis, team dashboards). Remove an account to revoke its access.</p>
+        <form id="owner-form" class="field-form">
+          <label>Owner name <input name="displayName" placeholder="Full name" required></label>
+          <label>Username <input name="username" placeholder="login username" required minlength="3"></label>
+          <label>Password <input name="password" type="password" placeholder="min 6 characters" required minlength="6"></label>
+          <label>Team
+            <select name="teamId" required>
+              <option value="" disabled selected>Choose team…</option>
+            </select>
+          </label>
+          <div class="submit-row"><button class="primary">＋ Create owner</button></div>
+        </form>
+        <div class="table-scroll list-scroll owners-scroll">
+          <table class="pool">
+            <thead><tr><th>Owner</th><th>Team</th><th>Joined</th><th></th></tr></thead>
+            <tbody id="owners-body"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   </div>
 </main>
 
@@ -173,7 +179,7 @@
 <script src="auth.js"></script>
 <script src="profile-modal.js"></script>
 <script src="team-logo.js?v=2"></script>
-<script src="setup.js?v=21"></script>
+<script src="setup.js?v=44"></script>
 <script src="owners-admin.js"></script>
 </body>
 </html>

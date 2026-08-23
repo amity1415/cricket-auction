@@ -70,6 +70,13 @@ async function refresh() {
         ? `<b>${players.length} players</b> currently loaded (${detail}). Importing a file replaces all of them.`
         : 'No players yet — import a file or add them one by one below.';
 
+    // Setup hero overview.
+    const statsEl = document.getElementById('setup-stats');
+    if (statsEl) statsEl.innerHTML = `
+      <div class="ostat"><b>${players.length}</b><span>Players</span></div>
+      <div class="ostat"><b>${dash.teams.length}</b><span>Teams</span></div>
+      <div class="ostat"><b>${byStatus.RETAINED || 0}</b><span>Retained</span></div>`;
+
     renderPlayerManager();
     renderTeams();
     refreshRetention(dash.teams, players);

@@ -155,8 +155,24 @@ function tableHtml(list) {
   return `<div class="table-scroll"><table class="pool players-table">${head}<tbody>${body}</tbody></table></div>`;
 }
 
+// Overview pills in the page hero — a live snapshot of the whole pool.
+function renderHeroStats() {
+  const el = $('players-stats');
+  if (!el) return;
+  const by = {};
+  for (const p of allPlayers) by[p.status] = (by[p.status] || 0) + 1;
+  const sold = (by.SOLD || 0) + (by.RETAINED || 0);
+  const pill = (n, label) => `<div class="ostat"><b>${n}</b><span>${label}</span></div>`;
+  el.innerHTML =
+    pill(allPlayers.length, 'Players') +
+    pill(by.AVAILABLE || 0, 'Available') +
+    pill(sold, 'Signed') +
+    pill(by.UNSOLD || 0, 'Unsold');
+}
+
 function render() {
   const rows = filtered();
+  renderHeroStats();
 
   if (state.group === 'none') {
     $('results').innerHTML = `<section class="card">${tableHtml(sortPlayers(rows))}</section>`;

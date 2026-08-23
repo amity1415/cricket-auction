@@ -76,11 +76,28 @@ async function refresh() {
     renderTeams(dash);
     renderPool(players, dash.teams);
     renderAudit(audit);
+    renderAuctionStats(dash, players);
     if (dash.onTheBlock) renderBidHistory(dash.onTheBlock.playerId);
     else document.getElementById('bid-history').innerHTML = '';
   } catch (e) {
     /* server briefly unreachable — keep last render, retry on next tick */
   }
+}
+
+// Overview pills in the console hero — teams, players signed, total spent, pool left.
+function renderAuctionStats(dash, players) {
+  const el = document.getElementById('auction-stats');
+  if (!el) return;
+  const teams = dash.teams || [];
+  const spent = teams.reduce((s, t) => s + (t.startingPurse - t.remainingPurse), 0);
+  const signed = (players || []).filter(p => p.status === 'SOLD' || p.status === 'RETAINED').length;
+  const available = (players || []).filter(p => p.status === 'AVAILABLE' || p.status === 'UNDER_AUCTION').length;
+  const pill = (n, label) => `<div class="ostat"><b>${n}</b><span>${label}</span></div>`;
+  el.innerHTML =
+    pill(teams.length, 'Teams') +
+    pill(signed, 'Signed') +
+    pill(fmtShort(spent), 'Spent') +
+    pill(available, 'In pool');
 }
 
 /** Career profile shown while the player is on the block; hides null stats. */
