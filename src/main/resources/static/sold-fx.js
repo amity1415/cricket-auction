@@ -13,7 +13,7 @@
   const initials = name => String(name || '?').split(/\s+/).filter(Boolean)
       .map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-  const REVEAL_DELAY = '.8s';   // hammer strikes first, then the reveal starts
+  const REVEAL_DELAY = '.6s';   // hammer strikes first, then the reveal starts
 
   const CSS = `
   .sfx-overlay {
@@ -21,16 +21,16 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: clamp(6px, 2vh, 22px);
     background: radial-gradient(60% 55% at 50% 42%, rgba(6,10,20,.8), rgba(6,10,20,.5) 70%, transparent);
-    opacity: 0; animation: sfx-fade 3.2s ease forwards;
+    opacity: 0; animation: sfx-fade 2.7s ease forwards;
   }
-  @keyframes sfx-fade { 0%{opacity:0} 6%{opacity:1} 88%{opacity:1} 100%{opacity:0} }
+  @keyframes sfx-fade { 0%{opacity:0} 7%{opacity:1} 86%{opacity:1} 100%{opacity:0} }
 
   /* --- Phase 1: the auction hammer swings down and strikes --- */
   .sfx-hammer {
     position: absolute; left: 50%; top: 30%; z-index: 3;
     font-size: clamp(64px, 13vh, 120px); line-height: 1; transform-origin: 85% 85%;
     filter: drop-shadow(0 8px 16px rgba(0,0,0,.6));
-    animation: sfx-hammer 1s cubic-bezier(.5,0,.35,1) forwards;
+    animation: sfx-hammer .8s cubic-bezier(.5,0,.35,1) forwards;
   }
   @keyframes sfx-hammer {
     0%   { transform: translate(-6%, -34px) rotate(-74deg); opacity: 0; }
@@ -45,7 +45,7 @@
     width: clamp(130px, 24vh, 240px); aspect-ratio: 1; transform: translate(-50%, -50%) scale(.2);
     border-radius: 50%; opacity: 0;
     background: radial-gradient(circle, rgba(255,255,255,.95), rgba(45,212,143,.55) 42%, transparent 70%);
-    animation: sfx-flash .5s ease-out .4s forwards;
+    animation: sfx-flash .45s ease-out .32s forwards;
   }
   @keyframes sfx-flash {
     0%{transform:translate(-50%,-50%) scale(.2);opacity:0}
@@ -69,7 +69,7 @@
     box-shadow: 0 24px 64px -16px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.25);
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: clamp(44px, 9vh, 88px); font-weight: 800;
-    animation: sfx-fly 2.2s cubic-bezier(.55,0,.4,1) ${REVEAL_DELAY} both; will-change: transform, opacity;
+    animation: sfx-fly 2s cubic-bezier(.55,0,.4,1) ${REVEAL_DELAY} both; will-change: transform, opacity;
   }
   .sfx-player img { width: 100%; height: 100%; object-fit: cover; display: block; }
   @keyframes sfx-fly {
@@ -81,7 +81,7 @@
   }
 
   .sfx-bag { display: flex; flex-direction: column; align-items: center;
-    animation: sfx-catch 2.2s ease ${REVEAL_DELAY} both; will-change: transform, opacity; }
+    animation: sfx-catch 2s ease ${REVEAL_DELAY} both; will-change: transform, opacity; }
   @keyframes sfx-catch {
     0%   { transform: scale(.8); opacity: 0; }
     12%  { transform: scale(1);  opacity: 1; }
@@ -189,7 +189,7 @@
     overlay.append(hammer, flash, stamp, player, bag);
     document.body.appendChild(overlay);
 
-    setTimeout(() => { overlay.remove(); active = false; }, 3300);
+    setTimeout(() => { overlay.remove(); active = false; }, 2800);
   }
 
   global.playSoldToTeam = playSoldToTeam;
