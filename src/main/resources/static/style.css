@@ -639,20 +639,11 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 /* The active state wrappers pass their flex sizing through to the hero. The hero
    sizes to its (viewport-scaled) content and never shrinks below it, so the bid
    figures are never clipped; the team grid takes whatever height remains. */
+/* The hero FILLS the space above the team band, so the player name, stats and
+   bid always have room. The team grid below is a compact fixed band (its own
+   content height), not a space-filler — see .broadcast-teams. */
 #live-state, #sold-state {
-  display: flex; flex-direction: column; min-height: 0; flex: 0 0 auto;
-  max-height: 58vh;
-}
-/* On shorter displays (720p/768p projectors) give the two team rows more room so
-   their cards don't clip — the hero content is already vh-scaled to keep up. */
-@media (min-width: 900px) and (max-height: 850px) {
-  #live-state, #sold-state { max-height: 40vh; }
-  /* Tighten the cards so a full 5×2 grid fits without clipping: drop the
-     secondary squad line and trim internal spacing (logo/name/purse stay big). */
-  .team-broadcast { padding: 6px 16px; gap: 2px; }
-  .team-broadcast .tb-meta { display: none; }
-  .team-broadcast .purse-amount { margin: 0; }
-  .team-broadcast .purse-bar { margin-bottom: 0; }
+  display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto;
 }
 .broadcast-idle {
   flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
@@ -732,24 +723,24 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 .player-status .pstat span { font-size: clamp(12px, 1.5vh, 16px); }
 
 .bid-display {
-  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 1.6vw, 22px); margin: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(11px, 1.4vw, 20px); margin: 0;
   flex: 0 0 auto;
 }
 .bid-amount {
   background: rgba(10,14,26,.5); border: 1px solid var(--border);
-  border-radius: 14px; padding: clamp(10px, 1.5vh, 18px) 24px;
-  display: flex; flex-direction: column; gap: clamp(3px, .7vh, 8px);
+  border-radius: 14px; padding: clamp(9px, 1.3vh, 16px) 22px;
+  display: flex; flex-direction: column; gap: clamp(3px, .6vh, 7px);
 }
 .bid-amount.next { background: rgba(45,212,143,.06); border-color: rgba(45,212,143,.4); }
 .bid-label {
-  font-size: clamp(14px, 1.8vh, 22px); font-weight: 800; text-transform: uppercase;
+  font-size: clamp(13px, 1.6vh, 20px); font-weight: 800; text-transform: uppercase;
   letter-spacing: .06em; color: var(--muted);
 }
 .bid-value {
-  font-size: clamp(30px, 4vh, 54px); font-weight: 800; color: var(--green);
+  font-size: clamp(27px, 3.6vh, 49px); font-weight: 800; color: var(--green);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.05;
 }
-.bid-team { font-size: clamp(16px, 2vh, 24px); color: var(--text); font-weight: 600; }
+.bid-team { font-size: clamp(14px, 1.8vh, 22px); color: var(--text); font-weight: 600; }
 .bid-amount.next .bid-value { color: var(--accent); }
 
 .bid-info { display: flex; gap: 12px; align-items: center; flex: 0 0 auto; }
@@ -761,25 +752,24 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 
 /* Team purses — big type but COMPACT height, so a full field lays out in one
    row and the board fits one screen without shrinking (projector-readable). */
+/* Team purses — a COMPACT fixed band at the bottom (its own content height), so
+   the hero above it fills the rest of the screen with the player + stats. */
 .broadcast-teams {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px 22px;
-  flex: 1 1 auto; min-height: 0;
+  border-radius: var(--radius); padding: 16px 22px;
+  flex: 0 0 auto;
   display: flex; flex-direction: column;
 }
 .broadcast-teams h2 {
   flex: 0 0 auto;
-  margin: 0 0 12px; font-size: 20px; text-transform: uppercase;
+  margin: 0 0 10px; font-size: 18px; text-transform: uppercase;
   letter-spacing: .1em; color: var(--muted);
 }
-/* The grid fills the section's remaining height; equal rows (grid-auto-rows:1fr)
-   stretch the cards so the two rows cover the whole area — no empty band below.
-   Column count is set by layoutTeams() in JS (5 for a 10-team field → 5×2). */
+/* Two content-height rows (grid-auto-rows) rather than a space-filler; the column
+   count is set by layoutTeams() in JS (5 for a 10-team field → 5×2). */
 .teams-broadcast {
-  flex: 1 1 auto; min-height: 0;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  grid-auto-rows: 1fr; align-content: stretch;
-  gap: 14px;
+  grid-auto-rows: auto; gap: 12px;
 }
 .team-broadcast {
   background: var(--card-2); border: 1px solid var(--border);
@@ -795,12 +785,12 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 }
 .tb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .team-broadcast h3 {
-  margin: 0; font-size: clamp(17px, 2.6vh, 26px); font-weight: 800; letter-spacing: -.01em;
+  margin: 0; font-size: clamp(16px, 2.3vh, 23px); font-weight: 800; letter-spacing: -.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .purse-amount {
-  font-size: clamp(24px, 4vh, 40px); font-weight: 800; color: var(--green); line-height: 1.05;
-  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 2px 0 clamp(5px, 1vh, 10px);
+  font-size: clamp(22px, 3.6vh, 36px); font-weight: 800; color: var(--green); line-height: 1.05;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 2px 0 clamp(4px, .9vh, 9px);
 }
 .purse-bar { height: 14px; background: rgba(148,163,205,.14); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
 .team-broadcast .purse-bar { height: clamp(8px, 1.4vh, 14px); margin-bottom: clamp(5px, 1vh, 10px); }
@@ -813,6 +803,21 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 .squad-info { font-size: 17px; color: var(--muted); margin-top: 8px; font-weight: 600; }
 .leading-badge { font-size: 26px; font-weight: 800; line-height: 1; animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+/* Shorter displays (720p/768p): make the team band much more compact so the hero
+   above keeps enough height for the player name + full stats + bid. Placed AFTER
+   the base team-card rules so these overrides win (equal specificity, later). */
+@media (min-width: 900px) and (max-height: 850px) {
+  .broadcast-teams { padding: 12px 20px; }
+  .broadcast-teams h2 { margin: 0 0 8px; font-size: 15px; }
+  .teams-broadcast { gap: 9px; }
+  .team-broadcast { padding: 6px 15px; gap: 2px; }
+  .team-broadcast .tb-meta { display: none; }
+  .team-broadcast .purse-amount { margin: 0; font-size: clamp(19px, 2.8vh, 28px); }
+  .team-broadcast .purse-bar { height: 7px; margin-bottom: 0; }
+  .team-broadcast h3 { font-size: clamp(15px, 2vh, 21px); }
+  .tb-head .team-logo, .tb-head .crest { width: clamp(28px, 3.6vh, 42px); height: clamp(28px, 3.6vh, 42px); }
+}
 
 /* Team purse cards are clickable → squad drill-down. */
 .team-broadcast { cursor: pointer; }
@@ -1509,7 +1514,7 @@ main.owner-wrap.wide { max-width: 1240px; }
 
 /* Broadcast board team cards: logo | name (fills) | 👑 badge. */
 .tb-head { justify-content: flex-start; }
-.tb-head .team-logo, .tb-head .crest { width: clamp(40px, 5.6vh, 62px); height: clamp(40px, 5.6vh, 62px); }
+.tb-head .team-logo, .tb-head .crest { width: clamp(36px, 5vh, 56px); height: clamp(36px, 5vh, 56px); }
 .team-broadcast h3 { flex: 1 1 auto; min-width: 0; }
 .tb-head .leading-badge { margin-left: auto; }
 
