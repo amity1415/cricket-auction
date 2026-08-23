@@ -205,6 +205,7 @@ function profileStats(st) {
 // when the player changes (so the entrance animation runs once per player); for
 // the same player we patch just the bid line in place — no flicker on each poll.
 let bannerPlayerId = null;
+let lastBidHtml = '';
 
 function bannerBidHtml(block, leading) {
   return block.currentBidAmount != null
@@ -238,13 +239,17 @@ function renderBanner(block, team) {
         ${profileStats(block.stats)}
       </div>`;
     bannerPlayerId = block.playerId;
+    lastBidHtml = bannerBidHtml(block, leading);
   } else {
     // Same player — patch only the volatile bits, leaving the element (and its
     // animation) untouched.
     const banner = el.querySelector('.banner');
     if (banner) banner.classList.toggle('leading', leading);
     const bid = el.querySelector('.bblock-bid');
-    if (bid) bid.innerHTML = bannerBidHtml(block, leading);
+    // Only rewrite when the text changed — otherwise the leading team's crest
+    // <img> is recreated every poll and flickers.
+    const html = bannerBidHtml(block, leading);
+    if (bid && html !== lastBidHtml) { lastBidHtml = html; bid.innerHTML = html; }
   }
 }
 

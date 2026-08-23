@@ -1,10 +1,11 @@
-/* Sold celebration FX — a ~2.6s overlay that flies the sold player's photo down
- * into the buying team's "bag" (a pouch stamped with the team logo). Shared by
- * the live broadcast and the team dashboard. Self-contained: injects its own CSS
- * once, is pointer-events:none so it never blocks the page, and removes itself.
+/* Sold celebration FX — a ~3.2s overlay: an auction hammer swings down and
+ * STRIKES (with an impact flash), then the SOLD reveal plays and the player's
+ * photo flies into the buying team's "bag" (a pouch stamped with the team logo).
+ * Shared by the live broadcast and the team dashboard. Self-contained: injects
+ * its own CSS once, is pointer-events:none so it never blocks the page, honours
+ * prefers-reduced-motion, and removes itself.
  *
- * Usage: playSoldToTeam({ playerName, playerId, teamName, amount }). playerId is
- * used to pull /api/players/{id}/photo (falls back to initials on error).
+ * Usage: playSoldToTeam({ playerName, playerId, teamName, amount }).
  */
 (function (global) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
@@ -12,23 +13,55 @@
   const initials = name => String(name || '?').split(/\s+/).filter(Boolean)
       .map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
+  const REVEAL_DELAY = '.8s';   // hammer strikes first, then the reveal starts
+
   const CSS = `
   .sfx-overlay {
     position: fixed; inset: 0; z-index: 9990; pointer-events: none;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: clamp(6px, 2vh, 22px);
-    background: radial-gradient(60% 55% at 50% 42%, rgba(6,10,20,.78), rgba(6,10,20,.45) 70%, transparent);
-    opacity: 0; animation: sfx-fade 2.7s ease forwards;
+    background: radial-gradient(60% 55% at 50% 42%, rgba(6,10,20,.8), rgba(6,10,20,.5) 70%, transparent);
+    opacity: 0; animation: sfx-fade 3.2s ease forwards;
   }
-  @keyframes sfx-fade { 0%{opacity:0} 7%{opacity:1} 84%{opacity:1} 100%{opacity:0} }
+  @keyframes sfx-fade { 0%{opacity:0} 6%{opacity:1} 88%{opacity:1} 100%{opacity:0} }
 
+  /* --- Phase 1: the auction hammer swings down and strikes --- */
+  .sfx-hammer {
+    position: absolute; left: 50%; top: 30%; z-index: 3;
+    font-size: clamp(64px, 13vh, 120px); line-height: 1; transform-origin: 85% 85%;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,.6));
+    animation: sfx-hammer 1s cubic-bezier(.5,0,.35,1) forwards;
+  }
+  @keyframes sfx-hammer {
+    0%   { transform: translate(-6%, -34px) rotate(-74deg); opacity: 0; }
+    22%  { transform: translate(-6%, -64px) rotate(-66deg); opacity: 1; }   /* raised */
+    44%  { transform: translate(-26%, 18px)  rotate(16deg); opacity: 1; }   /* STRIKE */
+    56%  { transform: translate(-24%, 4px)   rotate(3deg);  opacity: 1; }   /* recoil */
+    70%  { transform: translate(-24%, 10px)  rotate(9deg);  opacity: 1; }
+    100% { transform: translate(6%, -120px)  rotate(-52deg); opacity: 0; }  /* lift away */
+  }
+  .sfx-flash {
+    position: absolute; left: 50%; top: 40%; z-index: 2;
+    width: clamp(130px, 24vh, 240px); aspect-ratio: 1; transform: translate(-50%, -50%) scale(.2);
+    border-radius: 50%; opacity: 0;
+    background: radial-gradient(circle, rgba(255,255,255,.95), rgba(45,212,143,.55) 42%, transparent 70%);
+    animation: sfx-flash .5s ease-out .4s forwards;
+  }
+  @keyframes sfx-flash {
+    0%{transform:translate(-50%,-50%) scale(.2);opacity:0}
+    28%{transform:translate(-50%,-50%) scale(1);opacity:1}
+    100%{transform:translate(-50%,-50%) scale(2.4);opacity:0}
+  }
+
+  /* --- Phase 2: SOLD reveal + player flies into the team bag (delayed) --- */
   .sfx-stamp {
     font-weight: 900; letter-spacing: .14em; color: var(--green, #2dd48f);
     font-size: clamp(22px, 4vh, 44px); text-shadow: 0 3px 16px rgba(45,212,143,.5);
     border: 3px solid var(--green, #2dd48f); border-radius: 14px; padding: 4px 20px;
-    transform: rotate(-7deg) scale(0); animation: sfx-stamp .5s cubic-bezier(.2,.9,.3,1.5) .05s forwards;
+    transform: rotate(-7deg) scale(0);
+    animation: sfx-stamp .45s cubic-bezier(.2,.9,.3,1.5) ${REVEAL_DELAY} both;
   }
-  @keyframes sfx-stamp { to { transform: rotate(-7deg) scale(1); } }
+  @keyframes sfx-stamp { 0%{transform:rotate(-7deg) scale(0)} 100%{transform:rotate(-7deg) scale(1)} }
 
   .sfx-player {
     width: clamp(130px, 24vh, 240px); aspect-ratio: 3/4; border-radius: 20px; overflow: hidden;
@@ -36,23 +69,25 @@
     box-shadow: 0 24px 64px -16px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.25);
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: clamp(44px, 9vh, 88px); font-weight: 800;
-    animation: sfx-fly 2.7s cubic-bezier(.55,0,.4,1) forwards; will-change: transform, opacity;
+    animation: sfx-fly 2.2s cubic-bezier(.55,0,.4,1) ${REVEAL_DELAY} both; will-change: transform, opacity;
   }
   .sfx-player img { width: 100%; height: 100%; object-fit: cover; display: block; }
   @keyframes sfx-fly {
     0%   { transform: translateY(-40px) scale(.6) rotate(-5deg); opacity: 0; }
-    13%  { transform: translateY(0)     scale(1)  rotate(0);     opacity: 1; }
+    16%  { transform: translateY(0)     scale(1)  rotate(0);     opacity: 1; }
     52%  { transform: translateY(6px)   scale(1)  rotate(0);     opacity: 1; }
     85%  { transform: translateY(190px) scale(.12) rotate(16deg); opacity: .85; }
     100% { transform: translateY(215px) scale(.03) rotate(20deg); opacity: 0; }
   }
 
   .sfx-bag { display: flex; flex-direction: column; align-items: center;
-    animation: sfx-catch 2.7s ease forwards; will-change: transform; }
+    animation: sfx-catch 2.2s ease ${REVEAL_DELAY} both; will-change: transform, opacity; }
   @keyframes sfx-catch {
-    0%,58% { transform: scale(1) translateY(0); }
-    73%    { transform: scale(1.16) translateY(-5px); }
-    86%    { transform: scale(.95); } 100% { transform: scale(1); }
+    0%   { transform: scale(.8); opacity: 0; }
+    12%  { transform: scale(1);  opacity: 1; }
+    58%  { transform: scale(1); }
+    73%  { transform: scale(1.16) translateY(-5px); }
+    86%  { transform: scale(.95); } 100% { transform: scale(1); }
   }
   .sfx-bag-handle {
     width: 46%; height: clamp(18px, 3vh, 32px); margin: 0 auto -4px;
@@ -75,12 +110,17 @@
   }
   .sfx-bag-label {
     margin-top: clamp(8px, 1.4vh, 14px); font-weight: 800; color: #fff;
-    font-size: clamp(15px, 2.4vh, 26px); text-align: center; max-width: 60vw;
+    font-size: clamp(15px, 2.4vh, 26px); text-align: center; max-width: 70vw;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    animation: sfx-appear .3s ease ${REVEAL_DELAY} both;
   }
+  @keyframes sfx-appear { from{opacity:0} to{opacity:1} }
   .sfx-bag-amount { color: var(--green, #2dd48f); font-variant-numeric: tabular-nums; }
+
   @media (prefers-reduced-motion: reduce) {
-    .sfx-overlay, .sfx-player, .sfx-bag, .sfx-stamp { animation-duration: .01s; }
+    .sfx-overlay, .sfx-player, .sfx-bag, .sfx-stamp, .sfx-hammer, .sfx-flash, .sfx-bag-label {
+      animation-duration: .01s; animation-delay: 0s;
+    }
   }`;
 
   function injectCSS() {
@@ -109,6 +149,12 @@
     const overlay = document.createElement('div');
     overlay.className = 'sfx-overlay';
 
+    const hammer = document.createElement('div');
+    hammer.className = 'sfx-hammer';
+    hammer.textContent = '🔨';
+    const flash = document.createElement('div');
+    flash.className = 'sfx-flash';
+
     const stamp = document.createElement('div');
     stamp.className = 'sfx-stamp';
     stamp.textContent = 'SOLD';
@@ -133,17 +179,17 @@
       '<div class="sfx-bag-body">' +
         (logoUrl ? `<img src="${logoUrl}" alt="">`
                  : `<span class="sfx-bag-crest">${esc(initials(teamName))}</span>`) +
-      '</div>' +
-      `<div class="sfx-bag-label">🛍️ ${esc(teamName || '')}` +
-        (amount != null ? ` · <span class="sfx-bag-amount">${fmtShort(amount)}</span>` : '') +
       '</div>';
+    const label = document.createElement('div');
+    label.className = 'sfx-bag-label';
+    label.innerHTML = `🛍️ ${esc(teamName || '')}` +
+      (amount != null ? ` · <span class="sfx-bag-amount">${fmtShort(amount)}</span>` : '');
+    bag.appendChild(label);
 
-    overlay.appendChild(stamp);
-    overlay.appendChild(player);
-    overlay.appendChild(bag);
+    overlay.append(hammer, flash, stamp, player, bag);
     document.body.appendChild(overlay);
 
-    setTimeout(() => { overlay.remove(); active = false; }, 2750);
+    setTimeout(() => { overlay.remove(); active = false; }, 3300);
   }
 
   global.playSoldToTeam = playSoldToTeam;

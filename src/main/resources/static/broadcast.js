@@ -139,9 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
   fitToScreen();
 });
 
+let lastTeamsHtml = '';
 function renderTeams(teams, highlightTeamId, block) {
   lastTeamCount = (teams || []).length;
-  setHTML('bc-teams', (teams || []).map(t => {
+  const html = (teams || []).map(t => {
     const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;
     const hot = t.teamId === highlightTeamId;
     return `
@@ -156,7 +157,13 @@ function renderTeams(teams, highlightTeamId, block) {
         <div class="purse-bar"><i style="width:${pct}%"></i></div>
         <div class="tb-meta">Squad ${t.squadFilled}/${t.squadFilled + t.squadOpenSlots} · ${fmtShort(t.remainingPurse)} of ${fmtShort(t.startingPurse)}</div>
       </div>`;
-  }).join(''));
+  }).join('');
+  // Only rewrite the grid when it actually changed — recreating the crest <img>
+  // elements on every 250ms poll is what made the team logos flicker.
+  if (html !== lastTeamsHtml) {
+    lastTeamsHtml = html;
+    setHTML('bc-teams', html);
+  }
   layoutTeams(lastTeamCount);
 }
 

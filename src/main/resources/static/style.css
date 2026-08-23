@@ -1664,26 +1664,31 @@ main.owner-wrap.wide { max-width: 1240px; }
    When showing the all-teams overview (body.picker-mode, set in team.js), fill
    the viewport with a grid that lays a 10-team field out 5×2 — no page scroll,
    cards stretch to fill, mirroring the broadcast board. The single-team
-   dashboard view (no picker-mode) keeps its normal scrolling layout. */
-body.picker-mode { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-body.picker-mode > header { flex: 0 0 auto; }
-body.picker-mode main.owner-wrap.wide {
-  flex: 1 1 auto; min-height: 0; max-width: none; width: 100%;
-  padding: 14px 22px; display: flex; flex-direction: column; gap: 12px;
+   dashboard view (no picker-mode) keeps its normal scrolling layout.
+   ONLY on wide screens (≥900px): on phones/tablets there isn't room to fit a
+   full field in one viewport height, so the picker scrolls normally instead of
+   squishing every tile until its crest and name are clipped. */
+@media (min-width: 900px) {
+  body.picker-mode { height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  body.picker-mode > header { flex: 0 0 auto; }
+  body.picker-mode main.owner-wrap.wide {
+    flex: 1 1 auto; min-height: 0; max-width: none; width: 100%;
+    padding: 14px 22px; display: flex; flex-direction: column; gap: 12px;
+  }
+  body.picker-mode .teams-overview { flex: 1 1 auto; min-height: 0; gap: 12px; }
+  body.picker-mode #teams-grid {
+    flex: 1 1 auto; min-height: 0;
+    grid-auto-rows: 1fr; align-content: stretch; gap: 14px;
+  }
+  /* Cards stretch to fill their row; content spreads top-to-bottom. Flex column so
+     the front fills the padding box exactly (no overflow past the card edge). */
+  body.picker-mode .team-tile { min-height: 0; padding: clamp(12px, 1.8vh, 20px) 18px;
+    animation: none; display: flex; flex-direction: column; }
+  body.picker-mode .tile-front { flex: 1 1 auto; height: auto; min-height: 0; gap: clamp(8px, 1.4vh, 14px); }
+  /* The hover snapshot can be taller than a short card — let it scroll rather than clip. */
+  body.picker-mode .tile-detail { overflow-y: auto; }
 }
-body.picker-mode .teams-overview { flex: 1 1 auto; min-height: 0; gap: 12px; }
-body.picker-mode #teams-grid {
-  flex: 1 1 auto; min-height: 0;
-  grid-auto-rows: 1fr; align-content: stretch; gap: 14px;
-}
-/* Cards stretch to fill their row; content spreads top-to-bottom. Flex column so
-   the front fills the padding box exactly (no overflow past the card edge). */
-body.picker-mode .team-tile { min-height: 0; padding: clamp(12px, 1.8vh, 20px) 18px;
-  animation: none; display: flex; flex-direction: column; }
-body.picker-mode .tile-front { flex: 1 1 auto; height: auto; min-height: 0; gap: clamp(8px, 1.4vh, 14px); }
-/* The hover snapshot can be taller than a short card — let it scroll rather than clip. */
-body.picker-mode .tile-detail { overflow-y: auto; }
-/* Shorter displays (720p/768p): trim the crest and spacing so 2 rows still fit. */
+/* Shorter wide displays (720p/768p): trim the crest and spacing so 2 rows fit. */
 @media (min-width: 900px) and (max-height: 850px) {
   body.picker-mode .tile-top .team-logo, body.picker-mode .tile-top .crest {
     width: clamp(44px, 6vh, 68px); height: clamp(44px, 6vh, 68px);
