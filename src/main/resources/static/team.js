@@ -240,12 +240,19 @@ function renderBanner(block, team) {
     // New player on the block — build once (this is when the animation should run).
     el.innerHTML = `
       <div class="banner ${leading ? 'leading' : ''}">
-        <a class="plink" href="player.html?playerId=${block.playerId}"><b>${esc(block.name)}</b></a>
-        (${ROLE_SHORT[block.role]}, Group ${block.category})
-        is on the block —
-        <span class="bblock-bid">${bannerBidHtml(block, leading)}</span>
-        ${maxBidHtml}
-        ${profileStats(block.stats)}
+        <div class="banner-media">
+          ${block.hasPhoto ? `<img class="banner-photo" src="/api/players/${block.playerId}/photo" alt=""
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+          <div class="banner-avatar"${block.hasPhoto ? ' style="display:none"' : ''}>${initials(block.name)}</div>
+        </div>
+        <div class="banner-info">
+          <a class="plink" href="player.html?playerId=${block.playerId}"><b>${esc(block.name)}</b></a>
+          (${ROLE_SHORT[block.role]}, Group ${block.category})
+          is on the block —
+          <span class="bblock-bid">${bannerBidHtml(block, leading)}</span>
+          ${maxBidHtml}
+          ${profileStats(block.stats)}
+        </div>
       </div>`;
     bannerPlayerId = block.playerId;
     lastBidHtml = bannerBidHtml(block, leading);
