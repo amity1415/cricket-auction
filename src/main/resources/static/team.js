@@ -519,20 +519,24 @@ function updateLastResult(audit) {
   const me = window.authReady ? await window.authReady : null;
   myTeamId = me && me.teamId ? me.teamId : null;
 
-  // Give a franchise owner a one-click link back to their own team.
+  // Give a franchise owner a one-click link back to their own team (keeps the
+  // auction context so it doesn't bounce to the hub).
   if (myTeamId) {
     const nav = document.querySelector('header nav');
     if (nav) {
       const mine = document.createElement('a');
-      mine.href = 'team.html?teamId=' + myTeamId;
+      mine.href = 'team.html?teamId=' + myTeamId + tParam();
       mine.textContent = '⭐ My team';
       nav.prepend(mine);
     }
   }
 
   if (!teamId) {
-    // Owners land straight on their own team; others get the picker.
-    if (myTeamId) { location.replace('team.html?teamId=' + myTeamId); return; }
+    // Everyone — including franchise owners — gets the all-teams overview (their
+    // own team is highlighted). Owners have read access to every team dashboard,
+    // so we no longer force-redirect them to their own team (that redirect also
+    // dropped the tournamentId, which bounced them back to the Auctions hub —
+    // the "clicking the auction reloads the same page" bug).
     showPicker();
   } else {
     getJSON('/api/config').then(c => { auctionConfig = c; refresh(); }).catch(() => refresh());
