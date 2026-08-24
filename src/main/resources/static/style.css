@@ -393,6 +393,21 @@ summary { cursor: pointer; color: var(--accent); padding: 4px 0; font-weight: 60
   font-size: clamp(24px, 4.5vw, 40px); font-weight: 800; letter-spacing: .02em;
 }
 .banner-info { flex: 1 1 auto; min-width: 0; }
+/* The player name is a clear, prominent link to the full profile; the portrait
+   is clickable too (both open player.html). */
+.plink.banner-name {
+  font-size: clamp(17px, 2.2vh, 22px); font-weight: 800; letter-spacing: -.01em;
+  color: var(--accent); border-bottom: none; text-decoration: none;
+  display: inline-flex; align-items: baseline; gap: 4px; vertical-align: baseline;
+}
+.plink.banner-name:hover { color: #8fb1ff; text-decoration: underline; text-underline-offset: 3px; }
+.banner-name .pl-open { font-size: .72em; opacity: .75; }
+.banner-media, .banner-media.plink { display: block; text-decoration: none; border-bottom: 0; cursor: pointer; transition: transform .15s ease; }
+.banner-media:hover { transform: translateY(-2px); }
+.banner-media:hover .banner-photo, .banner-media:hover .banner-avatar {
+  outline: 2px solid rgba(91,140,255,.55); outline-offset: 2px;
+  box-shadow: 0 16px 34px -14px rgba(91,140,255,.7), inset 0 1px 0 rgba(255,255,255,.15);
+}
 @media (max-width: 560px) {
   .banner { flex-direction: column; align-items: stretch; }
   .banner-media { align-self: flex-start; }
