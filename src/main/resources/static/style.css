@@ -1237,6 +1237,64 @@ button.ghost.auth-logout { padding: 6px 13px; font-size: 13px; border-radius: 20
 }
 .controls select:focus, .controls .search-input:focus { outline: none; border-color: var(--accent); }
 .controls .search-input { flex: 1 1 180px; min-width: 160px; }
+
+/* ── Players page — elevated Status & Refine controls ─────────────────────────
+   Pill-shaped, colour-coded status chips each with a status dot (the colour
+   matches the row status badge), and a sleeker Refine tray with a solid badge. */
+.players-wrap .filter-bar {
+  border-color: var(--border-strong);
+  background:
+    radial-gradient(130% 120% at 0% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in srgb, var(--card-2) 72%, transparent), color-mix(in srgb, var(--card-2) 30%, transparent));
+  box-shadow: 0 12px 34px -24px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.03);
+}
+.players-wrap .chip-filter { max-width: none; gap: 9px; }
+.players-wrap .fchip {
+  border-radius: 999px; padding: 8px 15px; display: inline-flex; align-items: center; gap: 8px;
+  border-color: var(--border-strong); background: color-mix(in srgb, var(--card-2) 82%, transparent);
+}
+.players-wrap .fchip:hover { transform: translateY(-1px); }
+
+/* Status chips carry their own colour (--sc), matching the status badges. */
+#status-chips .fchip { padding-left: 13px; --sc: var(--accent);
+  border-color: color-mix(in srgb, var(--sc) 40%, var(--border));
+  background: color-mix(in srgb, var(--sc) 9%, var(--card-2));
+  color: color-mix(in srgb, var(--sc) 52%, var(--text)); }
+#status-chips .fchip[data-v="AVAILABLE"]     { --sc: #5b8cff; }
+#status-chips .fchip[data-v="UNDER_AUCTION"] { --sc: #f5b942; }
+#status-chips .fchip[data-v="RETAINED"]      { --sc: #a78bfa; }
+#status-chips .fchip[data-v="SOLD"]          { --sc: #2dd48f; }
+#status-chips .fchip[data-v="UNSOLD"]        { --sc: #f0564a; }
+#status-chips .fchip::before {
+  content: ""; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: var(--sc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc) 22%, transparent); transition: box-shadow .15s; }
+#status-chips .fchip:hover { border-color: var(--sc); color: var(--text); }
+#status-chips .fchip.active {
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, var(--sc), color-mix(in srgb, var(--sc) 60%, #10131c));
+  box-shadow: 0 7px 20px -6px color-mix(in srgb, var(--sc) 78%, transparent); }
+#status-chips .fchip.active::before { background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.3); }
+
+/* Role & Category chips (inside the Refine tray). */
+#role-chips .fchip.active, #category-chips .fchip.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent;
+  box-shadow: 0 7px 20px -6px rgba(91,140,255,.55); }
+
+/* Refine tray + its badge — a solid gradient pill instead of a plain label. */
+.players-wrap .filter-row--refine {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 55%),
+    color-mix(in srgb, var(--card-2) 52%, transparent);
+}
+.players-wrap .refine-badge {
+  color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  padding: 6px 13px; border-radius: 999px; border-right: none; margin-right: 8px; align-self: center;
+  box-shadow: 0 5px 14px -6px rgba(91,140,255,.65); letter-spacing: .1em;
+}
+.players-wrap .refine-badge::before { content: "⚙"; }
+@media (max-width: 560px) {
+  .players-wrap .refine-badge { border-bottom: none; width: auto; padding: 6px 13px; }
+}
 #sort-dir { padding: 8px 12px; font-size: 13px; align-self: flex-end; }
 
 .table-scroll { overflow: auto; max-height: 68vh; }
