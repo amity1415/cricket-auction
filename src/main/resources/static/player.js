@@ -92,24 +92,30 @@ function render(p, current, teams, bids) {
 
     <section class="card">
       <h2>Career</h2>
-      ${st.matches != null ? `<div class="btile-grid">${statTile('Matches', st.matches)}</div>` : ''}
-      ${hasBatting ? `
-        <div class="pm-label">Batting</div>
-        <div class="btile-grid">
-          ${statTile('Innings', st.battingInnings)}
-          ${statTile('Runs', st.runs)}
-          ${statTile('Highest', st.highestScore)}
-          ${statTile('Average', st.battingAverage)}
-          ${statTile('Strike Rate', st.strikeRate)}
-        </div>` : ''}
-      ${hasBowling ? `
-        <div class="pm-label">Bowling</div>
-        <div class="btile-grid">
-          ${statTile('Innings', st.bowlingInnings)}
-          ${statTile('Wickets', st.wickets)}
-          ${statTile('Economy', st.economyRate)}
-          ${statTile('Best Bowling', st.bestBowling)}
-        </div>` : ''}
+      ${st.matches != null ? `<div class="career-lead"><b>${st.matches}</b><span>Matches played</span></div>` : ''}
+      <div class="stat-panels">
+        ${hasBatting ? `
+          <div class="stat-panel batting">
+            <div class="sp-head">🏏 Batting</div>
+            <div class="sp-grid">
+              ${statTile('Innings', st.battingInnings)}
+              ${statTile('Runs', st.runs)}
+              ${statTile('Highest', st.highestScore)}
+              ${statTile('Average', st.battingAverage)}
+              ${statTile('Strike Rate', st.strikeRate)}
+            </div>
+          </div>` : ''}
+        ${hasBowling ? `
+          <div class="stat-panel bowling">
+            <div class="sp-head">🎯 Bowling</div>
+            <div class="sp-grid">
+              ${statTile('Innings', st.bowlingInnings)}
+              ${statTile('Wickets', st.wickets)}
+              ${statTile('Economy', st.economyRate)}
+              ${statTile('Best Bowling', st.bestBowling)}
+            </div>
+          </div>` : ''}
+      </div>
       ${!hasBatting && !hasBowling && st.matches == null
           ? '<p class="muted">No career stats on record for this player.</p>' : ''}
     </section>

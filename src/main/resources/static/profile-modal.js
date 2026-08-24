@@ -95,18 +95,24 @@
 
         ${hasBatting || hasBowling || st.matches != null ? `
           <div class="pm-label">Career${st.matches != null ? ` · ${st.matches} matches` : ''}</div>
-          ${hasBatting ? `
-            <div class="pm-sub">Batting</div>
-            <div class="btile-grid">
-              ${tile('Innings', st.battingInnings)}${tile('Runs', st.runs)}${tile('Highest', st.highestScore)}
-              ${tile('Average', st.battingAverage)}${tile('Strike Rate', st.strikeRate)}
-            </div>` : ''}
-          ${hasBowling ? `
-            <div class="pm-sub">Bowling</div>
-            <div class="btile-grid">
-              ${tile('Innings', st.bowlingInnings)}${tile('Wickets', st.wickets)}
-              ${tile('Economy', st.economyRate)}${tile('Best Bowling', st.bestBowling)}
-            </div>` : ''}`
+          <div class="stat-panels">
+            ${hasBatting ? `
+              <div class="stat-panel batting">
+                <div class="sp-head">🏏 Batting</div>
+                <div class="sp-grid">
+                  ${tile('Innings', st.battingInnings)}${tile('Runs', st.runs)}${tile('Highest', st.highestScore)}
+                  ${tile('Average', st.battingAverage)}${tile('Strike Rate', st.strikeRate)}
+                </div>
+              </div>` : ''}
+            ${hasBowling ? `
+              <div class="stat-panel bowling">
+                <div class="sp-head">🎯 Bowling</div>
+                <div class="sp-grid">
+                  ${tile('Innings', st.bowlingInnings)}${tile('Wickets', st.wickets)}
+                  ${tile('Economy', st.economyRate)}${tile('Best Bowling', st.bestBowling)}
+                </div>
+              </div>` : ''}
+          </div>`
         : '<p class="muted">No career stats on record.</p>'}
 
         <div class="pm-label">Auction</div>
