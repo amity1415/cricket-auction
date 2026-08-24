@@ -12,6 +12,8 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,8 @@ import java.util.UUID;
  */
 @Service
 public class SetupService {
+
+    private static final Logger log = LoggerFactory.getLogger(SetupService.class);
 
     private final CoreService core;
     private final BiddingService bidding;
@@ -77,24 +81,54 @@ public class SetupService {
         // Match on a normalized key (lower-cased, internal whitespace collapsed) so a
         // grading like "Icon- Kolkata  Challengers" still resolves to the team named
         // "Kolkata Challengers" regardless of stray spaces or the dash spacing.
+        List<Team> teams = core.listTeams();
         Map<String, UUID> teamByName = new HashMap<>();
-        for (Team t : core.listTeams()) {
+        for (Team t : teams) {
             teamByName.put(normalizeTeamName(t.getName()), t.getTeamId());
         }
+        int assigned = 0, hadTeam = 0;
+        List<String> unmatched = new ArrayList<>();
         for (Player p : players) {
             String teamName = p.getPreAssignedTeamName();
-            if (teamName == null || teamName.isBlank()) continue;
-            UUID teamId = teamByName.get(normalizeTeamName(teamName));
-            if (teamId == null) continue;   // no matching team → leave the pick unassigned
+            if (teamName == null || teamName.isBlank()) continue;   // no team in the grading
+            hadTeam++;
+            String key = normalizeTeamName(teamName);
+            UUID teamId = teamByName.get(key);
+            if (teamId == null) teamId = fuzzyTeamMatch(key, teams);  // tolerate a "Kolkata " prefix diff
+            if (teamId == null) { unmatched.add(teamName); continue; }
             // Retain at the pick's base price (₹12L Icon / ₹6L Owner) and deduct it
             // from the team's purse.
             sale.assignPreAuction(teamId, p.getPlayerId(), p.getBasePrice());
+            assigned++;
         }
+        log.info("Pre-auction picks: {} gradings carried a team; {} auto-retained, {} unmatched{}",
+                hadTeam, assigned, unmatched.size(),
+                unmatched.isEmpty() ? "" : " (no team matched: " + unmatched + ")");
     }
 
     /** Case- and whitespace-insensitive key used to match a grading's team to a team. */
     private static String normalizeTeamName(String name) {
         return name == null ? "" : name.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+    }
+
+    /**
+     * Fallback when the grading's team name isn't an exact match: accept it when
+     * exactly ONE team's normalized name contains the grading's (or vice-versa) —
+     * e.g. grading "Kolkata Thunder Strikers" → team "Thunder Strikers", or grading
+     * "Challengers" → team "Kolkata Challengers". Ambiguous (>1) matches are left
+     * unassigned so a stray substring never mis-assigns a pick.
+     */
+    private static UUID fuzzyTeamMatch(String key, List<Team> teams) {
+        if (key.isBlank()) return null;
+        UUID hit = null;
+        for (Team t : teams) {
+            String tk = normalizeTeamName(t.getName());
+            if (tk.equals(key) || tk.contains(key) || key.contains(tk)) {
+                if (hit != null) return null;   // ambiguous — refuse rather than guess
+                hit = t.getTeamId();
+            }
+        }
+        return hit;
     }
 
     private static boolean isXlsx(String filename) {

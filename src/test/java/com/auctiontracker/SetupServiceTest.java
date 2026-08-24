@@ -257,6 +257,35 @@ class SetupServiceTest {
         assertNull(orphan.getSoldToTeamId());
     }
 
+    /**
+     * Real sheets vary: Excel turns "-" into an en-dash, and team names carry an
+     * inconsistent "Kolkata " prefix. The grading team is matched tolerantly — any
+     * dash/colon separator, case- and whitespace-insensitive, with a one-team
+     * substring fallback — so these picks still auto-retain.
+     */
+    @Test
+    void iconOwnerMatchToleratesDashVariantsAndKolkataPrefix() throws Exception {
+        Team challengers = teams.save(TestFixtures.team("Kolkata Challengers", 150_000_000L, 8, Map.of()));
+        Team thunder = teams.save(TestFixtures.team("Thunder Strikers", 150_000_000L, 8, Map.of()));
+
+        byte[] xlsx = kcplSheet(new String[][]{
+            {"1", "En Dash Icon", "Icon – Kolkata Challengers", "All Rounder"}, // en-dash separator
+            {"2", "Tight Owner", "Owner- Kolkata Challengers", "Batsman"},            // hyphen, no space
+            {"3", "Prefix Icon", "Icon - Kolkata Thunder Strikers", "Bowler"},        // grading has extra "Kolkata"
+        });
+        setup.replaceImport("KCPL2.xlsx", xlsx);
+
+        assertEquals(PlayerStatus.RETAINED, byName("En Dash Icon").getStatus());
+        assertEquals(challengers.getTeamId(), byName("En Dash Icon").getSoldToTeamId());
+        assertEquals(PlayerStatus.RETAINED, byName("Tight Owner").getStatus());
+        assertEquals(challengers.getTeamId(), byName("Tight Owner").getSoldToTeamId());
+        assertEquals(PlayerStatus.RETAINED, byName("Prefix Icon").getStatus());
+        assertEquals(thunder.getTeamId(), byName("Prefix Icon").getSoldToTeamId());
+
+        assertEquals(148_200_000L, challengers.getRemainingPurse());  // 150M − 12L − 6L
+        assertEquals(148_800_000L, thunder.getRemainingPurse());      // 150M − 12L
+    }
+
     private Player byName(String name) {
         return players.findAll().stream().filter(p -> p.getName().equals(name)).findFirst().orElseThrow();
     }

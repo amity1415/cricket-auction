@@ -256,9 +256,11 @@ public class PlayerRowParser {
         String s = rawGrading.trim();
         String lower = s.toLowerCase(Locale.ROOT);
         if (!(lower.startsWith("icon") || lower.startsWith("owner"))) return null;
-        int dash = s.indexOf('-');
-        if (dash < 0) return null;
-        String team = s.substring(dash + 1).trim();
+        // The team follows the label after a separator. Accept a plain hyphen, an
+        // en/em dash (Excel/Sheets often auto-convert "-"), or a colon.
+        String[] parts = s.split("[-–—:]", 2);
+        if (parts.length < 2) return null;
+        String team = parts[1].trim();
         return team.isEmpty() ? null : team;
     }
 
