@@ -73,18 +73,24 @@ function metaChips(p) {
     <span class="chip">Group ${p.category}</span>`;
 }
 
-function statsStrip(stats) {
-  if (!stats) return '';
-  const items = [
-    ['Matches', stats.matches],
-    ['Bat Inns', stats.battingInnings], ['Runs', stats.runs], ['HS', stats.highestScore],
-    ['Avg', stats.battingAverage], ['SR', stats.strikeRate],
-    ['Bowl Inns', stats.bowlingInnings], ['Wickets', stats.wickets],
-    ['Econ', stats.economyRate], ['BB', stats.bestBowling],
-  ].filter(([, v]) => v != null);
-  if (!items.length) return '';
-  return `<div class="pstats">${items.map(([l, v]) =>
-      `<div class="pstat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+// Career stats as compact Batting / Bowling panels (blue / red) for the TV board.
+function statsStrip(st) {
+  if (!st) return '';
+  const t = (l, v) => v == null ? '' : `<div class="btile"><b>${v}</b><span>${l}</span></div>`;
+  const hasBat = st.battingInnings != null || st.runs != null || st.battingAverage != null
+      || st.strikeRate != null || st.highestScore != null;
+  const hasBowl = st.bowlingInnings != null || st.wickets != null || st.economyRate != null
+      || st.bowlingAverage != null || st.bestBowling != null;
+  if (!hasBat && !hasBowl && st.matches == null) return '';
+  const bat = t('Inns', st.battingInnings) + t('Runs', st.runs) + t('HS', st.highestScore)
+      + t('Avg', st.battingAverage) + t('SR', st.strikeRate);
+  const bowl = t('Inns', st.bowlingInnings) + t('Wkts', st.wickets) + t('Avg', st.bowlingAverage)
+      + t('Econ', st.economyRate) + t('BB', st.bestBowling);
+  return `${st.matches != null ? `<span class="stat-matches">${st.matches} matches</span>` : ''}
+    <div class="stat-panels compact">
+      ${hasBat ? `<div class="stat-panel batting"><div class="sp-head">🏏 Batting</div><div class="sp-grid">${bat}</div></div>` : ''}
+      ${hasBowl ? `<div class="stat-panel bowling"><div class="sp-head">🎯 Bowling</div><div class="sp-grid">${bowl}</div></div>` : ''}
+    </div>`;
 }
 
 function showState(which) {

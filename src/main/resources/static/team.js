@@ -187,18 +187,27 @@ async function refresh() {
   } catch (e) { /* retry on next tick */ }
 }
 
+// Career stats as compact Batting / Bowling panels (blue / red).
 function profileStats(st) {
+  return statPanelsHtml(st);
+}
+function statPanelsHtml(st) {
   if (!st) return '';
-  const items = [
-    ['Matches', st.matches],
-    ['Bat Inns', st.battingInnings], ['Runs', st.runs], ['HS', st.highestScore],
-    ['Avg', st.battingAverage], ['SR', st.strikeRate],
-    ['Bowl Inns', st.bowlingInnings], ['Wickets', st.wickets],
-    ['Econ', st.economyRate], ['BB', st.bestBowling],
-  ].filter(([, v]) => v != null);
-  if (!items.length) return '';
-  return `<div class="pstats">${items.map(([label, v]) =>
-      `<div class="pstat"><b>${v}</b><span>${label}</span></div>`).join('')}</div>`;
+  const t = (l, v) => v == null ? '' : `<div class="btile"><b>${v}</b><span>${l}</span></div>`;
+  const hasBat = st.battingInnings != null || st.runs != null || st.battingAverage != null
+      || st.strikeRate != null || st.highestScore != null;
+  const hasBowl = st.bowlingInnings != null || st.wickets != null || st.economyRate != null
+      || st.bowlingAverage != null || st.bestBowling != null;
+  if (!hasBat && !hasBowl && st.matches == null) return '';
+  const bat = t('Inns', st.battingInnings) + t('Runs', st.runs) + t('HS', st.highestScore)
+      + t('Avg', st.battingAverage) + t('SR', st.strikeRate);
+  const bowl = t('Inns', st.bowlingInnings) + t('Wkts', st.wickets) + t('Avg', st.bowlingAverage)
+      + t('Econ', st.economyRate) + t('BB', st.bestBowling);
+  return `${st.matches != null ? `<span class="stat-matches">${st.matches} matches</span>` : ''}
+    <div class="stat-panels compact">
+      ${hasBat ? `<div class="stat-panel batting"><div class="sp-head">🏏 Batting</div><div class="sp-grid">${bat}</div></div>` : ''}
+      ${hasBowl ? `<div class="stat-panel bowling"><div class="sp-head">🎯 Bowling</div><div class="sp-grid">${bowl}</div></div>` : ''}
+    </div>`;
 }
 
 // The player currently drawn in the banner. We rebuild the banner element only

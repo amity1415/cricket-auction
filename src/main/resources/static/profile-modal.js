@@ -74,7 +74,7 @@
       const hasBatting = st.battingInnings != null || st.runs != null || st.battingAverage != null
           || st.strikeRate != null || st.highestScore != null;
       const hasBowling = st.bowlingInnings != null || st.wickets != null
-          || st.economyRate != null || st.bestBowling != null;
+          || st.economyRate != null || st.bowlingAverage != null || st.bestBowling != null;
 
       document.getElementById('ppm-title').textContent = p.name;
       document.getElementById('ppm-full').href = `player.html?playerId=${p.playerId}`;
@@ -108,7 +108,7 @@
               <div class="stat-panel bowling">
                 <div class="sp-head">🎯 Bowling</div>
                 <div class="sp-grid">
-                  ${tile('Innings', st.bowlingInnings)}${tile('Wickets', st.wickets)}
+                  ${tile('Innings', st.bowlingInnings)}${tile('Wickets', st.wickets)}${tile('Average', st.bowlingAverage)}
                   ${tile('Economy', st.economyRate)}${tile('Best Bowling', st.bestBowling)}
                 </div>
               </div>` : ''}

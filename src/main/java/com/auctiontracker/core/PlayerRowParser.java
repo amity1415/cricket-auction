@@ -67,6 +67,7 @@ public class PlayerRowParser {
             Map.entry("wickets", "wickets"), Map.entry("bowlingwickets", "wickets"),
             Map.entry("economy", "economy"), Map.entry("economyrate", "economy"),
             Map.entry("econ", "economy"), Map.entry("bowlingeconomy", "economy"),
+            Map.entry("overs", "overs"), Map.entry("bowlingovers", "overs"),
             Map.entry("bestbowling", "bestbowling"), Map.entry("bb", "bestbowling"),
             Map.entry("bowlingbestbowling", "bestbowling"),
             Map.entry("imagelocation", "image"), Map.entry("image", "image"),
@@ -159,13 +160,20 @@ public class PlayerRowParser {
 
         Player player = Player.register(name, role, category, basePrice);
         player.setPreAssignedTeamName(preAuctionTeamName(rawGrading));
+        Integer wickets = intValue(parts, cols, "wickets");
+        Double economy = doubleValue(parts, cols, "economy");
+        // Bowling average isn't a sheet column, but Overs + Economy + Wickets are:
+        // runs conceded = economy × overs, so average = runs ÷ wickets.
+        Double overs = doubleValue(parts, cols, "overs");
+        Double bowlingAverage = (overs != null && economy != null && wickets != null && wickets > 0)
+                ? Math.round(economy * overs / wickets * 100.0) / 100.0 : null;
         PlayerStats stats = new PlayerStats(
                 intValue(parts, cols, "matches"),
                 intValue(parts, cols, "battinginnings"), intValue(parts, cols, "runs"),
                 doubleValue(parts, cols, "battingavg"), doubleValue(parts, cols, "strikerate"),
                 value(parts, cols, "highestscore"),
-                intValue(parts, cols, "bowlinginnings"), intValue(parts, cols, "wickets"),
-                doubleValue(parts, cols, "economy"), value(parts, cols, "bestbowling"));
+                intValue(parts, cols, "bowlinginnings"), wickets,
+                economy, bowlingAverage, value(parts, cols, "bestbowling"));
         player.setStats(stats.allNull() ? null : stats);
         player.setPhotoFolderId(toPhotoFolderId(value(parts, cols, "image")));
         return player;
@@ -214,7 +222,7 @@ public class PlayerRowParser {
         // are available through a header row.
         PlayerStats stats = new PlayerStats(
                 intAt(parts, 4), null, intAt(parts, 5), doubleAt(parts, 6),
-                doubleAt(parts, 7), null, null, intAt(parts, 8), doubleAt(parts, 9), null);
+                doubleAt(parts, 7), null, null, intAt(parts, 8), doubleAt(parts, 9), null, null);
         player.setStats(stats.allNull() ? null : stats);
         return player;
     }

@@ -92,6 +92,6 @@ public class DataSeeder implements CommandLineRunner {
                         Integer matches, Integer runs, Double avg, Double strikeRate,
                         Integer wickets, Double economy) {
         core.registerPlayer(name, role, category, null,
-                new PlayerStats(matches, null, runs, avg, strikeRate, null, null, wickets, economy, null));
+                new PlayerStats(matches, null, runs, avg, strikeRate, null, null, wickets, economy, null, null));
     }
 }

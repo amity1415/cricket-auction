@@ -522,6 +522,31 @@ summary { cursor: pointer; color: var(--accent); padding: 4px 0; font-weight: 60
 .sp-grid .btile b { font-size: 19px; }
 .sp-grid .btile span { font-size: 9.5px; }
 
+/* Compact variant used in tighter contexts (the team banner + broadcast board). */
+.stat-matches { display: inline-block; margin: 2px 0 8px; font-size: 12px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.stat-panels.compact { gap: 10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.stat-panels.compact .sp-head { padding: 5px 11px; font-size: 10.5px; }
+.stat-panels.compact .sp-grid { grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); }
+.stat-panels.compact .btile { padding: 8px 5px; }
+.stat-panels.compact .btile b { font-size: 15px; }
+.stat-panels.compact .btile span { font-size: 8.5px; letter-spacing: .03em; }
+
+/* Broadcast board: tight, single-row panels with bright numbers so the two
+   panels fit the capped hero and read clearly from across the room. */
+/* Matches total is shown in the meta/elsewhere; drop it on the space-tight board. */
+.broadcast-player .stat-matches, .broadcast-sold .stat-matches { display: none; }
+.broadcast-player .stat-panels.compact, .broadcast-sold .stat-panels.compact { gap: clamp(6px, 1vh, 12px); }
+.broadcast-player .stat-panels.compact .sp-grid, .broadcast-sold .stat-panels.compact .sp-grid { grid-template-columns: repeat(5, 1fr); }
+.broadcast-player .stat-panels.compact .sp-head, .broadcast-sold .stat-panels.compact .sp-head {
+  font-size: clamp(8px, 1.1vh, 12px); padding: clamp(2px, .4vh, 4px) 10px; }
+.broadcast-player .stat-panels.compact .btile, .broadcast-sold .stat-panels.compact .btile {
+  padding: clamp(3px, .55vh, 7px) 4px; }
+.broadcast-player .stat-panels.compact .btile b, .broadcast-sold .stat-panels.compact .btile b {
+  font-size: clamp(13px, 1.9vh, 24px); color: #fff; line-height: 1.05; margin: 0; }
+.broadcast-player .stat-panels.compact .btile span, .broadcast-sold .stat-panels.compact .btile span {
+  font-size: clamp(7px, .95vh, 11px); color: #aab4cc; line-height: 1.1; }
+
 /* --- Player profile stats strip (on the block) ------------------------------ */
 .pstats {
   display: flex; gap: 22px; flex-wrap: wrap;

@@ -25,6 +25,7 @@ public record PlayerStats(
         Integer bowlingInnings,
         Integer wickets,
         Double economyRate,
+        Double bowlingAverage,
         String bestBowling) {
 
     private static boolean blank(String s) { return s == null || s.isBlank(); }
@@ -34,6 +35,6 @@ public record PlayerStats(
         return matches == null && battingInnings == null && runs == null
                 && battingAverage == null && strikeRate == null && blank(highestScore)
                 && bowlingInnings == null && wickets == null && economyRate == null
-                && blank(bestBowling);
+                && bowlingAverage == null && blank(bestBowling);
     }
 }

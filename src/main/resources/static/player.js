@@ -71,7 +71,7 @@ function render(p, current, teams, bids) {
   const hasBatting = st.battingInnings != null || st.runs != null || st.battingAverage != null
       || st.strikeRate != null || st.highestScore != null;
   const hasBowling = st.bowlingInnings != null || st.wickets != null
-      || st.economyRate != null || st.bestBowling != null;
+      || st.economyRate != null || st.bowlingAverage != null || st.bestBowling != null;
 
   document.title = `${p.name} — Player Profile`;
   const html = `
@@ -111,6 +111,7 @@ function render(p, current, teams, bids) {
             <div class="sp-grid">
               ${statTile('Innings', st.bowlingInnings)}
               ${statTile('Wickets', st.wickets)}
+              ${statTile('Average', st.bowlingAverage)}
               ${statTile('Economy', st.economyRate)}
               ${statTile('Best Bowling', st.bestBowling)}
             </div>
