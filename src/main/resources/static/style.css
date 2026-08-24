@@ -539,13 +539,13 @@ summary { cursor: pointer; color: var(--accent); padding: 4px 0; font-weight: 60
 .broadcast-player .stat-panels.compact, .broadcast-sold .stat-panels.compact { gap: clamp(6px, 1vh, 12px); }
 .broadcast-player .stat-panels.compact .sp-grid, .broadcast-sold .stat-panels.compact .sp-grid { grid-template-columns: repeat(5, 1fr); }
 .broadcast-player .stat-panels.compact .sp-head, .broadcast-sold .stat-panels.compact .sp-head {
-  font-size: clamp(8px, 1.1vh, 12px); padding: clamp(2px, .4vh, 4px) 10px; }
+  font-size: clamp(9px, 1.35vh, 15px); padding: clamp(3px, .5vh, 6px) 12px; }
 .broadcast-player .stat-panels.compact .btile, .broadcast-sold .stat-panels.compact .btile {
-  padding: clamp(3px, .55vh, 7px) 4px; }
+  padding: clamp(5px, .9vh, 12px) 5px; }
 .broadcast-player .stat-panels.compact .btile b, .broadcast-sold .stat-panels.compact .btile b {
-  font-size: clamp(13px, 1.9vh, 24px); color: #fff; line-height: 1.05; margin: 0; }
+  font-size: clamp(17px, 2.7vh, 36px); color: #fff; line-height: 1.05; margin: 0; }
 .broadcast-player .stat-panels.compact .btile span, .broadcast-sold .stat-panels.compact .btile span {
-  font-size: clamp(7px, .95vh, 11px); color: #aab4cc; line-height: 1.1; }
+  font-size: clamp(9px, 1.25vh, 15px); color: #b8c2da; line-height: 1.15; }
 
 /* --- Player profile stats strip (on the block) ------------------------------ */
 .pstats {
@@ -868,19 +868,19 @@ body.broadcast-mode > header { flex: 0 0 auto; }
 }
 .bid-amount {
   background: rgba(10,14,26,.5); border: 1px solid var(--border);
-  border-radius: 14px; padding: clamp(9px, 1.3vh, 16px) 22px;
-  display: flex; flex-direction: column; gap: clamp(3px, .6vh, 7px);
+  border-radius: 14px; padding: clamp(6px, .9vh, 11px) 18px;
+  display: flex; flex-direction: column; gap: clamp(2px, .4vh, 5px);
 }
 .bid-amount.next { background: rgba(45,212,143,.06); border-color: rgba(45,212,143,.4); }
 .bid-label {
-  font-size: clamp(13px, 1.6vh, 20px); font-weight: 800; text-transform: uppercase;
+  font-size: clamp(11px, 1.3vh, 16px); font-weight: 800; text-transform: uppercase;
   letter-spacing: .06em; color: var(--muted);
 }
 .bid-value {
-  font-size: clamp(27px, 3.6vh, 49px); font-weight: 800; color: var(--green);
+  font-size: clamp(22px, 2.9vh, 40px); font-weight: 800; color: var(--green);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.05;
 }
-.bid-team { font-size: clamp(14px, 1.8vh, 22px); color: var(--text); font-weight: 600; }
+.bid-team { font-size: clamp(12px, 1.5vh, 18px); color: var(--text); font-weight: 600; }
 .bid-amount.next .bid-value { color: var(--accent); }
 
 .bid-info { display: flex; gap: 12px; align-items: center; flex: 0 0 auto; }
