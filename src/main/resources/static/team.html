@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cricket Auction — Team Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=47">
+  <link rel="stylesheet" href="style.css?v=48">
 </head>
 <body>
 <header>
@@ -56,11 +56,20 @@
 <!-- Persistent "last player sold/unsold" card, pinned bottom-right (~4cm²). -->
 <div id="last-result-mini" class="last-result-mini" style="display:none"></div>
 
+<!-- Group drill-down: the players this team has bought from a chosen group. -->
+<dialog id="group-modal" class="modal">
+  <div class="modal-head">
+    <h3 id="gm-title">Group</h3>
+    <button type="button" class="modal-x" id="gm-close" title="Close (Esc)">✕</button>
+  </div>
+  <div class="modal-body" id="gm-body"></div>
+</dialog>
+
 <script src="tournament-context.js"></script>
 <script src="auth.js"></script>
 <script src="profile-modal.js"></script>
 <script src="team-logo.js?v=2"></script>
 <script src="sold-fx.js?v=4"></script>
-<script src="team.js?v=47"></script>
+<script src="team.js?v=48"></script>
 </body>
 </html>

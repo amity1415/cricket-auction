@@ -180,9 +180,10 @@ async function refresh() {
     document.getElementById('dashboard').style.display = '';
     renderBanner(dash.onTheBlock, detail.team);
     renderHead(detail.team, detail.squad);
-    renderComposition(detail.team);
+    renderComposition(detail.team, detail.squad);
     renderSquad(detail.squad, detail.team);
     updateLastResult(audit);
+    if (openGroup) renderGroupModal();   // keep an open group popup live
   } catch (e) { /* retry on next tick */ }
 }
 
@@ -285,7 +286,35 @@ function meterRow(icon, label, have, target, capped) {
     </div>`;
 }
 
-function renderComposition(t) {
+// The squad currently in view, so the group popup can list a group's players.
+let lastSquad = [];
+let openGroup = null;   // group code whose player popup is open (null = closed)
+const GROUP_SEQ = ['A', 'B', 'C', 'D', 'E'];
+
+function groupQuotaCard(g, count, min, max) {
+  const maxLabel = max != null ? max : '∞';
+  const target = max != null ? max : (min != null ? min : 0);
+  const pct = target > 0 ? Math.min(100, (count / target) * 100) : (count > 0 ? 100 : 0);
+  const minMet = min == null || count >= min;
+  const atMax = max != null && count >= max;
+  const limits = [];
+  if (min != null) limits.push(`min ${min}`);
+  limits.push(max != null ? `max ${max}` : 'no max');
+  const note = !minMet ? ` · need ${min - count} more` : (atMax ? ' · full' : '');
+  return `
+    <button class="gquota${atMax ? ' full' : ''}${minMet ? '' : ' short'}" data-group="${g}"
+            title="Click to see this team's Group ${g} players">
+      <span class="gq-top">
+        <span class="gq-name">Group ${g}</span>
+        <span class="gq-count">${count}<span class="gq-of"> / ${maxLabel}</span></span>
+      </span>
+      <div class="meter ${atMax ? 'full' : (minMet && count > 0 ? 'met' : '')}"><i style="width:${pct}%"></i></div>
+      <span class="gq-limits">${limits.join(' · ')}${note}</span>
+    </button>`;
+}
+
+function renderComposition(t, squad) {
+  lastSquad = squad || [];
   // Roles carry no rule — plain make-up display.
   const roles = Object.entries(ROLE_SHORT)
       .map(([role, short]) => `
@@ -293,16 +322,66 @@ function renderComposition(t) {
         <span>${ROLE_ICON[role] || ''} ${short}</span></div>`)
       .join('');
   const rules = auctionConfig?.categoryRules || {};
-  const groups = Object.entries(t.categoryCounts || {})
-      .filter(([g]) => rules[g]?.maxPerTeam != null)
-      .map(([g, n]) => meterRow('', 'Group ' + g, n, rules[g].maxPerTeam, true))
+  const counts = t.categoryCounts || {};
+  // Show every group that has a rule (min OR max) or already holds players, in A→E order.
+  const shown = GROUP_SEQ.filter(g => rules[g] || counts[g]);
+  const groups = shown
+      .map(g => groupQuotaCard(g, counts[g] || 0, rules[g]?.minPerTeam, rules[g]?.maxPerTeam))
       .join('');
   setHTMLIfChanged('composition', `
     <div class="req-grid">
       <div><h3>Squad make-up · no role limits</h3><div class="role-chips">${roles}</div></div>
-      <div><h3>Group quotas (max per team)</h3>${groups || '<p class="muted">No group rules configured.</p>'}</div>
+      <div><h3>Group quotas <span class="muted">· tap a group to see its players</span></h3>
+        <div class="gquota-grid">${groups || '<p class="muted">No group rules configured.</p>'}</div></div>
     </div>`);
 }
+
+// --- Group player popup -----------------------------------------------------
+function renderGroupModal() {
+  if (!openGroup) return;
+  const g = openGroup;
+  const rules = auctionConfig?.categoryRules || {};
+  const min = rules[g]?.minPerTeam, max = rules[g]?.maxPerTeam;
+  const players = lastSquad.filter(p => p.category === g);
+  const limitTxt = [min != null ? `min ${min}` : null, max != null ? `max ${max}` : 'no max']
+      .filter(Boolean).join(' · ');
+  document.getElementById('gm-title').innerHTML =
+      `Group ${g} <span class="muted">· ${players.length} bought · ${limitTxt}</span>`;
+  const spent = players.reduce((s, p) => s + (p.soldPrice || 0), 0);
+  const rows = players.length
+      ? players.map((p, i) => `
+        <tr>
+          <td class="muted">${i + 1}</td>
+          <td><a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a>${p.retained ? ' <span class="rtag">RETAINED</span>' : ''}</td>
+          <td>${ROLE_ICON[p.role] || ''} ${ROLE_SHORT[p.role]}</td>
+          <td><b>${fmtINR(p.soldPrice)}</b></td>
+        </tr>`).join('')
+      : `<tr><td colspan="4" class="muted">No Group ${g} players bought yet.</td></tr>`;
+  document.getElementById('gm-body').innerHTML = `
+    <table class="pool"><thead><tr><th>#</th><th>Player</th><th>Role</th><th>Price</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    <p class="muted gm-foot">${players.length} player${players.length === 1 ? '' : 's'} · ${fmtShort(spent)} spent from Group ${g}.</p>`;
+}
+
+function openGroupModal(g) {
+  openGroup = g;
+  renderGroupModal();
+  const dlg = document.getElementById('group-modal');
+  if (dlg && !dlg.open) dlg.showModal();
+}
+
+(function wireGroupModal() {
+  document.addEventListener('click', e => {
+    if (e.target.id === 'gm-close') { document.getElementById('group-modal')?.close(); return; }
+    const card = e.target.closest?.('.gquota[data-group]');
+    if (card) openGroupModal(card.getAttribute('data-group'));
+  });
+  const dlg = document.getElementById('group-modal');
+  if (dlg) {
+    dlg.addEventListener('close', () => { openGroup = null; });
+    dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); }); // backdrop
+  }
+})();
 
 function renderSquad(squad, t) {
   document.getElementById('squad-summary').textContent =
