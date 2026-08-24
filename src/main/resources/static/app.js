@@ -6,7 +6,6 @@ const fmtINR = n => n == null ? '—'
 
 const fmtShort = n => {
   if (n == null) return '—';
-  if (n >= 1e7) return '₹' + (n / 1e7).toFixed(2).replace(/\.?0+$/, '') + ' Cr';
   if (n >= 1e5) return '₹' + (n / 1e5).toFixed(1).replace(/\.0$/, '') + ' L';
   return fmtINR(n);
 };

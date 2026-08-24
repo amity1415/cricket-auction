@@ -74,17 +74,27 @@ public class SetupService {
      * AVAILABLE in its group, to be assigned by hand on the retention screen.
      */
     private void assignPreAuctionPicks(List<Player> players) {
+        // Match on a normalized key (lower-cased, internal whitespace collapsed) so a
+        // grading like "Icon- Kolkata  Challengers" still resolves to the team named
+        // "Kolkata Challengers" regardless of stray spaces or the dash spacing.
         Map<String, UUID> teamByName = new HashMap<>();
         for (Team t : core.listTeams()) {
-            teamByName.put(t.getName().trim().toLowerCase(Locale.ROOT), t.getTeamId());
+            teamByName.put(normalizeTeamName(t.getName()), t.getTeamId());
         }
         for (Player p : players) {
             String teamName = p.getPreAssignedTeamName();
             if (teamName == null || teamName.isBlank()) continue;
-            UUID teamId = teamByName.get(teamName.trim().toLowerCase(Locale.ROOT));
+            UUID teamId = teamByName.get(normalizeTeamName(teamName));
             if (teamId == null) continue;   // no matching team → leave the pick unassigned
+            // Retain at the pick's base price (₹12L Icon / ₹6L Owner) and deduct it
+            // from the team's purse.
             sale.assignPreAuction(teamId, p.getPlayerId(), p.getBasePrice());
         }
+    }
+
+    /** Case- and whitespace-insensitive key used to match a grading's team to a team. */
+    private static String normalizeTeamName(String name) {
+        return name == null ? "" : name.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
     }
 
     private static boolean isXlsx(String filename) {
