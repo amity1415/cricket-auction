@@ -123,7 +123,52 @@ function hide() {
   if (r) { r.classList.remove('show', 'enter', 'is-sold'); }
   const b = $('tk-brand'); if (b) b.classList.remove('show');
   stopStatsCycle();
+  hideSides();
 }
+
+// Giant SOLD (green) / UNSOLD (blue) words in the empty side spaces. Restart the
+// slide-in animation on each new sale; leave it running while the same result
+// shows so it doesn't flicker on every poll.
+let sideSaleId = null;
+// Set each word's rebound travel (--travel) from the live band position so it
+// swings between just outside the band (centre side) and the screen edge — and
+// never slides fully behind the band, on any width.
+function sizeSides() {
+  const bar = $('tk-bar'); if (!bar) return;
+  const b = bar.getBoundingClientRect(), vw = window.innerWidth;
+  const l = $('tk-side-l'), r = $('tk-side-r');
+  if (l) { const gap = parseFloat(getComputedStyle(l).left) || 20;
+    l.style.setProperty('--travel', Math.max(24, Math.round(b.left - gap - l.offsetWidth - 8)) + 'px'); }
+  if (r) { const gap = parseFloat(getComputedStyle(r).right) || 20;
+    r.style.setProperty('--travel', Math.max(24, Math.round((vw - b.right) - gap - r.offsetWidth - 8)) + 'px'); }
+}
+function restartSides() {
+  ['tk-side-l', 'tk-side-r'].forEach(id => {
+    const el = $(id); if (el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+  });
+}
+function showSides(sale) {
+  const box = $('tk-sides'); if (!box) return;
+  const sold = sale.type === 'SOLD';
+  if (sale.saleId !== sideSaleId) {
+    sideSaleId = sale.saleId;
+    const word = sold ? 'SOLD' : 'UNSOLD';
+    const cls = 'tk-side ' + (sold ? 'green' : 'red');
+    [['tk-side-l', 'left'], ['tk-side-r', 'right']].forEach(([id, side]) => {
+      const el = $(id); if (!el) return;
+      el.textContent = word;
+      el.className = cls + ' ' + side;
+    });
+    box.classList.add('show');
+    sizeSides();      // compute travel from the current word widths + band position
+    restartSides();   // restart the swing so it picks up the fresh --travel
+  }
+  box.classList.add('show');
+}
+function hideSides() { const b = $('tk-sides'); if (b) b.classList.remove('show'); sideSaleId = null; }
+window.addEventListener('resize', () => {
+  if ($('tk-sides') && $('tk-sides').classList.contains('show')) { sizeSides(); restartSides(); }
+});
 
 // Batting/bowling panels rotate on a timer: shown 5s, hidden 10s, repeating.
 // When they fold away the bottom-anchored band slides DOWN (the upper ticker is
@@ -163,6 +208,7 @@ function renderLive(p) {
   const r = root();
   if (!r) return;
   r.classList.remove('is-sold');
+  hideSides();
   $('tk-bar').classList.remove('sold', 'unsold');
   const live = $('tk-live');
   if (live) live.className = 'tk-live';
@@ -229,6 +275,7 @@ function renderSold(sale) {
       ? crest(sale.teamName) + `<span>${esc(sale.teamName)}</span>`
         + `<span class="tk-amount">${fmtShort(sale.amount)}</span>`
       : '<span>—</span>');
+  showSides(sale);   // giant SOLD/UNSOLD in the side spaces
   reveal();
 }
 
@@ -245,7 +292,7 @@ function noteResult(result) {
     soldBandUntil = Date.now() + 7000;
     if (result.type === 'SOLD' && typeof playSoldToTeam === 'function') {
       playSoldToTeam({ playerName: result.playerName, playerId: result.playerId,
-                       teamName: result.teamName, amount: result.amount });
+                       teamName: result.teamName, amount: result.amount, sound: true });
     }
     return true;   // this is a fresh result
   }

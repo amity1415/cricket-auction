@@ -5,7 +5,9 @@
  * its own CSS once, is pointer-events:none so it never blocks the page, honours
  * prefers-reduced-motion, and removes itself.
  *
- * Usage: playSoldToTeam({ playerName, playerId, teamName, amount }).
+ * Usage: playSoldToTeam({ playerName, playerId, teamName, amount, sound }).
+ * Pass sound:true (the ticker does) to play a synthesized wooden-gavel knock at
+ * the moment of impact; the on-page dashboards call it without sound.
  */
 (function (global) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
@@ -13,7 +15,7 @@
   const initials = name => String(name || '?').split(/\s+/).filter(Boolean)
       .map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-  const REVEAL_DELAY = '.6s';   // hammer strikes first, then the reveal starts
+  const REVEAL_DELAY = '.78s';  // hammer (now slower) strikes first, then the reveal starts
 
   const CSS = `
   .sfx-overlay {
@@ -21,7 +23,7 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: clamp(6px, 2vh, 22px);
     background: radial-gradient(60% 55% at 50% 42%, rgba(6,10,20,.8), rgba(6,10,20,.5) 70%, transparent);
-    opacity: 0; animation: sfx-fade 2.7s ease forwards;
+    opacity: 0; animation: sfx-fade 3s ease forwards;
   }
   @keyframes sfx-fade { 0%{opacity:0} 7%{opacity:1} 86%{opacity:1} 100%{opacity:0} }
 
@@ -30,7 +32,7 @@
     position: absolute; left: 50%; top: 30%; z-index: 3;
     font-size: clamp(64px, 13vh, 120px); line-height: 1; transform-origin: 85% 85%;
     filter: drop-shadow(0 8px 16px rgba(0,0,0,.6));
-    animation: sfx-hammer .8s cubic-bezier(.5,0,.35,1) forwards;
+    animation: sfx-hammer 1.15s cubic-bezier(.5,0,.35,1) forwards;   /* slower swing */
   }
   @keyframes sfx-hammer {
     0%   { transform: translate(-6%, -34px) rotate(-74deg); opacity: 0; }
@@ -45,7 +47,7 @@
     width: clamp(130px, 24vh, 240px); aspect-ratio: 1; transform: translate(-50%, -50%) scale(.2);
     border-radius: 50%; opacity: 0;
     background: radial-gradient(circle, rgba(255,255,255,.95), rgba(45,212,143,.55) 42%, transparent 70%);
-    animation: sfx-flash .45s ease-out .32s forwards;
+    animation: sfx-flash .45s ease-out .47s forwards;   /* synced to the slower strike */
   }
   @keyframes sfx-flash {
     0%{transform:translate(-50%,-50%) scale(.2);opacity:0}
@@ -188,7 +190,59 @@
     overlay.append(hammer, flash, stamp, player, bag);
     document.body.appendChild(overlay);
 
-    setTimeout(() => { overlay.remove(); active = false; }, 2800);
+    // Wooden-gavel knock at the moment of impact — opt-in per call (the ticker
+    // passes sound:true; the on-page dashboards stay silent). Synthesized via
+    // Web Audio, so there's no asset to load.
+    if (opts && opts.sound) {
+      setTimeout(() => { try { playGavel(); } catch (e) { /* audio unavailable */ } }, 500);
+    }
+
+    setTimeout(() => { overlay.remove(); active = false; }, 3100);
+  }
+
+  // --- Wooden gavel sound (synthesized) -----------------------------------
+  let sfxAudioCtx = null;
+  function ensureAudio() {
+    if (sfxAudioCtx) return sfxAudioCtx;
+    const Ctx = global.AudioContext || global.webkitAudioContext;
+    if (!Ctx) return null;
+    sfxAudioCtx = new Ctx();
+    // Browsers may suspend audio until a gesture; resume on any interaction so
+    // it works outside OBS too (OBS browser sources autoplay audio already).
+    const unlock = () => { if (sfxAudioCtx && sfxAudioCtx.state === 'suspended') sfxAudioCtx.resume(); };
+    ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+      global.addEventListener(ev, unlock, { passive: true }));
+    return sfxAudioCtx;
+  }
+
+  function playGavel() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    const t0 = ctx.currentTime + 0.001;
+    // Woody "thock": two quick, low-mid tones with fast exponential decay.
+    [[190, 0.9], [300, 0.55]].forEach(([freq, gain]) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t0);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.65, t0 + 0.09);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain, t0 + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0); osc.stop(t0 + 0.22);
+    });
+    // Sharp attack "crack": a short band-passed noise burst.
+    const dur = 0.05, sr = ctx.sampleRate;
+    const buf = ctx.createBuffer(1, Math.max(1, Math.floor(sr * dur)), sr);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const noise = ctx.createBufferSource(); noise.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 0.8;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.7, t0); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    noise.connect(bp).connect(ng).connect(ctx.destination);
+    noise.start(t0); noise.stop(t0 + dur);
   }
 
   global.playSoldToTeam = playSoldToTeam;

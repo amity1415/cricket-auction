@@ -41,6 +41,48 @@
       width: min(960px, 88vw);
       opacity: 0; visibility: hidden; transition: opacity .4s ease;
       pointer-events: none; --team: var(--tk-accent);   /* recoloured per leading team */
+      z-index: 2;                                        /* above the side SOLD/UNSOLD words */
+    }
+
+    /* Giant SOLD / UNSOLD words filling the empty screen space on each side of
+       the band (IPL-style). SOLD is green, UNSOLD blue; they slide in and glow,
+       and sit BEHIND the band so its inner edge overlaps them. */
+    #tk-sides {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      opacity: 0; visibility: hidden; transition: opacity .4s ease;
+    }
+    #tk-sides.show { opacity: 1; visibility: visible; }
+    .tk-side {
+      position: absolute; bottom: clamp(12px, 3vh, 34px); opacity: .92;
+      font-family: "Arial Black", "Segoe UI", system-ui, sans-serif;
+      font-weight: 900; font-style: italic; letter-spacing: -.02em; line-height: .82;
+      font-size: clamp(24px, 5.2vh, 58px);          /* sized to fit the ticker height */
+      text-transform: uppercase; white-space: nowrap;
+      color: transparent; -webkit-background-clip: text; background-clip: text;
+      -webkit-text-stroke: 1.5px rgba(255,255,255,.16);
+    }
+    /* Rebounding motion: each word starts near the centre (tucked behind the
+       team block), drifts slowly out to its edge and back, forever. The centre
+       stays uncovered because the band sits on top (z-index 2 > 1). */
+    .tk-side.left  { left: clamp(2px, 1.4vw, 28px);  transform-origin: left center;
+      animation: tk-osc-l 3.8s ease-in-out infinite alternate, tk-side-glow 2.4s ease-in-out infinite; }
+    .tk-side.right { right: clamp(2px, 1.4vw, 28px); transform-origin: right center;
+      animation: tk-osc-r 3.8s ease-in-out infinite alternate, tk-side-glow 2.4s ease-in-out .3s infinite; }
+    .tk-side.green { background-image: linear-gradient(180deg, #86f7c7, #2dd48f 46%, #0e9a5f);
+      --sglow: rgba(45,212,143,.6); }
+    .tk-side.red   { background-image: linear-gradient(180deg, #ffb3ab, #ff5a4d 46%, #c0231a);
+      --sglow: rgba(255,90,77,.6); }
+    @keyframes tk-osc-l {
+      0%   { transform: translateX(var(--travel, 20vw)) skewX(-7deg); }
+      100% { transform: translateX(0)                   skewX(-7deg); } }
+    @keyframes tk-osc-r {
+      0%   { transform: translateX(calc(-1 * var(--travel, 20vw))) skewX(-7deg); }
+      100% { transform: translateX(0)                              skewX(-7deg); } }
+    @keyframes tk-side-glow {
+      0%,100% { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 6px var(--sglow, transparent)); }
+      50%     { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 22px var(--sglow, transparent)); } }
+    @media (prefers-reduced-motion: reduce) {
+      .tk-side.left, .tk-side.right { animation: none; opacity: .92; transform: skewX(-7deg); }
     }
     #tk-root.show { opacity: 1; visibility: visible; }
     #tk-root.enter { animation: tk-rise .5s cubic-bezier(.16,.84,.28,1) both; }
@@ -59,8 +101,8 @@
     }
     .tk-live.sold  { background: linear-gradient(100deg, rgba(45,200,140,.95), rgba(20,140,95,.95));
       box-shadow: 0 6px 16px -6px rgba(45,200,140,.8), var(--tk-shadow); }
-    .tk-live.unsold { background: linear-gradient(100deg, rgba(120,130,150,.9), rgba(70,80,100,.92));
-      box-shadow: var(--tk-shadow); }
+    .tk-live.unsold { background: linear-gradient(100deg, rgba(240,86,74,.95), rgba(170,26,26,.95));
+      box-shadow: 0 6px 16px -6px rgba(240,86,74,.8), var(--tk-shadow); }
     .tk-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff;
       box-shadow: 0 0 0 0 rgba(255,255,255,.9); animation: tk-ping 1.6s ease-out infinite; }
     @keyframes tk-ping {
@@ -338,16 +380,15 @@
     /* ===================== SOLD / UNSOLD verdict ===================== */
     .tk-bar.sold   { border-color: rgba(70,234,168,.6); }
     .tk-bar.unsold { border-color: rgba(255,106,94,.55); }
-    .tk-verdict { grid-column: 1 / -1; display: none; align-items: center; gap: clamp(10px, 1.6vw, 20px); }
-    #tk-root.is-sold .tk-bidrow, #tk-root.is-sold .tk-base, #tk-root.is-sold .tk-stats { display: none; }
+    .tk-verdict { grid-column: 1 / -1; display: none; align-items: center; justify-content: center;
+      gap: clamp(10px, 1.6vw, 20px); }
+    #tk-root.is-sold .tk-cell.right, #tk-root.is-sold .tk-base, #tk-root.is-sold .tk-stats { display: none; }
     #tk-root.is-sold .tk-verdict { display: flex; }
-    .tk-stamp {
-      font-weight: 900; letter-spacing: .14em; padding: 4px 16px; border-radius: 11px;
-      border: 2px solid var(--tk-green); color: var(--tk-green);
-      font-size: clamp(15px, 1.8vw, 25px); text-shadow: 0 0 16px rgba(70,234,168,.6);
-      box-shadow: 0 0 22px -6px rgba(70,234,168,.7), inset 0 0 16px -8px rgba(70,234,168,.5);
-      animation: tk-stamp-in .5s cubic-bezier(.2,.9,.3,1.5) both;
-    }
+    /* The in-band SOLD/UNSOLD badge and the status pill are removed on a result —
+       the giant side words convey it now. The pill still shows "On the block"
+       during live bidding. */
+    .tk-stamp { display: none; }
+    #tk-root.is-sold .tk-live { display: none; }
     @keyframes tk-stamp-in { 0%{transform:rotate(-6deg) scale(0);opacity:0} 100%{transform:rotate(-4deg) scale(1);opacity:1} }
     .tk-bar.unsold .tk-stamp { border-color: var(--tk-red); color: var(--tk-red);
       text-shadow: 0 0 16px rgba(255,106,94,.5); box-shadow: 0 0 22px -6px rgba(255,106,94,.6); }
@@ -397,6 +438,12 @@
   <div class="tk-brand" id="tk-brand">
     <span class="tk-brand-k">Powered by</span>
     <img src="img/csaitech-logo.png" alt="CSAITECH">
+  </div>
+
+  <!-- Giant SOLD/UNSOLD words in the side spaces (set + shown by ticker.js). -->
+  <div id="tk-sides" aria-hidden="true">
+    <span class="tk-side left" id="tk-side-l"></span>
+    <span class="tk-side right" id="tk-side-r"></span>
   </div>
 
   <div id="tk-root">
@@ -461,7 +508,7 @@
 
   <script src="tournament-context.js"></script>
   <script src="team-logo.js?v=2"></script>
-  <script src="sold-fx.js?v=4"></script>
-  <script src="ticker.js?v=10"></script>
+  <script src="sold-fx.js?v=5"></script>
+  <script src="ticker.js?v=19"></script>
 </body>
 </html>
