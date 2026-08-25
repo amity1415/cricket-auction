@@ -387,6 +387,13 @@
       gap: clamp(10px, 1.6vw, 20px); }
     #tk-root.is-sold .tk-cell.right, #tk-root.is-sold .tk-base, #tk-root.is-sold .tk-stats { display: none; }
     #tk-root.is-sold .tk-verdict { display: flex; }
+    /* On a result, drop the panel to ~20% opacity (80% transparent) so the giant
+       SOLD/UNSOLD words behind the band read clearly through it. */
+    #tk-root.is-sold .tk-bar {
+      background:
+        radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 14%, transparent), transparent 60%),
+        linear-gradient(180deg, rgba(78,60,168,.20), rgba(48,40,120,.20));
+    }
     /* The in-band SOLD/UNSOLD badge and the status pill are removed on a result —
        the giant side words convey it now. The pill still shows "On the block"
        during live bidding. */
