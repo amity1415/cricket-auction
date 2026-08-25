@@ -220,13 +220,14 @@
       background: linear-gradient(180deg, rgba(255,255,255,.05), var(--tk-glass-2));
       box-shadow: inset 0 0 0 1px rgba(150,176,240,.16);
     }
-    .tk-base { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+    .tk-base { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; text-align: right;
+      margin-right: clamp(24px, 4.4vw, 58px); }   /* pushed ~1.5cm further left */
     .tk-base .tk-amount { font-size: clamp(15px, 1.9vw, 24px); color: #fff; }
 
     /* Right cell holds just the current-bid block, hugging the centre (mirrors
        Base Price on the left). */
     .tk-cell.right { flex-direction: row; align-items: center; justify-content: flex-start; }
-    .tk-current { min-width: 0; flex: none; }
+    .tk-current { min-width: 0; flex: none; margin-left: clamp(24px, 4.4vw, 58px); }  /* ~1.5cm further right */
     .tk-cur-row { display: flex; align-items: baseline; gap: 4px; }
     .tk-current .tk-amount { font-size: clamp(15px, 1.9vw, 24px); color: var(--tk-green);
       text-shadow: 0 2px 12px rgba(0,0,0,.9), 0 0 16px color-mix(in srgb, var(--tk-green) 45%, transparent); }
@@ -234,8 +235,8 @@
     /* Leading team — a floating card above the bar, to the right of the photo:
        logo on top, name below, on the same translucent panel. */
     .tk-teamcard {
-      position: absolute; bottom: 100%; left: 50%; z-index: 3; margin-bottom: 7px;
-      transform: translateX(clamp(72px, 8vw, 116px));   /* clears the photo on its right */
+      position: absolute; bottom: 100%; right: clamp(6px, 1vw, 18px); left: auto; z-index: 3;
+      margin-bottom: 7px;                               /* extreme right, just above the bar */
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       padding: 7px 12px; border-radius: 12px;
       background: linear-gradient(180deg, var(--tk-glass-top), var(--tk-glass));
@@ -288,16 +289,28 @@
       padding-top: clamp(5px, .8vh, 8px); border-top: 1px solid rgba(150,176,240,.16);
       display: flex; align-items: stretch; gap: clamp(6px, 1vw, 12px);
       max-height: 40vh; overflow: hidden;
-      transition: max-height .45s ease, opacity .3s ease, margin-top .45s ease,
-                  padding-top .45s ease, border-color .3s ease;
+      transition: max-height .62s cubic-bezier(.33,1,.68,1), margin-top .62s cubic-bezier(.33,1,.68,1),
+                  padding-top .62s cubic-bezier(.33,1,.68,1), border-color .4s ease;
     }
     .tk-stats:empty { display: none; }
     /* Auto-cycle: when collapsed, the stats fold away and — because the band is
-       anchored at the bottom — the whole upper ticker slides DOWN; restoring
-       them slides it back UP. */
-    #tk-root.stats-collapsed .tk-stats {
-      max-height: 0; opacity: 0; margin-top: 0; padding-top: 0; border-top-color: transparent;
+       anchored at the bottom — the whole upper ticker slides DOWN; restoring them
+       slides it back UP. The panels themselves rise/fade with a soft bounce on the
+       way in (staggered batting→bowling) and drop away on the way out, so it reads
+       as lively rather than a dead snap. */
+    #tk-root.stats-collapsed .tk-stats { max-height: 0; margin-top: 0; padding-top: 0; border-top-color: transparent; }
+
+    .stat-panel, .tk-bidcount {
+      transition: transform .55s cubic-bezier(.34,1.56,.5,1), opacity .5s cubic-bezier(.34,1.4,.5,1);
+      transform-origin: bottom center;
     }
+    .stat-panel.bowling { transition-delay: .07s; }
+    .tk-bidcount { transition-delay: .12s; }
+    #tk-root.stats-collapsed .stat-panel, #tk-root.stats-collapsed .tk-bidcount {
+      opacity: 0; transform: translateY(18px) scale(.92);
+      transition: transform .32s cubic-bezier(.5,0,.75,0), opacity .26s ease; transition-delay: 0s;
+    }
+    #tk-root.stats-collapsed .stat-panel.batting { transition-delay: .04s; }
     .stat-panels { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(6px, 1vw, 10px); flex: 1; min-width: 0; }
     .stat-panel { border: 1px solid var(--tk-line); border-radius: 9px; overflow: hidden;
       background: rgba(6,10,22,.42); }
