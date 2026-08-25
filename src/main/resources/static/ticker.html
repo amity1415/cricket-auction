@@ -67,17 +67,17 @@
     /* Portrait pops ABOVE the centre column (floats in the root so the bar's
        clip/overflow never touches it). Kept small so the band stays compact. */
     .tk-portrait-wrap {
-      position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 24%);
-      width: clamp(56px, 6.4vw, 84px); z-index: 4; text-align: center;
+      position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 20%);
+      width: clamp(112px, 12.8vw, 168px); z-index: 4; text-align: center;   /* ~2x larger photo */
     }
     .tk-portrait {
       position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%;
       overflow: hidden; margin: 0 auto;
       background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
       display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 800; font-size: clamp(20px, 2.8vw, 36px);
-      box-shadow: 0 12px 32px -10px rgba(0,0,0,.8),
-                  0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
+      color: #fff; font-weight: 800; font-size: clamp(38px, 5vw, 66px);
+      box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
+                  0 0 0 3px rgba(8,12,26,.85), 0 0 0 5px color-mix(in srgb, var(--team) 70%, transparent);
     }
     .tk-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
     /* Rotating conic glow ring behind the portrait — the "dynamic background".
@@ -110,7 +110,7 @@
     /* Name sits ABOVE the portrait glow (higher stacking) and a touch lower so
        the animation never hides it. */
     .tk-name {
-      margin-top: clamp(3px, .8vh, 7px); font-weight: 800; letter-spacing: .01em;
+      margin-top: 0; font-weight: 800; letter-spacing: .01em;
       font-size: clamp(13px, 1.45vw, 19px); line-height: 1.1;
       text-shadow: 0 2px 12px rgba(0,0,0,.92), 0 0 3px rgba(0,0,0,.95);
     }
@@ -122,10 +122,10 @@
     /* ============================ The glass bar ============================ */
     .tk-bar {
       position: relative; display: grid; align-items: center;
-      grid-template-columns: 1fr minmax(128px, 188px) 1.08fr;
+      grid-template-columns: 1fr minmax(150px, 206px) 1.08fr;
       gap: clamp(7px, 1.1vw, 15px);
-      padding: clamp(8px, 1vh, 12px) clamp(16px, 1.9vw, 24px);
-      padding-top: clamp(18px, 2.7vh, 30px);          /* trimmed overhang room */
+      padding: clamp(5px, .7vh, 8px) clamp(16px, 1.9vw, 24px);
+      padding-top: clamp(9px, 1.3vh, 15px);           /* shorter upper band (~1cm less) */
       border-radius: 16px;
       background:
         radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 20%, transparent), transparent 60%),
@@ -163,7 +163,11 @@
 
     .tk-cell { position: relative; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
     .tk-cell.left  { align-items: flex-start; }
-    .tk-cell.center { align-items: center; text-align: center; gap: 1px; z-index: 6; }
+    /* Name/role sit at the bottom-centre of the upper band (centre-low), right
+       under the large photo. Stretch the cell to the row height so flex-end
+       drops the name to the base. */
+    .tk-cell.center { align-self: stretch; justify-content: flex-end; align-items: center;
+      text-align: center; gap: 1px; z-index: 6; padding-bottom: 2px; }
     .tk-cell.right { align-items: stretch; }
     .tk-cell.center::before, .tk-cell.center::after {
       content: ""; position: absolute; top: -2px; bottom: -2px; width: 1px;
