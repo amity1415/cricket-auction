@@ -299,8 +299,7 @@ function renderPool(players, teams) {
       <td>${fmtShort(p.basePrice)}</td>
       <td><span class="badge ${p.status}">${p.status.replace('_', ' ')}</span></td>
       <td>${p.status === 'AVAILABLE'
-          ? `<button class="link-btn" onclick="putOnBlock('${p.playerId}')">On block</button>
-             <button class="link-btn subtle" onclick="withdraw('${p.playerId}')" title="Mark unsold without auctioning">✕</button>`
+          ? `<button class="link-btn" onclick="putOnBlock('${p.playerId}')">On block</button>`
           : p.status === 'RETAINED'
           ? `<button class="link-btn subtle" onclick="releaseRetention('${p.playerId}')" title="Undo retention — refunds the purse">↩ Release</button>`
           : p.status === 'SOLD'

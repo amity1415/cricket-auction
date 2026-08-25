@@ -246,10 +246,11 @@
     .tk-team-logo { flex: none; display: inline-flex; }
     .tk-team-logo .tk-crest { width: clamp(34px, 4vw, 54px); height: clamp(34px, 4vw, 54px); border-radius: 12px; }
     .tk-team-logo .tk-crest.initials { font-size: clamp(14px, 1.6vw, 22px); border-radius: 12px; }
+    /* Full team name — never truncated. The card is right-anchored, so it just
+       stretches leftward to fit the whole name. */
     .tk-team-name {
       font-size: clamp(12px, 1.5vw, 18px); font-weight: 800; color: #fff; text-align: center;
-      text-shadow: var(--tk-tshadow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: clamp(90px, 16vw, 210px);
+      text-shadow: var(--tk-tshadow); white-space: nowrap; max-width: 92vw;
     }
     .tk-trend { color: var(--tk-green); font-size: .5em; opacity: 0; transform: translateY(4px); }
     .tk-current.bumped .tk-amount { animation: tk-pop .5s cubic-bezier(.2,.9,.3,1.4); }
