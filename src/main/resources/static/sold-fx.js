@@ -1,6 +1,6 @@
-/* Sold celebration FX — a ~3.2s overlay: an auction hammer swings down and
- * STRIKES (with an impact flash), then the SOLD reveal plays and the player's
+/* Sold celebration FX — a short overlay: the SOLD reveal plays and the player's
  * photo flies into the buying team's "bag" (a pouch stamped with the team logo).
+ * No hammer and no screen dimming — the video/board stays fully visible.
  * Shared by the live broadcast and the team dashboard. Self-contained: injects
  * its own CSS once, is pointer-events:none so it never blocks the page, honours
  * prefers-reduced-motion, and removes itself.
@@ -15,45 +15,17 @@
   const initials = name => String(name || '?').split(/\s+/).filter(Boolean)
       .map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-  const REVEAL_DELAY = '.78s';  // hammer (now slower) strikes first, then the reveal starts
+  const REVEAL_DELAY = '.18s';  // brief beat, then the SOLD reveal + fly-into-bag
 
   const CSS = `
   .sfx-overlay {
     position: fixed; inset: 0; z-index: 9990; pointer-events: none;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: clamp(6px, 2vh, 22px);
-    background: radial-gradient(60% 55% at 50% 42%, rgba(6,10,20,.8), rgba(6,10,20,.5) 70%, transparent);
-    opacity: 0; animation: sfx-fade 3s ease forwards;
+    background: transparent;
+    opacity: 0; animation: sfx-fade 2.6s ease forwards;
   }
-  @keyframes sfx-fade { 0%{opacity:0} 7%{opacity:1} 86%{opacity:1} 100%{opacity:0} }
-
-  /* --- Phase 1: the auction hammer swings down and strikes --- */
-  .sfx-hammer {
-    position: absolute; left: 50%; top: 30%; z-index: 3;
-    font-size: clamp(64px, 13vh, 120px); line-height: 1; transform-origin: 85% 85%;
-    filter: drop-shadow(0 8px 16px rgba(0,0,0,.6));
-    animation: sfx-hammer 1.15s cubic-bezier(.5,0,.35,1) forwards;   /* slower swing */
-  }
-  @keyframes sfx-hammer {
-    0%   { transform: translate(-6%, -34px) rotate(-74deg); opacity: 0; }
-    22%  { transform: translate(-6%, -64px) rotate(-66deg); opacity: 1; }   /* raised */
-    44%  { transform: translate(-26%, 18px)  rotate(16deg); opacity: 1; }   /* STRIKE */
-    56%  { transform: translate(-24%, 4px)   rotate(3deg);  opacity: 1; }   /* recoil */
-    70%  { transform: translate(-24%, 10px)  rotate(9deg);  opacity: 1; }
-    100% { transform: translate(6%, -120px)  rotate(-52deg); opacity: 0; }  /* lift away */
-  }
-  .sfx-flash {
-    position: absolute; left: 50%; top: 40%; z-index: 2;
-    width: clamp(130px, 24vh, 240px); aspect-ratio: 1; transform: translate(-50%, -50%) scale(.2);
-    border-radius: 50%; opacity: 0;
-    background: radial-gradient(circle, rgba(255,255,255,.95), rgba(45,212,143,.55) 42%, transparent 70%);
-    animation: sfx-flash .45s ease-out .47s forwards;   /* synced to the slower strike */
-  }
-  @keyframes sfx-flash {
-    0%{transform:translate(-50%,-50%) scale(.2);opacity:0}
-    28%{transform:translate(-50%,-50%) scale(1);opacity:1}
-    100%{transform:translate(-50%,-50%) scale(2.4);opacity:0}
-  }
+  @keyframes sfx-fade { 0%{opacity:0} 8%{opacity:1} 84%{opacity:1} 100%{opacity:0} }
 
   /* --- Phase 2: SOLD reveal + player flies into the team bag (delayed) --- */
   .sfx-stamp {
@@ -150,12 +122,6 @@
     const overlay = document.createElement('div');
     overlay.className = 'sfx-overlay';
 
-    const hammer = document.createElement('div');
-    hammer.className = 'sfx-hammer';
-    hammer.textContent = '🔨';
-    const flash = document.createElement('div');
-    flash.className = 'sfx-flash';
-
     const stamp = document.createElement('div');
     stamp.className = 'sfx-stamp';
     stamp.textContent = 'SOLD';
@@ -187,17 +153,17 @@
       (amount != null ? ` · <span class="sfx-bag-amount">${fmtShort(amount)}</span>` : '');
     bag.appendChild(label);
 
-    overlay.append(hammer, flash, stamp, player, bag);
+    overlay.append(stamp, player, bag);
     document.body.appendChild(overlay);
 
-    // Wooden-gavel knock at the moment of impact — opt-in per call (the ticker
+    // Wooden-gavel knock as the SOLD reveal lands — opt-in per call (the ticker
     // passes sound:true; the on-page dashboards stay silent). Synthesized via
     // Web Audio, so there's no asset to load.
     if (opts && opts.sound) {
-      setTimeout(() => { try { playGavel(); } catch (e) { /* audio unavailable */ } }, 500);
+      setTimeout(() => { try { playGavel(); } catch (e) { /* audio unavailable */ } }, 180);
     }
 
-    setTimeout(() => { overlay.remove(); active = false; }, 3100);
+    setTimeout(() => { overlay.remove(); active = false; }, 2700);
   }
 
   // --- Wooden gavel sound (synthesized) -----------------------------------

@@ -134,13 +134,15 @@ let sideSaleId = null;
 // swings between just outside the band (centre side) and the screen edge — and
 // never slides fully behind the band, on any width.
 function sizeSides() {
-  const bar = $('tk-bar'); if (!bar) return;
-  const b = bar.getBoundingClientRect(), vw = window.innerWidth;
+  const vw = window.innerWidth;
   const l = $('tk-side-l'), r = $('tk-side-r');
+  // Full sweep: at the "centre" extreme the word is centred on screen (behind the
+  // band, emerging from it); at the "edge" extreme it sits at its screen-edge
+  // anchor. So each word travels the whole way from centre out to the edge.
   if (l) { const gap = parseFloat(getComputedStyle(l).left) || 20;
-    l.style.setProperty('--travel', Math.max(24, Math.round(b.left - gap - l.offsetWidth - 8)) + 'px'); }
+    l.style.setProperty('--travel', Math.max(24, Math.round(vw / 2 - gap - l.offsetWidth / 2)) + 'px'); }
   if (r) { const gap = parseFloat(getComputedStyle(r).right) || 20;
-    r.style.setProperty('--travel', Math.max(24, Math.round((vw - b.right) - gap - r.offsetWidth - 8)) + 'px'); }
+    r.style.setProperty('--travel', Math.max(24, Math.round(vw / 2 - gap - r.offsetWidth / 2)) + 'px'); }
 }
 function restartSides() {
   ['tk-side-l', 'tk-side-r'].forEach(id => {
