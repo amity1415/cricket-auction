@@ -67,8 +67,8 @@
     /* Portrait pops ABOVE the centre column (floats in the root so the bar's
        clip/overflow never touches it). Kept small so the band stays compact. */
     .tk-portrait-wrap {
-      position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 20%);
-      width: clamp(112px, 12.8vw, 168px); z-index: 4; text-align: center;   /* ~2x larger photo */
+      position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 6%);
+      width: clamp(112px, 12.8vw, 168px); z-index: 4; text-align: center;   /* ~2x larger photo, pulled up */
     }
     .tk-portrait {
       position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%;
@@ -84,7 +84,7 @@
        Sized tight so it doesn't wash over the player name below. */
     .tk-portrait-wrap::before {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 146%; height: 146%; transform: translate(-50%, -50%); z-index: -2;
+      width: 123%; height: 123%; transform: translate(-50%, -50%); z-index: -2;   /* half-width glow ring */
       border-radius: 50%;
       background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-cyan),
                   var(--tk-green), var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
@@ -92,20 +92,22 @@
     }
     .tk-portrait-wrap::after {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 122%; height: 122%; transform: translate(-50%, -50%); z-index: -1;
+      width: 111%; height: 111%; transform: translate(-50%, -50%); z-index: -1;
       border-radius: 50%; border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
       animation: tk-halo 2.6s ease-out infinite;
     }
     @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
     @keyframes tk-halo {
-      0% { opacity: .8; width: 104%; height: 104%; }
-      100% { opacity: 0; width: 156%; height: 156%; }
+      0% { opacity: .8; width: 102%; height: 102%; }
+      100% { opacity: 0; width: 128%; height: 128%; }
     }
-    .tk-orbit { position: absolute; inset: 0; z-index: -1; animation: tk-spin 9s linear infinite; }
+    /* Orbiting sparks — tucked to hug the smaller glow ring (inset pulls the
+       orbit radius in so the dots ride the rim rather than floating wide). */
+    .tk-orbit { position: absolute; inset: 8%; z-index: -1; animation: tk-spin 9s linear infinite; }
     .tk-orbit.b { animation-duration: 6s; animation-direction: reverse; }
-    .tk-orbit i { position: absolute; top: -3px; left: 50%; width: 6px; height: 6px; margin-left: -3px;
-      border-radius: 50%; background: #fff; box-shadow: 0 0 9px 2px var(--tk-cyan); }
-    .tk-orbit.b i { background: var(--tk-amber); box-shadow: 0 0 9px 2px var(--tk-amber); }
+    .tk-orbit i { position: absolute; top: -2px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px;
+      border-radius: 50%; background: #fff; box-shadow: 0 0 8px 2px var(--tk-cyan); }
+    .tk-orbit.b i { background: var(--tk-amber); box-shadow: 0 0 8px 2px var(--tk-amber); }
 
     /* Name sits ABOVE the portrait glow (higher stacking) and a touch lower so
        the animation never hides it. */
@@ -124,8 +126,8 @@
       position: relative; display: grid; align-items: center;
       grid-template-columns: 1fr minmax(150px, 206px) 1.08fr;
       gap: clamp(7px, 1.1vw, 15px);
-      padding: clamp(5px, .7vh, 8px) clamp(16px, 1.9vw, 24px);
-      padding-top: clamp(9px, 1.3vh, 15px);           /* shorter upper band (~1cm less) */
+      padding: clamp(3px, .5vh, 6px) clamp(16px, 1.9vw, 24px);
+      padding-top: clamp(4px, .6vh, 8px);             /* shorter upper band */
       border-radius: 16px;
       background:
         radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 20%, transparent), transparent 60%),
@@ -167,7 +169,8 @@
        under the large photo. Stretch the cell to the row height so flex-end
        drops the name to the base. */
     .tk-cell.center { align-self: stretch; justify-content: flex-end; align-items: center;
-      text-align: center; gap: 1px; z-index: 6; padding-bottom: 2px; }
+      text-align: center; gap: 1px; z-index: 6; padding-bottom: 0;
+      transform: translateY(clamp(6px, 1.4vh, 11px)); }   /* name/role dropped lower */
     .tk-cell.right { align-items: stretch; }
     .tk-cell.center::before, .tk-cell.center::after {
       content: ""; position: absolute; top: -2px; bottom: -2px; width: 1px;
