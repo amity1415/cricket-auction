@@ -246,7 +246,7 @@ function renderBanner(block, team) {
           <div class="banner-avatar"${block.hasPhoto ? ' style="display:none"' : ''}>${initials(block.name)}</div>
         </a>
         <div class="banner-info">
-          <a class="plink banner-name" href="player.html?playerId=${block.playerId}">${esc(block.name)} <span class="pl-open">↗</span></a>
+          ${block.serial != null ? `<span class="sl-chip">SL #${block.serial}</span> ` : ''}<a class="plink banner-name" href="player.html?playerId=${block.playerId}">${esc(block.name)} <span class="pl-open">↗</span></a>
           (${ROLE_SHORT[block.role]}, Group ${block.category})
           is on the block —
           <span class="bblock-bid">${bannerBidHtml(block, leading)}</span>

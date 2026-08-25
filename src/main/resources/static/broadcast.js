@@ -176,7 +176,11 @@ function renderLive(player, teams) {
   setText('bc-avatar', initials(player.name));
   setPoster('bc-poster', 'bc-avatar', player);
   setText('bc-name', player.name);
-  setHTML('bc-meta', metaChips(player));
+  // Prepend the player's lot/serial number to the meta chips (group is already
+  // shown by metaChips); only the live on-the-block payload carries a serial.
+  setHTML('bc-meta',
+      (player.serial != null ? `<span class="chip sl-chip">SL #${player.serial}</span>` : '')
+      + metaChips(player));
   setHTML('bc-status', statsStrip(player.stats));
 
   if (player.currentBidAmount) {

@@ -229,6 +229,14 @@ header nav.open .menu-panel { display: block; animation: menuIn .16s ease; }
   background: var(--card-2); border: 1px solid var(--border);
   font-size: 11.5px; font-weight: 600; margin-left: 6px; white-space: nowrap;
 }
+/* Player lot / serial number chip — shown by the block player's name on the
+   broadcast board and the team dashboard banner. */
+.sl-chip {
+  display: inline-block; padding: 2px 9px; border-radius: 20px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .03em; white-space: nowrap;
+  color: #dbe6ff; background: linear-gradient(135deg, rgba(91,140,255,.30), rgba(160,107,255,.26));
+  box-shadow: inset 0 0 0 1px rgba(91,140,255,.5); vertical-align: middle;
+}
 /* CricHeroes external link — on the profile hero (with label) and, icon-only,
    beside each name in the players list. Brand-green tint so it reads as the
    CricHeroes destination without shouting over the auction chips. */

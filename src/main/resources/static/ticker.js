@@ -222,6 +222,7 @@ function renderSold(sale) {
   // Audit result carries no group/serial — hide those so nothing goes stale.
   const grp = $('tk-group'); if (grp) grp.style.display = 'none';
   const serial = $('tk-serial'); if (serial) serial.style.display = 'none';
+  const teamCard = $('tk-team'); if (teamCard) teamCard.style.display = 'none';  // team shown in the verdict
   setText('tk-stamp', sold ? 'SOLD' : 'UNSOLD');
   setTeamAccent(sold ? sale.teamName : null);
   lastBid = null; lastBidPlayer = null;   // next player on the block starts fresh
