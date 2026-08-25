@@ -292,10 +292,9 @@ function noteResult(result) {
   if (id && id !== lastFxSaleId) {
     lastFxSaleId = id;
     soldBandUntil = Date.now() + 7000;
-    if (result.type === 'SOLD' && typeof playSoldToTeam === 'function') {
-      playSoldToTeam({ playerName: result.playerName, playerId: result.playerId,
-                       teamName: result.teamName, amount: result.amount, sound: true });
-    }
+    // Ticker: SOLD is shown by the band + side words only — no player-into-purse
+    // overlay (that stays on the broadcast). Just play the gavel knock.
+    if (result.type === 'SOLD' && typeof playGavelSound === 'function') playGavelSound();
     return true;   // this is a fresh result
   }
   return false;

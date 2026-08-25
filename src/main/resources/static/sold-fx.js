@@ -212,4 +212,7 @@
   }
 
   global.playSoldToTeam = playSoldToTeam;
+  // Sound-only entry point: the ticker plays just the gavel knock (its SOLD
+  // reveal is the side words/band), while the broadcast keeps the full overlay.
+  global.playGavelSound = playGavel;
 })(window);
