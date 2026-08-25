@@ -81,16 +81,25 @@ function setPortrait(player) {
   img.src = '/api/players/' + player.playerId + '/photo';
 }
 
-// Compact career line, IPL-broadcast style: "CAREER · MTS 111 · RUNS 3284 · SR 149".
-function statsLine(st) {
+// Career stats as blue Batting / red Bowling panels — the SAME format the live
+// broadcast board uses (see broadcast.js statsStrip): a header plus a 5-tile row
+// (value over label). Batting: Inns/Runs/HS/Avg/SR. Bowling: Inns/Wkts/Avg/Econ/BB.
+function statsStrip(st) {
   if (!st) return '';
-  const bits = [];
-  const add = (l, v) => { if (v != null) bits.push(`${l} <b>${v}</b>`); };
-  add('MTS', st.matches); add('RUNS', st.runs); add('HS', st.highestScore);
-  add('AVG', st.battingAverage); add('SR', st.strikeRate);
-  add('WKTS', st.wickets); add('ECON', st.economyRate);
-  if (!bits.length) return '';
-  return '<span class="tk-seg">Career</span>' + bits.slice(0, 5).join(' · ');
+  const t = (l, v) => v == null ? '' : `<div class="btile"><b>${v}</b><span>${l}</span></div>`;
+  const hasBat = st.battingInnings != null || st.runs != null || st.battingAverage != null
+      || st.strikeRate != null || st.highestScore != null;
+  const hasBowl = st.bowlingInnings != null || st.wickets != null || st.economyRate != null
+      || st.bowlingAverage != null || st.bestBowling != null;
+  if (!hasBat && !hasBowl) return '';
+  const bat = t('Inns', st.battingInnings) + t('Runs', st.runs) + t('HS', st.highestScore)
+      + t('Avg', st.battingAverage) + t('SR', st.strikeRate);
+  const bowl = t('Inns', st.bowlingInnings) + t('Wkts', st.wickets) + t('Avg', st.bowlingAverage)
+      + t('Econ', st.economyRate) + t('BB', st.bestBowling);
+  return `<div class="stat-panels">
+      ${hasBat ? `<div class="stat-panel batting"><div class="sp-head">🏏 Batting</div><div class="sp-grid">${bat}</div></div>` : ''}
+      ${hasBowl ? `<div class="stat-panel bowling"><div class="sp-head">🎯 Bowling</div><div class="sp-grid">${bowl}</div></div>` : ''}
+    </div>`;
 }
 
 const root = () => $('tk-root');
@@ -147,7 +156,7 @@ function renderLive(p) {
   }
   lastBid = p.currentBidAmount; lastBidPlayer = p.playerId;
   setText('tk-next', fmtShort(p.nextBidAmount));
-  setHTML('tk-stats', statsLine(p.stats)
+  setHTML('tk-stats', statsStrip(p.stats)
       + (p.bidCount ? `<span class="tk-bidcount">Bid #${p.bidCount}</span>` : ''));
 
   reveal();

@@ -6,20 +6,21 @@
   <title>Cricket Auction — Ticker</title>
   <!-- Bottom-of-screen auction ticker: a broadcast-grade lower-third overlay
        meant to be dropped in as an OBS / vMix "browser source" over a live video
-       feed. The panel is deliberately ~60% see-through so the video is never
-       hidden; legibility comes from local scrims + text-shadows (NOT
-       backdrop-blur, which can't see OBS's video layer). Open it scoped to an
-       auction: ticker.html?tournamentId=<id>. Fully hidden until a player is on
-       the block. Self-contained — its own CSS/animation, no external assets. -->
+       feed. The panel is deliberately ~70% see-through so the video is never
+       hidden; legibility comes from local scrims + text-shadows + bright labels
+       (NOT backdrop-blur, which can't see OBS's video layer). Open it scoped to
+       an auction: ticker.html?tournamentId=<id>. Fully hidden until a player is
+       on the block. Self-contained — its own CSS/animation, no external assets. -->
   <style>
     :root {
-      --tk-ink: #f4f8ff; --tk-muted: #aebbe0;
-      --tk-green: #38e2a0; --tk-amber: #ffc24d; --tk-red: #ff6a5e;
+      --tk-ink: #f4f8ff; --tk-label: #eaf0ff; --tk-muted: #c4d0ee;
+      --tk-green: #46eaa8; --tk-amber: #ffcb5e; --tk-red: #ff6a5e;
       --tk-accent: #5b8cff; --tk-accent-2: #a06bff; --tk-cyan: #35d6e6;
-      --tk-glass: rgba(11, 16, 32, 0.42);        /* ~60% see-through panel */
-      --tk-glass-2: rgba(6, 10, 22, 0.60);       /* denser scrim behind figures */
+      --tk-glass: rgba(11, 16, 32, 0.30);        /* ~70% see-through panel */
+      --tk-glass-2: rgba(6, 10, 22, 0.62);       /* denser scrim behind figures/tiles */
       --tk-line: rgba(150, 176, 240, 0.30);
       --tk-shadow: 0 3px 14px rgba(0,0,0,0.85);
+      --tk-tshadow: 0 2px 8px rgba(0,0,0,0.92), 0 0 2px rgba(0,0,0,0.95);
     }
     * { box-sizing: border-box; }
     html, body {
@@ -31,256 +32,259 @@
 
     /* ============================ Root band ============================ */
     #tk-root {
-      position: fixed; left: 50%; bottom: clamp(14px, 3.5vh, 40px);
+      position: fixed; left: 50%; bottom: clamp(12px, 3vh, 32px);
       transform: translateX(-50%);
-      width: min(1200px, 95vw);
+      width: min(960px, 88vw);
       opacity: 0; visibility: hidden; transition: opacity .4s ease;
       pointer-events: none; --team: var(--tk-accent);   /* recoloured per leading team */
     }
     #tk-root.show { opacity: 1; visibility: visible; }
-    #tk-root.enter { animation: tk-rise .55s cubic-bezier(.16,.84,.28,1) both; }
-    @keyframes tk-rise { from { transform: translateX(-50%) translateY(46px); opacity: 0; }
+    #tk-root.enter { animation: tk-rise .5s cubic-bezier(.16,.84,.28,1) both; }
+    @keyframes tk-rise { from { transform: translateX(-50%) translateY(38px); opacity: 0; }
                          to   { transform: translateX(-50%) translateY(0);    opacity: 1; } }
 
     /* Floating status pill above the bar. */
     .tk-live {
-      position: absolute; left: clamp(10px, 3vw, 34px); top: -14px; z-index: 5;
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 4px 12px 4px 10px; border-radius: 20px;
-      background: linear-gradient(100deg, rgba(255,58,58,.92), rgba(180,20,40,.92));
-      font-size: clamp(9px, .9vw, 11px); font-weight: 800; letter-spacing: .16em;
-      text-transform: uppercase; box-shadow: 0 6px 18px -6px rgba(255,40,60,.8), var(--tk-shadow);
+      position: absolute; left: clamp(10px, 3vw, 30px); top: -12px; z-index: 7;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 11px 3px 9px; border-radius: 20px;
+      background: linear-gradient(100deg, rgba(255,58,58,.94), rgba(180,20,40,.94));
+      font-size: clamp(8px, .82vw, 10px); font-weight: 800; letter-spacing: .16em;
+      text-transform: uppercase; box-shadow: 0 6px 16px -6px rgba(255,40,60,.8), var(--tk-shadow);
       transition: background .3s ease;
     }
     .tk-live.sold  { background: linear-gradient(100deg, rgba(45,200,140,.95), rgba(20,140,95,.95));
-      box-shadow: 0 6px 18px -6px rgba(45,200,140,.8), var(--tk-shadow); }
+      box-shadow: 0 6px 16px -6px rgba(45,200,140,.8), var(--tk-shadow); }
     .tk-live.unsold { background: linear-gradient(100deg, rgba(120,130,150,.9), rgba(70,80,100,.92));
       box-shadow: var(--tk-shadow); }
-    .tk-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff;
+    .tk-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff;
       box-shadow: 0 0 0 0 rgba(255,255,255,.9); animation: tk-ping 1.6s ease-out infinite; }
     @keyframes tk-ping {
       0% { box-shadow: 0 0 0 0 rgba(255,255,255,.85); }
-      70%,100% { box-shadow: 0 0 0 9px rgba(255,255,255,0); }
+      70%,100% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
     }
 
     /* Portrait pops ABOVE the centre column (floats in the root so the bar's
-       clip/overflow never touches it). */
+       clip/overflow never touches it). Kept small so the band stays compact. */
     .tk-portrait-wrap {
-      position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 34%);
-      width: clamp(76px, 9.2vw, 114px); z-index: 4; text-align: center;
+      position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 24%);
+      width: clamp(56px, 6.4vw, 84px); z-index: 4; text-align: center;
     }
     .tk-portrait {
       position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%;
       overflow: hidden; margin: 0 auto;
       background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
       display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 800; font-size: clamp(30px, 4vw, 52px);
-      box-shadow: 0 14px 40px -10px rgba(0,0,0,.8),
-                  0 0 0 3px rgba(8,12,26,.8), 0 0 0 5px color-mix(in srgb, var(--team) 70%, transparent);
+      color: #fff; font-weight: 800; font-size: clamp(20px, 2.8vw, 36px);
+      box-shadow: 0 12px 32px -10px rgba(0,0,0,.8),
+                  0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
     .tk-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    /* Rotating conic glow ring behind the portrait — the "dynamic background". */
+    /* Rotating conic glow ring behind the portrait — the "dynamic background".
+       Sized tight so it doesn't wash over the player name below. */
     .tk-portrait-wrap::before {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 158%; height: 158%; transform: translate(-50%, -50%); z-index: -2;
+      width: 146%; height: 146%; transform: translate(-50%, -50%); z-index: -2;
       border-radius: 50%;
       background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-cyan),
                   var(--tk-green), var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
-      filter: blur(10px); opacity: .9; animation: tk-spin 7s linear infinite;
+      filter: blur(9px); opacity: .9; animation: tk-spin 7s linear infinite;
     }
-    /* Soft pulsing halo. */
     .tk-portrait-wrap::after {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 130%; height: 130%; transform: translate(-50%, -50%); z-index: -1;
+      width: 122%; height: 122%; transform: translate(-50%, -50%); z-index: -1;
       border-radius: 50%; border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
       animation: tk-halo 2.6s ease-out infinite;
     }
     @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
     @keyframes tk-halo {
-      0% { opacity: .8; width: 108%; height: 108%; }
-      100% { opacity: 0; width: 168%; height: 168%; }
+      0% { opacity: .8; width: 104%; height: 104%; }
+      100% { opacity: 0; width: 156%; height: 156%; }
     }
-    /* Two little orbiting spark dots for life. */
     .tk-orbit { position: absolute; inset: 0; z-index: -1; animation: tk-spin 9s linear infinite; }
     .tk-orbit.b { animation-duration: 6s; animation-direction: reverse; }
-    .tk-orbit i { position: absolute; top: -4px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px;
-      border-radius: 50%; background: #fff; box-shadow: 0 0 10px 2px var(--tk-cyan); }
-    .tk-orbit.b i { background: var(--tk-amber); box-shadow: 0 0 10px 2px var(--tk-amber); }
+    .tk-orbit i { position: absolute; top: -3px; left: 50%; width: 6px; height: 6px; margin-left: -3px;
+      border-radius: 50%; background: #fff; box-shadow: 0 0 9px 2px var(--tk-cyan); }
+    .tk-orbit.b i { background: var(--tk-amber); box-shadow: 0 0 9px 2px var(--tk-amber); }
 
+    /* Name sits ABOVE the portrait glow (higher stacking) and a touch lower so
+       the animation never hides it. */
     .tk-name {
-      font-weight: 800; letter-spacing: .01em;
-      font-size: clamp(15px, 1.55vw, 21px); line-height: 1.12;
-      text-shadow: 0 2px 12px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.9);
+      margin-top: clamp(3px, .8vh, 7px); font-weight: 800; letter-spacing: .01em;
+      font-size: clamp(13px, 1.45vw, 19px); line-height: 1.1;
+      text-shadow: 0 2px 12px rgba(0,0,0,.92), 0 0 3px rgba(0,0,0,.95);
     }
     .tk-role {
-      margin-top: 3px; font-size: clamp(10px, 1vw, 12.5px); color: var(--tk-muted);
-      font-weight: 600; text-shadow: 0 1px 8px rgba(0,0,0,.9);
+      margin-top: 2px; font-size: clamp(9px, .95vw, 11.5px); color: var(--tk-muted);
+      font-weight: 700; text-shadow: var(--tk-tshadow);
     }
 
     /* ============================ The glass bar ============================ */
     .tk-bar {
       position: relative; display: grid; align-items: center;
-      grid-template-columns: 1fr minmax(150px, 220px) 1.05fr;
-      gap: clamp(8px, 1.4vw, 18px);
-      padding: clamp(12px, 1.5vh, 17px) clamp(20px, 2.2vw, 30px);
-      padding-top: clamp(26px, 3.9vh, 40px);          /* trimmed overhang room (~80%) */
-      border-radius: 20px;
+      grid-template-columns: 1fr minmax(128px, 188px) 1.08fr;
+      gap: clamp(7px, 1.1vw, 15px);
+      padding: clamp(8px, 1vh, 12px) clamp(16px, 1.9vw, 24px);
+      padding-top: clamp(18px, 2.7vh, 30px);          /* trimmed overhang room */
+      border-radius: 16px;
       background:
-        radial-gradient(120% 160% at 50% -40%, color-mix(in srgb, var(--team) 22%, transparent), transparent 60%),
-        linear-gradient(180deg, rgba(20,28,52,.5), var(--tk-glass));
+        radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 20%, transparent), transparent 60%),
+        linear-gradient(180deg, rgba(20,28,52,.34), var(--tk-glass));
       border: 1px solid rgba(150,176,240,.22);
-      box-shadow: 0 26px 70px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.07);
-      -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);   /* browser-preview nicety */
-      /* Chamfered broadcast corners on the bottom edge — not a plain rectangle. */
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px));
+      box-shadow: 0 22px 60px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06);
+      -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px));
       overflow: hidden;
     }
-    /* Bright team-coloured accent spine down the left edge. */
     .tk-bar::before {
-      content: ""; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px;
-      border-radius: 4px;
+      content: ""; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px; border-radius: 4px;
       background: linear-gradient(180deg, var(--tk-accent), color-mix(in srgb, var(--team) 90%, #fff 0%), var(--tk-accent-2));
-      box-shadow: 0 0 14px 1px color-mix(in srgb, var(--team) 70%, transparent);
+      box-shadow: 0 0 12px 1px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    /* Diagonal sheen sweep. */
     .tk-bar::after {
       content: ""; position: absolute; inset: 0; pointer-events: none;
-      background: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.10) 48%, transparent 60%);
+      background: linear-gradient(105deg, transparent 34%, rgba(255,255,255,.09) 48%, transparent 60%);
       transform: translateX(-60%); animation: tk-sheen 6s ease-in-out infinite;
     }
     @keyframes tk-sheen { 0%,52% { transform: translateX(-62%); } 100% { transform: translateX(165%); } }
 
-    /* Animated gradient hairline along the very top edge. */
     .tk-topline {
       position: absolute; left: 8px; right: 8px; top: 0; height: 2px; z-index: 2; border-radius: 2px;
       background: linear-gradient(90deg, transparent, var(--tk-accent), var(--tk-cyan), var(--tk-amber), transparent);
       background-size: 220% 100%; animation: tk-flow 5s linear infinite; opacity: .85;
     }
-    /* Thin travelling scan accent along the bottom. */
     .tk-scan {
-      position: absolute; left: 12%; bottom: 4px; height: 2px; width: 26%; z-index: 2; border-radius: 2px;
+      position: absolute; left: 12%; bottom: 4px; height: 2px; width: 24%; z-index: 2; border-radius: 2px;
       background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--team) 90%, #fff), transparent);
-      animation: tk-scanmove 4.5s ease-in-out infinite; opacity: .8;
+      animation: tk-scanmove 4.5s ease-in-out infinite; opacity: .75;
     }
     @keyframes tk-flow { to { background-position: 220% 0; } }
-    @keyframes tk-scanmove { 0%{left:8%} 50%{left:64%} 100%{left:8%} }
+    @keyframes tk-scanmove { 0%{left:8%} 50%{left:66%} 100%{left:8%} }
 
     .tk-cell { position: relative; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
     .tk-cell.left  { align-items: flex-start; }
-    .tk-cell.center { align-items: center; text-align: center; gap: 2px; }
+    .tk-cell.center { align-items: center; text-align: center; gap: 1px; z-index: 6; }
     .tk-cell.right { align-items: stretch; }
-    /* Glowing angled dividers flanking the centre column. */
     .tk-cell.center::before, .tk-cell.center::after {
       content: ""; position: absolute; top: -2px; bottom: -2px; width: 1px;
       background: linear-gradient(180deg, transparent, var(--tk-line), transparent);
       transform: skewX(-12deg);
     }
-    .tk-cell.center::before { left: calc(-1 * clamp(4px, .7vw, 9px)); }
-    .tk-cell.center::after  { right: calc(-1 * clamp(4px, .7vw, 9px)); }
+    .tk-cell.center::before { left: calc(-1 * clamp(3px, .6vw, 8px)); }
+    .tk-cell.center::after  { right: calc(-1 * clamp(3px, .6vw, 8px)); }
 
+    /* Labels made brighter with a firm shadow so they read on light video. */
     .tk-label {
-      font-size: clamp(9px, .82vw, 11px); letter-spacing: .16em; text-transform: uppercase;
-      color: var(--tk-muted); font-weight: 800; text-shadow: 0 1px 6px rgba(0,0,0,.8);
+      font-size: clamp(8px, .76vw, 10px); letter-spacing: .15em; text-transform: uppercase;
+      color: var(--tk-label); font-weight: 800; text-shadow: var(--tk-tshadow);
     }
     .tk-amount {
-      font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.08;
-      text-shadow: 0 2px 10px rgba(0,0,0,.85), 0 0 1px rgba(0,0,0,.9);
+      font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.05;
+      text-shadow: 0 2px 10px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.95);
     }
-    /* Local scrim chip behind money figures so they hold over bright video. */
+    /* Local scrim chip behind money figures — kept fairly opaque for legibility. */
     .tk-base, .tk-current, .tk-next {
-      padding: 4px 10px; border-radius: 10px;
-      background: linear-gradient(180deg, rgba(255,255,255,.04), var(--tk-glass-2));
-      box-shadow: inset 0 0 0 1px rgba(150,176,240,.14);
+      padding: 3px 9px; border-radius: 9px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), var(--tk-glass-2));
+      box-shadow: inset 0 0 0 1px rgba(150,176,240,.16);
     }
     .tk-base { align-self: flex-start; }
-    .tk-base .tk-amount { font-size: clamp(15px, 1.9vw, 24px); color: var(--tk-ink); }
+    .tk-base .tk-amount { font-size: clamp(13px, 1.6vw, 19px); color: #fff; }
 
-    /* Right side: current bid (big) + leader, next-bid pill. */
-    .tk-bidrow { display: flex; align-items: center; gap: clamp(8px, 1.3vw, 18px); }
+    .tk-bidrow { display: flex; align-items: center; gap: clamp(7px, 1.1vw, 15px); }
     .tk-current { min-width: 0; }
-    .tk-cur-row { display: flex; align-items: baseline; gap: 6px; }
-    .tk-current .tk-amount { font-size: clamp(23px, 3.1vw, 42px); color: var(--tk-green);
-      text-shadow: 0 2px 14px rgba(0,0,0,.85), 0 0 20px color-mix(in srgb, var(--tk-green) 45%, transparent); }
+    .tk-cur-row { display: flex; align-items: baseline; gap: 5px; }
+    .tk-current .tk-amount { font-size: clamp(19px, 2.5vw, 33px); color: var(--tk-green);
+      text-shadow: 0 2px 12px rgba(0,0,0,.9), 0 0 16px color-mix(in srgb, var(--tk-green) 45%, transparent); }
     .tk-trend { color: var(--tk-green); font-size: .5em; opacity: 0; transform: translateY(4px); }
     .tk-current.bumped .tk-amount { animation: tk-pop .5s cubic-bezier(.2,.9,.3,1.4); }
     .tk-current.bumped .tk-trend { animation: tk-trend .9s ease-out; }
-    @keyframes tk-pop { 0%{transform:scale(1)} 35%{transform:scale(1.14)} 100%{transform:scale(1)} }
+    @keyframes tk-pop { 0%{transform:scale(1)} 35%{transform:scale(1.13)} 100%{transform:scale(1)} }
     @keyframes tk-trend { 0%{opacity:0;transform:translateY(6px)} 30%{opacity:1;transform:translateY(-1px)} 100%{opacity:0;transform:translateY(-8px)} }
     .tk-leader {
-      display: flex; align-items: center; gap: 8px; margin-top: 5px;
-      font-weight: 700; font-size: clamp(12px, 1.15vw, 15.5px); min-width: 0;
-      text-shadow: 0 1px 8px rgba(0,0,0,.85);
+      display: flex; align-items: center; gap: 7px; margin-top: 4px;
+      font-weight: 700; font-size: clamp(11px, 1.05vw, 14px); min-width: 0; color: #fff;
+      text-shadow: var(--tk-tshadow);
     }
     .tk-leader .tk-lname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .tk-crest {
-      width: clamp(22px, 2.3vw, 30px); height: clamp(22px, 2.3vw, 30px);
-      border-radius: 7px; object-fit: contain; flex: none; background: rgba(255,255,255,.10);
+      width: clamp(20px, 2.1vw, 27px); height: clamp(20px, 2.1vw, 27px);
+      border-radius: 6px; object-fit: contain; flex: none; background: rgba(255,255,255,.10);
       box-shadow: 0 0 0 1px rgba(255,255,255,.12);
     }
     .tk-crest.initials {
       display: inline-flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 800; color: #fff;
+      font-size: 11px; font-weight: 800; color: #fff;
       background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
     }
     .tk-next {
       margin-left: auto; text-align: right; display: flex; flex-direction: column; align-items: flex-end;
     }
-    .tk-next .tk-amount { font-size: clamp(15px, 1.8vw, 23px); color: var(--tk-amber);
-      display: inline-flex; align-items: center; gap: 5px; }
+    .tk-next .tk-amount { font-size: clamp(13px, 1.55vw, 20px); color: var(--tk-amber);
+      display: inline-flex; align-items: center; gap: 4px; }
     .tk-next .tk-amount::before { content: "▲"; font-size: .6em; color: var(--tk-amber); opacity: .9;
       animation: tk-bob 1.8s ease-in-out infinite; }
     @keyframes tk-bob { 0%,100%{transform:translateY(1px)} 50%{transform:translateY(-2px)} }
 
-    /* Sub-strip: accent CAREER tag + compact career line + bid count. */
+    /* ===================== Career stats — batting / bowling ===================== */
+    /* Same two-panel format as the live broadcast board: a blue Batting panel and
+       a red Bowling panel, each a header + a 5-tile row (value over label). */
     .tk-stats {
-      grid-column: 1 / -1; margin-top: clamp(8px, 1.1vh, 12px);
-      padding-top: clamp(6px, 1vh, 10px); border-top: 1px solid rgba(150,176,240,.16);
-      display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
-      font-size: clamp(10px, .98vw, 13px); color: var(--tk-muted);
-      text-shadow: 0 1px 6px rgba(0,0,0,.8);
+      grid-column: 1 / -1; margin-top: clamp(5px, .8vh, 9px);
+      padding-top: clamp(5px, .8vh, 8px); border-top: 1px solid rgba(150,176,240,.16);
+      display: flex; align-items: stretch; gap: clamp(6px, 1vw, 12px);
     }
-    .tk-stats b { color: var(--tk-ink); font-variant-numeric: tabular-nums; }
-    .tk-seg {
-      font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: .82em;
-      color: #04101f; padding: 2px 9px; border-radius: 20px;
-      background: linear-gradient(100deg, var(--tk-cyan), var(--tk-green));
-      box-shadow: 0 3px 10px -3px color-mix(in srgb, var(--tk-green) 70%, transparent);
+    .tk-stats:empty { display: none; }
+    .stat-panels { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(6px, 1vw, 10px); flex: 1; min-width: 0; }
+    .stat-panel { border: 1px solid var(--tk-line); border-radius: 9px; overflow: hidden;
+      background: rgba(6,10,22,.42); }
+    .stat-panel.batting { border-color: rgba(91,140,255,.5); }
+    .stat-panel.bowling { border-color: rgba(240,86,74,.5); }
+    .sp-head {
+      display: flex; align-items: center; gap: 6px; padding: 3px 9px;
+      font-size: clamp(8px, .82vw, 10.5px); font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
     }
+    .stat-panel.batting .sp-head { color: #dbe7ff; background: linear-gradient(90deg, rgba(91,140,255,.34), rgba(91,140,255,.05)); }
+    .stat-panel.bowling .sp-head { color: #ffdccf; background: linear-gradient(90deg, rgba(240,86,74,.30), rgba(240,86,74,.05)); }
+    .sp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: rgba(150,176,240,.20); }
+    .sp-grid .btile { background: var(--tk-glass-2); padding: 4px 3px; text-align: center; }
+    .sp-grid .btile b { display: block; font-size: clamp(11px, 1.4vw, 16px); font-weight: 800; color: #fff;
+      font-variant-numeric: tabular-nums; line-height: 1.05; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+    .sp-grid .btile span { font-size: clamp(7px, .72vw, 9px); color: #c9d3ec; text-transform: uppercase; letter-spacing: .03em; }
     .tk-bidcount {
-      margin-left: auto; color: var(--tk-amber); font-weight: 800; letter-spacing: .06em;
-      padding: 2px 10px; border-radius: 20px; background: rgba(255,194,77,.14);
-      box-shadow: inset 0 0 0 1px rgba(255,194,77,.35);
+      align-self: center; flex: none; color: var(--tk-amber); font-weight: 800; letter-spacing: .05em;
+      font-size: clamp(9px, .95vw, 12px); padding: 4px 11px; border-radius: 20px;
+      background: rgba(255,203,94,.16); box-shadow: inset 0 0 0 1px rgba(255,203,94,.4);
+      text-shadow: var(--tk-tshadow);
     }
 
     /* ===================== SOLD / UNSOLD verdict ===================== */
-    .tk-bar.sold   { border-color: rgba(56,226,160,.6); }
+    .tk-bar.sold   { border-color: rgba(70,234,168,.6); }
     .tk-bar.unsold { border-color: rgba(255,106,94,.55); }
-    .tk-verdict { grid-column: 1 / -1; display: none; align-items: center; gap: clamp(10px, 1.6vw, 22px); }
+    .tk-verdict { grid-column: 1 / -1; display: none; align-items: center; gap: clamp(10px, 1.6vw, 20px); }
     #tk-root.is-sold .tk-bidrow, #tk-root.is-sold .tk-base, #tk-root.is-sold .tk-stats { display: none; }
     #tk-root.is-sold .tk-verdict { display: flex; }
     .tk-stamp {
-      font-weight: 900; letter-spacing: .14em; padding: 5px 18px; border-radius: 12px;
+      font-weight: 900; letter-spacing: .14em; padding: 4px 16px; border-radius: 11px;
       border: 2px solid var(--tk-green); color: var(--tk-green);
-      font-size: clamp(17px, 2vw, 28px); text-shadow: 0 0 18px rgba(56,226,160,.6);
-      box-shadow: 0 0 24px -6px rgba(56,226,160,.7), inset 0 0 18px -8px rgba(56,226,160,.5);
+      font-size: clamp(15px, 1.8vw, 25px); text-shadow: 0 0 16px rgba(70,234,168,.6);
+      box-shadow: 0 0 22px -6px rgba(70,234,168,.7), inset 0 0 16px -8px rgba(70,234,168,.5);
       animation: tk-stamp-in .5s cubic-bezier(.2,.9,.3,1.5) both;
     }
     @keyframes tk-stamp-in { 0%{transform:rotate(-6deg) scale(0);opacity:0} 100%{transform:rotate(-4deg) scale(1);opacity:1} }
     .tk-bar.unsold .tk-stamp { border-color: var(--tk-red); color: var(--tk-red);
-      text-shadow: 0 0 18px rgba(255,106,94,.5); box-shadow: 0 0 24px -6px rgba(255,106,94,.6); }
-    .tk-deal { display: flex; align-items: center; gap: 10px; font-weight: 800;
-      font-size: clamp(15px, 1.8vw, 24px); text-shadow: var(--tk-shadow); }
-    .tk-deal .tk-amount { color: var(--tk-green); font-size: clamp(18px, 2.3vw, 30px);
+      text-shadow: 0 0 16px rgba(255,106,94,.5); box-shadow: 0 0 22px -6px rgba(255,106,94,.6); }
+    .tk-deal { display: flex; align-items: center; gap: 9px; font-weight: 800;
+      font-size: clamp(14px, 1.7vw, 22px); color: #fff; text-shadow: var(--tk-shadow); }
+    .tk-deal .tk-amount { color: var(--tk-green); font-size: clamp(17px, 2.1vw, 28px);
       background: none; box-shadow: none; padding: 0; }
 
-    /* Sponsor bug — CSAITECH branding, pinned to the top-right corner well away
-       from the bottom-centre auction band. Appears/disappears with the ticker so
-       an idle screen stays clean. */
+    /* ===================== Sponsor bug (CSAITECH) ===================== */
     .tk-brand {
-      position: fixed; top: clamp(12px, 3vh, 26px); right: clamp(12px, 2.5vw, 30px); z-index: 6;
+      position: fixed; top: clamp(12px, 3vh, 26px); right: clamp(12px, 2.5vw, 30px); z-index: 8;
       display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
       padding: 7px 12px; border-radius: 12px;
-      background: linear-gradient(180deg, rgba(20,28,52,.48), rgba(9,13,26,.60));
+      background: linear-gradient(180deg, rgba(20,28,52,.5), rgba(9,13,26,.62));
       border: 1px solid rgba(150,176,240,.20);
       box-shadow: 0 12px 32px -14px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.05);
       opacity: 0; visibility: hidden; transform: translateY(-6px);
@@ -289,16 +293,17 @@
     .tk-brand.show { opacity: .94; visibility: visible; transform: translateY(0); }
     .tk-brand .tk-brand-k {
       font-size: clamp(7px, .68vw, 9px); letter-spacing: .22em; text-transform: uppercase;
-      color: var(--tk-muted); font-weight: 800; text-shadow: 0 1px 5px rgba(0,0,0,.8);
+      color: var(--tk-muted); font-weight: 800; text-shadow: var(--tk-tshadow);
     }
     .tk-brand img { height: clamp(14px, 1.6vw, 21px); width: auto; display: block;
       filter: drop-shadow(0 1px 5px rgba(0,0,0,.65)); }
 
-    @media (max-width: 560px) {
-      .tk-bar { grid-template-columns: 1fr; gap: 8px; }
+    @media (max-width: 620px) {
+      .tk-bar { grid-template-columns: 1fr; gap: 7px; }
       .tk-cell.left { align-items: center; }
       .tk-cell.center::before, .tk-cell.center::after { display: none; }
       .tk-next { margin-left: 0; align-items: center; text-align: center; }
+      .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
       .tk-portrait-wrap::before, .tk-portrait-wrap::after, .tk-orbit,
@@ -308,7 +313,7 @@
   </style>
 </head>
 <body>
-  <h2 class="sr-only">Live auction ticker showing the player on the block, the current bid and the leading team.</h2>
+  <h2 class="sr-only">Live auction ticker showing the player on the block, the current bid, the leading team and career stats.</h2>
 
   <!-- Sponsor bug (CSAITECH) — top-right corner, appears with the ticker. -->
   <div class="tk-brand" id="tk-brand">
@@ -366,6 +371,7 @@
         <div class="tk-deal" id="tk-deal"></div>
       </div>
 
+      <!-- Career: batting / bowling panels (same format as the broadcast board) -->
       <div class="tk-stats" id="tk-stats"></div>
     </div>
   </div>
@@ -373,6 +379,6 @@
   <script src="tournament-context.js"></script>
   <script src="team-logo.js?v=2"></script>
   <script src="sold-fx.js?v=4"></script>
-  <script src="ticker.js?v=4"></script>
+  <script src="ticker.js?v=5"></script>
 </body>
 </html>
