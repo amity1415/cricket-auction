@@ -114,32 +114,35 @@
        clip/overflow never touches it). Kept small so the band stays compact. */
     .tk-portrait-wrap {
       position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 6%);
-      width: clamp(112px, 12.8vw, 168px); z-index: 4; text-align: center;   /* ~2x larger photo, pulled up */
+      width: clamp(94px, 10vw, 142px); z-index: 4; text-align: center;   /* portrait card, pulled up */
     }
+    /* Portrait CARD (rectangle) so the whole player photo shows without the
+       circular crop cutting the face. object-fit: contain guarantees the full
+       image; portrait posters (~3:4) fill it edge-to-edge. */
     .tk-portrait {
-      position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%;
+      position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: clamp(12px, 1.6vw, 18px);
       overflow: hidden; margin: 0 auto;
       background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
       display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 800; font-size: clamp(38px, 5vw, 66px);
+      color: #fff; font-weight: 800; font-size: clamp(34px, 4.4vw, 60px);
       box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
-                  0 0 0 3px rgba(8,12,26,.85), 0 0 0 5px color-mix(in srgb, var(--team) 70%, transparent);
+                  0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    .tk-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tk-portrait img { width: 100%; height: 100%; object-fit: contain; display: block; }
     /* Rotating conic glow ring behind the portrait — the "dynamic background".
        Sized tight so it doesn't wash over the player name below. */
     .tk-portrait-wrap::before {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 123%; height: 123%; transform: translate(-50%, -50%); z-index: -2;   /* half-width glow ring */
-      border-radius: 50%;
+      width: 116%; height: 112%; transform: translate(-50%, -50%); z-index: -2;   /* glow behind the card */
+      border-radius: clamp(18px, 2.2vw, 26px);
       background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-cyan),
                   var(--tk-green), var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
       filter: blur(9px); opacity: .9; animation: tk-spin 7s linear infinite;
     }
     .tk-portrait-wrap::after {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 111%; height: 111%; transform: translate(-50%, -50%); z-index: -1;
-      border-radius: 50%; border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
+      width: 106%; height: 104%; transform: translate(-50%, -50%); z-index: -1;
+      border-radius: clamp(15px, 1.9vw, 22px); border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
       animation: tk-halo 2.6s ease-out infinite;
     }
     @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
