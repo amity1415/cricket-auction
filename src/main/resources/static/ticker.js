@@ -253,12 +253,26 @@ function noteResult(result) {
 }
 
 let pollSeq = 0;
+let baselineDone = false;
 async function refresh() {
   const mySeq = ++pollSeq;
   const current = () => mySeq === pollSeq;
   try {
     const dash = await getJSON('/api/dashboard');
     if (!current()) return;
+
+    // Seed the sold-FX baseline ONCE, from the audit at load time, so the very
+    // next sale animates — including the first sale of the session while a
+    // player is on the block (otherwise that first sale was silently treated as
+    // the baseline and skipped, so no hammer/purse animation ever played).
+    if (!baselineDone) {
+      const seed = await getJSON('/api/admin/audit').catch(() => []);
+      if (!current()) return;
+      const lastSeed = [].concat(seed).reverse().find(a => a.type === 'SOLD' || a.type === 'UNSOLD');
+      lastFxSaleId = lastSeed ? lastSeed.saleId : null;
+      fxBaseline = true;
+      baselineDone = true;
+    }
 
     // A player on the block always wins — show the live band.
     if (dash.onTheBlock) { renderLive(dash.onTheBlock); return; }
