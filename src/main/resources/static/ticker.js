@@ -42,6 +42,21 @@ async function getJSON(url) {
   return res.json();
 }
 
+// A stable, vivid accent colour derived from a team name, used to tint the
+// panel spine / portrait ring / glow so the overlay visibly "belongs" to the
+// leading (or buying) team and shifts as the lead changes.
+function teamColor(name) {
+  const s = String(name || '');
+  if (!s) return null;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return `hsl(${h} 85% 62%)`;
+}
+function setTeamAccent(name) {
+  const root = document.getElementById('tk-root');
+  if (root) root.style.setProperty('--team', teamColor(name) || 'var(--tk-accent)');
+}
+
 // Leading-team crest: the franchise logo when we have one, else an initials tile.
 function crest(name) {
   const url = window.TeamLogo ? TeamLogo.teamLogoUrl(name) : null;
@@ -84,17 +99,32 @@ function reveal() {
   const r = root();
   if (!r) return;
   if (!r.classList.contains('show')) { r.classList.add('show', 'enter'); }
+  const b = $('tk-brand'); if (b) b.classList.add('show');   // sponsor bug rides with the ticker
 }
 function hide() {
   const r = root();
   if (r) { r.classList.remove('show', 'enter', 'is-sold'); }
+  const b = $('tk-brand'); if (b) b.classList.remove('show');
 }
 
+// Restart a CSS animation on an element by toggling a class across a reflow.
+function pulse(id, cls) {
+  const el = $(id);
+  if (!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;   // force reflow so the animation can replay
+  el.classList.add(cls);
+}
+
+let lastBid = null, lastBidPlayer = null;
 function renderLive(p) {
   const r = root();
   if (!r) return;
   r.classList.remove('is-sold');
   $('tk-bar').classList.remove('sold', 'unsold');
+  const live = $('tk-live');
+  if (live) live.className = 'tk-live';
+  setText('tk-live-text', 'On the block');
 
   setPortrait(p);
   setText('tk-name', p.name);
@@ -106,11 +136,16 @@ function renderLive(p) {
     setText('tk-current', fmtShort(p.currentBidAmount));
     setHTML('tk-leader', crest(p.currentLeadingTeamName)
         + `<span class="tk-lname">${esc(p.currentLeadingTeamName)}</span>`);
+    setTeamAccent(p.currentLeadingTeamName);
+    // Pop the figure whenever the bid climbs (same player, higher number).
+    if (lastBidPlayer === p.playerId && p.currentBidAmount !== lastBid) pulse('tk-current-wrap', 'bumped');
   } else {
     setText('tk-current-label', 'Opening');
     setText('tk-current', fmtShort(p.basePrice));
     setHTML('tk-leader', '<span class="tk-lname">No bids yet</span>');
+    setTeamAccent(null);
   }
+  lastBid = p.currentBidAmount; lastBidPlayer = p.playerId;
   setText('tk-next', fmtShort(p.nextBidAmount));
   setHTML('tk-stats', statsLine(p.stats)
       + (p.bidCount ? `<span class="tk-bidcount">Bid #${p.bidCount}</span>` : ''));
@@ -125,11 +160,16 @@ function renderSold(sale) {
   r.classList.add('is-sold');
   $('tk-bar').classList.toggle('sold', sold);
   $('tk-bar').classList.toggle('unsold', !sold);
+  const live = $('tk-live');
+  if (live) live.className = 'tk-live ' + (sold ? 'sold' : 'unsold');
+  setText('tk-live-text', sold ? 'Sold' : 'Unsold');
 
   setPortrait({ playerId: sale.playerId, name: sale.playerName, hasPhoto: true });
   setText('tk-name', sale.playerName);
   setText('tk-role', '');
   setText('tk-stamp', sold ? 'SOLD' : 'UNSOLD');
+  setTeamAccent(sold ? sale.teamName : null);
+  lastBid = null; lastBidPlayer = null;   // next player on the block starts fresh
   setHTML('tk-deal', sold
       ? crest(sale.teamName) + `<span>${esc(sale.teamName)}</span>`
         + `<span class="tk-amount">${fmtShort(sale.amount)}</span>`
