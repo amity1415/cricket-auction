@@ -113,11 +113,11 @@
        the animation never hides it. */
     .tk-name {
       margin-top: 0; font-weight: 800; letter-spacing: .01em;
-      font-size: clamp(13px, 1.45vw, 19px); line-height: 1.1;
+      font-size: clamp(12px, 1.35vw, 17px); line-height: 1.08;
       text-shadow: 0 2px 12px rgba(0,0,0,.92), 0 0 3px rgba(0,0,0,.95);
     }
     .tk-role {
-      margin-top: 2px; font-size: clamp(9px, .95vw, 11.5px); color: var(--tk-muted);
+      margin-top: 1px; font-size: clamp(8.5px, .9vw, 11px); color: var(--tk-muted);
       font-weight: 700; text-shadow: var(--tk-tshadow);
     }
 
@@ -126,8 +126,8 @@
       position: relative; display: grid; align-items: center;
       grid-template-columns: 1fr minmax(150px, 206px) 1.08fr;
       gap: clamp(7px, 1.1vw, 15px);
-      padding: clamp(3px, .5vh, 6px) clamp(16px, 1.9vw, 24px);
-      padding-top: clamp(4px, .6vh, 8px);             /* shorter upper band */
+      padding: clamp(2px, .35vh, 4px) clamp(16px, 1.9vw, 24px);
+      padding-top: clamp(2px, .4vh, 5px);             /* shorter upper band */
       border-radius: 16px;
       background:
         radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 20%, transparent), transparent 60%),
@@ -170,7 +170,7 @@
        drops the name to the base. */
     .tk-cell.center { align-self: stretch; justify-content: flex-end; align-items: center;
       text-align: center; gap: 1px; z-index: 6; padding-bottom: 0;
-      transform: translateY(clamp(6px, 1.4vh, 11px)); }   /* name/role dropped lower */
+      transform: translateY(clamp(4px, 1vh, 8px)); }   /* name/role dropped lower */
     .tk-cell.right { align-items: stretch; }
     .tk-cell.center::before, .tk-cell.center::after {
       content: ""; position: absolute; top: -2px; bottom: -2px; width: 1px;
@@ -191,17 +191,17 @@
     }
     /* Local scrim chip behind money figures — kept fairly opaque for legibility. */
     .tk-base, .tk-current, .tk-next {
-      padding: 3px 9px; border-radius: 9px;
+      padding: 2px 8px; border-radius: 8px;
       background: linear-gradient(180deg, rgba(255,255,255,.05), var(--tk-glass-2));
       box-shadow: inset 0 0 0 1px rgba(150,176,240,.16);
     }
     .tk-base { align-self: flex-start; }
-    .tk-base .tk-amount { font-size: clamp(13px, 1.6vw, 19px); color: #fff; }
+    .tk-base .tk-amount { font-size: clamp(12px, 1.4vw, 17px); color: #fff; }
 
-    .tk-bidrow { display: flex; align-items: center; gap: clamp(7px, 1.1vw, 15px); }
+    .tk-bidrow { display: flex; align-items: center; gap: clamp(6px, .9vw, 12px); }
     .tk-current { min-width: 0; }
-    .tk-cur-row { display: flex; align-items: baseline; gap: 5px; }
-    .tk-current .tk-amount { font-size: clamp(19px, 2.5vw, 33px); color: var(--tk-green);
+    .tk-cur-row { display: flex; align-items: baseline; gap: 4px; }
+    .tk-current .tk-amount { font-size: clamp(16px, 2vw, 27px); color: var(--tk-green);
       text-shadow: 0 2px 12px rgba(0,0,0,.9), 0 0 16px color-mix(in srgb, var(--tk-green) 45%, transparent); }
     .tk-trend { color: var(--tk-green); font-size: .5em; opacity: 0; transform: translateY(4px); }
     .tk-current.bumped .tk-amount { animation: tk-pop .5s cubic-bezier(.2,.9,.3,1.4); }
@@ -209,8 +209,8 @@
     @keyframes tk-pop { 0%{transform:scale(1)} 35%{transform:scale(1.13)} 100%{transform:scale(1)} }
     @keyframes tk-trend { 0%{opacity:0;transform:translateY(6px)} 30%{opacity:1;transform:translateY(-1px)} 100%{opacity:0;transform:translateY(-8px)} }
     .tk-leader {
-      display: flex; align-items: center; gap: 7px; margin-top: 4px;
-      font-weight: 700; font-size: clamp(11px, 1.05vw, 14px); min-width: 0; color: #fff;
+      display: flex; align-items: center; gap: 6px; margin-top: 2px;
+      font-weight: 700; font-size: clamp(10px, .95vw, 12.5px); min-width: 0; color: #fff;
       text-shadow: var(--tk-tshadow);
     }
     .tk-leader .tk-lname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -227,7 +227,7 @@
     .tk-next {
       margin-left: auto; text-align: right; display: flex; flex-direction: column; align-items: flex-end;
     }
-    .tk-next .tk-amount { font-size: clamp(13px, 1.55vw, 20px); color: var(--tk-amber);
+    .tk-next .tk-amount { font-size: clamp(12px, 1.4vw, 17px); color: var(--tk-amber);
       display: inline-flex; align-items: center; gap: 4px; }
     .tk-next .tk-amount::before { content: "▲"; font-size: .6em; color: var(--tk-amber); opacity: .9;
       animation: tk-bob 1.8s ease-in-out infinite; }
