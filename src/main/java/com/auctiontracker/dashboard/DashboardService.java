@@ -125,6 +125,7 @@ public class DashboardService {
                 leadingTeamName,
                 bidding.nextBidAmount(player),
                 bidding.bidCount(player.getPlayerId()),
-                player.hasPhoto());
+                player.hasPhoto(),
+                player.getSeq() == null ? null : player.getSeq() + 1);
     }
 }

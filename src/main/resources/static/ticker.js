@@ -29,6 +29,14 @@ const fmtShort = n => {
 
 const ROLE_LABEL = { BATSMAN: '🏏 Batsman', BOWLER: '🔴 Bowler',
   ALL_ROUNDER: '🏏🔴 All-rounder', WICKETKEEPER: '🧤 Wicketkeeper' };
+
+// Player group / category → the pill label shown next to the role.
+const GROUP_LABEL = {
+  ICON: 'Icon', OWNER: 'Owner', A: 'Group A', B: 'Group B', C: 'Group C', D: 'Group D', E: 'Group E',
+  MIXED_UTILITY_BAG: 'Mixed Utility', WICKET_KEEPER: 'Wicket Keeper',
+  BOWLER: 'Bowler', ALL_ROUNDER: 'All Rounder', MARKEE_PLAYER: 'Markee',
+};
+const groupLabel = c => c == null ? '' : (GROUP_LABEL[c] || String(c));
 const initials = name => String(name || '?').split(/\s+/).filter(Boolean)
     .map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
@@ -114,6 +122,31 @@ function hide() {
   const r = root();
   if (r) { r.classList.remove('show', 'enter', 'is-sold'); }
   const b = $('tk-brand'); if (b) b.classList.remove('show');
+  stopStatsCycle();
+}
+
+// Batting/bowling panels rotate on a timer: shown 5s, hidden 10s, repeating.
+// When they fold away the bottom-anchored band slides DOWN (the upper ticker is
+// "pulled down"); when they return it slides back UP. The sponsor bug is
+// position:fixed and never moves with this. The cycle only runs while a player
+// is live — it's stopped (and the panels stay hidden) on a sale or when idle.
+let statsTimer = null, statsCycleOn = false;
+function setStatsCollapsed(collapsed) {
+  const r = root(); if (r) r.classList.toggle('stats-collapsed', collapsed);
+}
+function startStatsCycle() {
+  if (statsCycleOn) return;
+  statsCycleOn = true;
+  const step = visible => {
+    setStatsCollapsed(!visible);
+    statsTimer = setTimeout(() => step(!visible), visible ? 5000 : 10000);
+  };
+  step(true);   // start visible for 5s, then hidden for 10s, and so on
+}
+function stopStatsCycle() {
+  statsCycleOn = false;
+  clearTimeout(statsTimer);
+  setStatsCollapsed(true);
 }
 
 // Restart a CSS animation on an element by toggling a class across a reflow.
@@ -140,24 +173,33 @@ function renderLive(p) {
   setText('tk-role', ROLE_LABEL[p.role] || String(p.role || '').replace('_', ' '));
   setText('tk-base', fmtShort(p.basePrice));
 
+  // Lot / serial number (crown badge) + player group pill.
+  const serial = $('tk-serial');
+  if (serial) { serial.textContent = p.serial != null ? '#' + p.serial : '';
+                serial.style.display = p.serial != null ? '' : 'none'; }
+  const grp = $('tk-group');
+  if (grp) { grp.textContent = groupLabel(p.category); grp.style.display = p.category ? '' : 'none'; }
+
+  const teamBox = $('tk-team');
   if (p.currentBidAmount != null) {
     setText('tk-current-label', 'Current Bid');
     setText('tk-current', fmtShort(p.currentBidAmount));
-    setHTML('tk-leader', crest(p.currentLeadingTeamName)
-        + `<span class="tk-lname">${esc(p.currentLeadingTeamName)}</span>`);
+    setText('tk-leadname', p.currentLeadingTeamName || '');
+    setHTML('tk-leadlogo', crest(p.currentLeadingTeamName));
+    if (teamBox) teamBox.style.display = '';
     setTeamAccent(p.currentLeadingTeamName);
     // Pop the figure whenever the bid climbs (same player, higher number).
     if (lastBidPlayer === p.playerId && p.currentBidAmount !== lastBid) pulse('tk-current-wrap', 'bumped');
   } else {
     setText('tk-current-label', 'Opening');
     setText('tk-current', fmtShort(p.basePrice));
-    setHTML('tk-leader', '<span class="tk-lname">No bids yet</span>');
+    if (teamBox) teamBox.style.display = 'none';   // no bids yet → no team display
     setTeamAccent(null);
   }
   lastBid = p.currentBidAmount; lastBidPlayer = p.playerId;
-  setText('tk-next', fmtShort(p.nextBidAmount));
   setHTML('tk-stats', statsStrip(p.stats)
       + (p.bidCount ? `<span class="tk-bidcount">Bid #${p.bidCount}</span>` : ''));
+  startStatsCycle();   // rotate the batting/bowling panels while live
 
   reveal();
 }
@@ -167,6 +209,7 @@ function renderSold(sale) {
   if (!r) return;
   const sold = sale.type === 'SOLD';
   r.classList.add('is-sold');
+  stopStatsCycle();   // sold → don't show this player's stats anymore
   $('tk-bar').classList.toggle('sold', sold);
   $('tk-bar').classList.toggle('unsold', !sold);
   const live = $('tk-live');
@@ -176,6 +219,9 @@ function renderSold(sale) {
   setPortrait({ playerId: sale.playerId, name: sale.playerName, hasPhoto: true });
   setText('tk-name', sale.playerName);
   setText('tk-role', '');
+  // Audit result carries no group/serial — hide those so nothing goes stale.
+  const grp = $('tk-group'); if (grp) grp.style.display = 'none';
+  const serial = $('tk-serial'); if (serial) serial.style.display = 'none';
   setText('tk-stamp', sold ? 'SOLD' : 'UNSOLD');
   setTeamAccent(sold ? sale.teamName : null);
   lastBid = null; lastBidPlayer = null;   // next player on the block starts fresh

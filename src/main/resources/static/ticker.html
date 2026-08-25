@@ -16,9 +16,13 @@
       --tk-ink: #f4f8ff; --tk-label: #eaf0ff; --tk-muted: #c4d0ee;
       --tk-green: #46eaa8; --tk-amber: #ffcb5e; --tk-red: #ff6a5e;
       --tk-accent: #5b8cff; --tk-accent-2: #a06bff; --tk-cyan: #35d6e6;
-      --tk-glass: rgba(11, 16, 32, 0.30);        /* ~70% see-through panel */
-      --tk-glass-2: rgba(6, 10, 22, 0.62);       /* denser scrim behind figures/tiles */
-      --tk-line: rgba(150, 176, 240, 0.30);
+      /* Tinted translucent panel — a mid-tone indigo/violet that reads against
+         BOTH light and dark video (dark enough to sit on white, saturated and
+         light enough to stand off black), kept see-through for the feed. */
+      --tk-glass: rgba(48, 40, 120, 0.46);
+      --tk-glass-top: rgba(78, 60, 168, 0.42);
+      --tk-glass-2: rgba(26, 20, 66, 0.68);      /* denser scrim behind figures/tiles */
+      --tk-line: rgba(170, 186, 245, 0.32);
       --tk-shadow: 0 3px 14px rgba(0,0,0,0.85);
       --tk-tshadow: 0 2px 8px rgba(0,0,0,0.92), 0 0 2px rgba(0,0,0,0.95);
     }
@@ -116,9 +120,26 @@
       font-size: clamp(12px, 1.35vw, 17px); line-height: 1.08;
       text-shadow: 0 2px 12px rgba(0,0,0,.92), 0 0 3px rgba(0,0,0,.95);
     }
-    .tk-role {
-      margin-top: 1px; font-size: clamp(8.5px, .9vw, 11px); color: var(--tk-muted);
-      font-weight: 700; text-shadow: var(--tk-tshadow);
+    .tk-meta { display: flex; align-items: center; justify-content: center; gap: 6px;
+      flex-wrap: wrap; margin-top: 1px; }
+    .tk-role { font-size: clamp(8.5px, .9vw, 11px); color: var(--tk-muted);
+      font-weight: 700; text-shadow: var(--tk-tshadow); }
+    /* Player group (A/B/C/D/E/ICON/OWNER…) — a gold pill next to the role. */
+    .tk-grp {
+      font-size: clamp(7.5px, .78vw, 10px); font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      color: #17110a; padding: 1px 8px; border-radius: 20px; white-space: nowrap;
+      background: linear-gradient(100deg, #ffd76a, #ffb43d);
+      box-shadow: 0 2px 8px -3px rgba(255,180,60,.7);
+    }
+    /* Lot / serial number — a badge at the BOTTOM of the photo (same style as
+       it sat at the top). */
+    .tk-serial {
+      position: absolute; bottom: -7px; top: auto; left: 50%; transform: translateX(-50%); z-index: 5;
+      font-size: clamp(9px, 1vw, 12.5px); font-weight: 900; color: #fff; line-height: 1; white-space: nowrap;
+      padding: 3px 10px; border-radius: 20px;
+      background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
+      box-shadow: 0 4px 12px -3px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.28);
+      text-shadow: 0 1px 3px rgba(0,0,0,.6);
     }
 
     /* ============================ The glass bar ============================ */
@@ -130,8 +151,8 @@
       padding-top: clamp(2px, .4vh, 5px);             /* shorter upper band */
       border-radius: 16px;
       background:
-        radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 20%, transparent), transparent 60%),
-        linear-gradient(180deg, rgba(20,28,52,.34), var(--tk-glass));
+        radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 26%, transparent), transparent 60%),
+        linear-gradient(180deg, var(--tk-glass-top), var(--tk-glass));
       border: 1px solid rgba(150,176,240,.22);
       box-shadow: 0 22px 60px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06);
       -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
@@ -190,27 +211,42 @@
       text-shadow: 0 2px 10px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.95);
     }
     /* Local scrim chip behind money figures — kept fairly opaque for legibility. */
-    .tk-base, .tk-current, .tk-next {
-      padding: 2px 8px; border-radius: 8px;
+    /* Base Price and Current Bid: identical two-line blocks (label row, then
+       amount row) at matching size, base on the left, current on the right. */
+    .tk-base, .tk-current {
+      padding: 2px 9px; border-radius: 8px;
       background: linear-gradient(180deg, rgba(255,255,255,.05), var(--tk-glass-2));
       box-shadow: inset 0 0 0 1px rgba(150,176,240,.16);
     }
-    .tk-base { align-self: flex-start; }
-    .tk-base .tk-amount { font-size: clamp(12px, 1.4vw, 17px); color: #fff; }
+    .tk-base { align-self: flex-start; display: flex; flex-direction: column; }
+    .tk-base .tk-amount { font-size: clamp(15px, 1.9vw, 24px); color: #fff; }
 
-    .tk-bidrow { display: flex; align-items: center; gap: clamp(6px, .9vw, 12px); }
-    .tk-current { min-width: 0; }
+    /* Right cell now holds the current-bid block + the leading-team display. */
+    .tk-cell.right { flex-direction: row; align-items: center; gap: clamp(8px, 1.4vw, 18px); }
+    .tk-current { min-width: 0; flex: none; }
     .tk-cur-row { display: flex; align-items: baseline; gap: 4px; }
-    .tk-current .tk-amount { font-size: clamp(16px, 2vw, 27px); color: var(--tk-green);
+    .tk-current .tk-amount { font-size: clamp(15px, 1.9vw, 24px); color: var(--tk-green);
       text-shadow: 0 2px 12px rgba(0,0,0,.9), 0 0 16px color-mix(in srgb, var(--tk-green) 45%, transparent); }
+
+    /* Leading team — bigger name + logo, pushed to the far right (old Next Bid). */
+    .tk-team { margin-left: auto; display: flex; align-items: center; gap: clamp(7px, 1vw, 12px); min-width: 0; }
+    .tk-team-name {
+      font-size: clamp(14px, 1.9vw, 24px); font-weight: 800; color: #fff;
+      text-shadow: var(--tk-tshadow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: clamp(120px, 24vw, 340px); text-align: right;
+    }
+    .tk-team-logo { flex: none; display: inline-flex; }
+    .tk-team-logo .tk-crest { width: clamp(30px, 3.4vw, 46px); height: clamp(30px, 3.4vw, 46px);
+      border-radius: 10px; }
+    .tk-team-logo .tk-crest.initials { font-size: clamp(13px, 1.5vw, 19px); border-radius: 10px; }
     .tk-trend { color: var(--tk-green); font-size: .5em; opacity: 0; transform: translateY(4px); }
     .tk-current.bumped .tk-amount { animation: tk-pop .5s cubic-bezier(.2,.9,.3,1.4); }
     .tk-current.bumped .tk-trend { animation: tk-trend .9s ease-out; }
     @keyframes tk-pop { 0%{transform:scale(1)} 35%{transform:scale(1.13)} 100%{transform:scale(1)} }
     @keyframes tk-trend { 0%{opacity:0;transform:translateY(6px)} 30%{opacity:1;transform:translateY(-1px)} 100%{opacity:0;transform:translateY(-8px)} }
     .tk-leader {
-      display: flex; align-items: center; gap: 6px; margin-top: 2px;
-      font-weight: 700; font-size: clamp(10px, .95vw, 12.5px); min-width: 0; color: #fff;
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 0;
+      font-weight: 700; font-size: clamp(9.5px, .9vw, 12px); min-width: 0; color: #fff;
       text-shadow: var(--tk-tshadow);
     }
     .tk-leader .tk-lname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -240,8 +276,17 @@
       grid-column: 1 / -1; margin-top: clamp(5px, .8vh, 9px);
       padding-top: clamp(5px, .8vh, 8px); border-top: 1px solid rgba(150,176,240,.16);
       display: flex; align-items: stretch; gap: clamp(6px, 1vw, 12px);
+      max-height: 40vh; overflow: hidden;
+      transition: max-height .45s ease, opacity .3s ease, margin-top .45s ease,
+                  padding-top .45s ease, border-color .3s ease;
     }
     .tk-stats:empty { display: none; }
+    /* Auto-cycle: when collapsed, the stats fold away and — because the band is
+       anchored at the bottom — the whole upper ticker slides DOWN; restoring
+       them slides it back UP. */
+    #tk-root.stats-collapsed .tk-stats {
+      max-height: 0; opacity: 0; margin-top: 0; padding-top: 0; border-top-color: transparent;
+    }
     .stat-panels { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(6px, 1vw, 10px); flex: 1; min-width: 0; }
     .stat-panel { border: 1px solid var(--tk-line); border-radius: 9px; overflow: hidden;
       background: rgba(6,10,22,.42); }
@@ -309,7 +354,8 @@
       .tk-bar { grid-template-columns: 1fr; gap: 7px; }
       .tk-cell.left { align-items: center; }
       .tk-cell.center::before, .tk-cell.center::after { display: none; }
-      .tk-next { margin-left: 0; align-items: center; text-align: center; }
+      .tk-cell.right { flex-direction: column; align-items: center; gap: 4px; }
+      .tk-team { margin-left: 0; }
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -336,6 +382,7 @@
       <span class="tk-orbit a"><i></i></span>
       <span class="tk-orbit b"><i></i></span>
       <div class="tk-portrait"><img id="tk-poster" alt="" style="display:none"><span id="tk-initials"></span></div>
+      <span class="tk-serial" id="tk-serial" style="display:none"></span>   <!-- lot / SL number -->
     </div>
 
     <div class="tk-bar" id="tk-bar">
@@ -352,23 +399,24 @@
       <!-- centre column: reserves the space under the portrait for the name -->
       <div class="tk-cell center">
         <div class="tk-name" id="tk-name">Player</div>
-        <div class="tk-role" id="tk-role"></div>
+        <div class="tk-meta">
+          <span class="tk-role" id="tk-role"></span>
+          <span class="tk-grp" id="tk-group" style="display:none"></span>
+        </div>
       </div>
 
       <div class="tk-cell right">
-        <div class="tk-bidrow">
-          <div class="tk-current" id="tk-current-wrap">
-            <span class="tk-label" id="tk-current-label">Current Bid</span>
-            <div class="tk-cur-row">
-              <span class="tk-trend" aria-hidden="true">▲</span>
-              <span class="tk-amount" id="tk-current">₹ —</span>
-            </div>
-            <div class="tk-leader" id="tk-leader"></div>
+        <div class="tk-current" id="tk-current-wrap">
+          <span class="tk-label" id="tk-current-label">Current Bid</span>
+          <div class="tk-cur-row">
+            <span class="tk-trend" aria-hidden="true">▲</span>
+            <span class="tk-amount" id="tk-current">₹ —</span>
           </div>
-          <div class="tk-next">
-            <span class="tk-label">Next Bid</span>
-            <span class="tk-amount" id="tk-next">₹ —</span>
-          </div>
+        </div>
+        <!-- Leading team: big name + logo, occupying the old Next Bid space -->
+        <div class="tk-team" id="tk-team">
+          <span class="tk-team-name" id="tk-leadname"></span>
+          <span class="tk-team-logo" id="tk-leadlogo"></span>
         </div>
       </div>
 
@@ -386,6 +434,6 @@
   <script src="tournament-context.js"></script>
   <script src="team-logo.js?v=2"></script>
   <script src="sold-fx.js?v=4"></script>
-  <script src="ticker.js?v=5"></script>
+  <script src="ticker.js?v=7"></script>
 </body>
 </html>

@@ -42,7 +42,9 @@ public final class DashboardViews {
             String currentLeadingTeamName,
             long nextBidAmount,
             int bidCount,
-            boolean hasPhoto) {}
+            boolean hasPhoto,
+            /** 1-based lot/serial number (import order); null for rows without a seq. */
+            Integer serial) {}
 
     public record DashboardView(
             OnTheBlockView onTheBlock,
