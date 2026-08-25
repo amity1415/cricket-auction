@@ -197,8 +197,7 @@ function renderLive(p) {
     setTeamAccent(null);
   }
   lastBid = p.currentBidAmount; lastBidPlayer = p.playerId;
-  setHTML('tk-stats', statsStrip(p.stats)
-      + (p.bidCount ? `<span class="tk-bidcount">Bid #${p.bidCount}</span>` : ''));
+  setHTML('tk-stats', statsStrip(p.stats));
   startStatsCycle();   // rotate the batting/bowling panels while live
 
   reveal();
