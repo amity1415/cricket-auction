@@ -27,6 +27,7 @@
           { href: 'auction.html', label: '🔨 Auction console' },
           { href: 'team.html', label: '👥 Team dashboards' },
           { href: 'broadcast.html', label: '📺 Live broadcast' },
+          { href: 'ticker.html', label: '🎬 Auction ticker (overlay)' },
         );
       } else if (role === 'FRANCHISE_OWNER') {
         items.push(

@@ -209,6 +209,25 @@ header nav.open .menu-panel { display: block; animation: menuIn .16s ease; }
   background: var(--card-2); border: 1px solid var(--border);
   font-size: 11.5px; font-weight: 600; margin-left: 6px; white-space: nowrap;
 }
+/* CricHeroes external link — on the profile hero (with label) and, icon-only,
+   beside each name in the players list. Brand-green tint so it reads as the
+   CricHeroes destination without shouting over the auction chips. */
+.cricheroes-link {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: 6px;
+  padding: 3px 11px 3px 8px; border-radius: 20px;
+  background: rgba(22,163,74,.12); border: 1px solid rgba(22,163,74,.42);
+  color: #56d38a; font-size: 11.5px; font-weight: 700; white-space: nowrap;
+  text-decoration: none; vertical-align: middle; transition: background .15s ease, border-color .15s ease;
+}
+.cricheroes-link:hover { background: rgba(22,163,74,.22); border-color: rgba(22,163,74,.7); }
+.cricheroes-link .ch-ext { opacity: .7; font-weight: 800; }
+.cricheroes-icon {
+  display: inline-flex; align-items: center; margin-left: 6px;
+  vertical-align: middle; text-decoration: none; opacity: .9;
+}
+.cricheroes-icon:hover { opacity: 1; }
+.ch-ico { display: block; flex: none; }
+
 .bid-line { margin: 14px 0 4px; font-size: 15px; }
 .bid-line .amount {
   font-size: 30px; font-weight: 800; color: var(--green);

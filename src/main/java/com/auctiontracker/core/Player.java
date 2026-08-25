@@ -61,6 +61,15 @@ public class Player {
     private String photoFileId;
 
     /**
+     * Optional CricHeroes profile URL for this player, taken from the import
+     * file's "CricHeroes Profile Link" column. Nullable / opt-in — blank in the
+     * sheet leaves it null and byte-identical to a row that never had it. Shown
+     * as an external "view on CricHeroes" link on the player analysis page.
+     */
+    @Column(name = "cricheroes_url")
+    private String cricheroesUrl;
+
+    /**
      * Transient (never persisted) Google Drive FOLDER reference supplied by an
      * import's {@code Image_location} column. The player's poster is the file
      * named by its 1-based serial ({@link #seq} + 1) inside this folder; the
@@ -133,6 +142,9 @@ public class Player {
 
     public String getPhotoFileId() { return photoFileId; }
     public void setPhotoFileId(String photoFileId) { this.photoFileId = photoFileId; }
+
+    public String getCricheroesUrl() { return cricheroesUrl; }
+    public void setCricheroesUrl(String cricheroesUrl) { this.cricheroesUrl = cricheroesUrl; }
 
     public String getPhotoFolderId() { return photoFolderId; }
     public void setPhotoFolderId(String photoFolderId) { this.photoFolderId = photoFolderId; }

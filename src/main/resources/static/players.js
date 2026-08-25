@@ -66,6 +66,23 @@ const GROUP_LABEL = {
 };
 const GROUP_KEY = { category: p => p.category, role: p => p.role, status: p => p.status };
 
+// CricHeroes brand mark (green hero shield with a white bat & ball), inline so
+// the list stays self-contained. Rendered beside a player's name as a compact
+// external link when the import supplied a "CricHeroes Profile Link".
+const CRICHEROES_ICON =
+    '<svg class="ch-ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">'
+  + '<path d="M12 2.2 19.2 4.7V11c0 4.6-3 8.3-7.2 9.6C7.8 19.3 4.8 15.6 4.8 11V4.7L12 2.2Z" fill="#16a34a"/>'
+  + '<path d="M14.3 7.4 16.6 9.7 10.9 15.4 8.6 13.1Z" fill="#fff"/>'
+  + '<path d="M16.2 8 17.9 6.3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'
+  + '<circle cx="9.2" cy="9.4" r="1.5" fill="#fff"/></svg>';
+
+// Compact icon-only CricHeroes link, or '' when there's no valid http(s) URL.
+function cricheroesIconLink(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return '';
+  return ` <a class="cricheroes-icon" href="${esc(url)}" target="_blank" rel="noopener noreferrer"
+             title="View stats on CricHeroes">${CRICHEROES_ICON}</a>`;
+}
+
 const state = {
   scope: 'all',
   statuses: new Set(),   // empty = every status (all players visible by default)
@@ -119,7 +136,7 @@ function rowHtml(p, i) {
   return `
     <tr>
       <td class="muted">${i + 1}</td>
-      <td><a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a></td>
+      <td><a class="plink" href="player.html?playerId=${p.playerId}"><b>${esc(p.name)}</b></a>${cricheroesIconLink(p.cricheroesUrl)}</td>
       <td>${ROLE_ICON[p.role] || ''} ${ROLE_NAME[p.role] || p.role}</td>
       <td><span class="chip">${p.category}</span></td>
       <td><span class="badge ${p.status}">${(STATUS_LABEL[p.status] || p.status)}</span></td>

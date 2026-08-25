@@ -55,10 +55,12 @@ public class SecurityConfig {
                 .requestMatchers("/img/**").permitAll()
 
                 // Public pages (guest access): login, the auctions hub (everyone
-                // lands here and picks an auction), the live broadcast, and the
-                // read-only player list + analysis + profile + team dashboards.
+                // lands here and picks an auction), the live broadcast, the
+                // bottom-of-screen auction ticker overlay (an OBS/browser source
+                // that must render without a login), and the read-only player
+                // list + analysis + profile + team dashboards.
                 .requestMatchers("/login.html", "/auctions.html", "/broadcast.html",
-                        "/players.html", "/player.html", "/team.html").permitAll()
+                        "/ticker.html", "/players.html", "/player.html", "/team.html").permitAll()
 
                 // Public auth endpoints (login/self-lookup/logout + team list).
                 .requestMatchers("/api/auth/login", "/api/auth/teams",

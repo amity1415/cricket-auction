@@ -11,6 +11,22 @@
   const ROLE_NAME = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-rounder', WICKETKEEPER: 'Wicketkeeper' };
   const ROLE_ICON = { BATSMAN: '🏏', BOWLER: '🔴', ALL_ROUNDER: '🏏🔴', WICKETKEEPER: '🧤' };
 
+  // CricHeroes brand mark (green hero shield with a white bat & ball), inline so
+  // the modal stays self-contained. Rendered as a "view stats on CricHeroes"
+  // chip when the import supplied a profile link. Only http(s) URLs are rendered.
+  const CRICHEROES_ICON =
+      '<svg class="ch-ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">'
+    + '<path d="M12 2.2 19.2 4.7V11c0 4.6-3 8.3-7.2 9.6C7.8 19.3 4.8 15.6 4.8 11V4.7L12 2.2Z" fill="#16a34a"/>'
+    + '<path d="M14.3 7.4 16.6 9.7 10.9 15.4 8.6 13.1Z" fill="#fff"/>'
+    + '<path d="M16.2 8 17.9 6.3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'
+    + '<circle cx="9.2" cy="9.4" r="1.5" fill="#fff"/></svg>';
+  function cricheroesLink(url) {
+    if (!url || !/^https?:\/\//i.test(url)) return '';
+    return `<a class="cricheroes-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer"
+               title="View this player's stats on CricHeroes">${CRICHEROES_ICON}<span>CricHeroes stats</span>
+               <span class="ch-ext" aria-hidden="true">↗</span></a>`;
+  }
+
   const dialog = document.createElement('dialog');
   dialog.className = 'modal profile-modal';
   dialog.innerHTML = `
@@ -88,6 +104,7 @@
               <span class="chip">${ROLE_ICON[p.role] || ''} ${ROLE_NAME[p.role] || p.role}</span>
               <span class="chip">Group ${p.category}</span>
               <span class="badge ${p.status}">${p.status.replace('_', ' ')}</span>
+              ${cricheroesLink(p.cricheroesUrl)}
             </div>
             <div class="status-line">${statusLine(p, current, teamName)}</div>
           </div>

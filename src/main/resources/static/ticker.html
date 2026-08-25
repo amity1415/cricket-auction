@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Ticker</title>
+  <!-- Bottom-of-screen auction ticker: a transparent lower-third overlay meant
+       to be dropped in as an OBS / vMix "browser source" over a live video feed,
+       so the rest of the frame stays free for the stream. Open it scoped to an
+       auction: ticker.html?tournamentId=<id>. Fully self-contained (its own CSS)
+       and transparent — nothing shows until a player is on the block. -->
+  <style>
+    :root {
+      --tk-ink: #f5f8ff; --tk-muted: #b9c6e6; --tk-green: #2dd48f;
+      --tk-amber: #f5b942; --tk-accent: #5b8cff; --tk-accent-2: #8b5cf6;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%; background: transparent;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--tk-ink); overflow: hidden;
+    }
+
+    /* Root band, pinned bottom-centre. Hidden until JS reveals it. */
+    #tk-root {
+      position: fixed; left: 50%; bottom: clamp(14px, 3.5vh, 42px);
+      transform: translateX(-50%);
+      width: min(1180px, 94vw);
+      opacity: 0; visibility: hidden; transition: opacity .35s ease, transform .35s ease;
+      pointer-events: none;
+    }
+    #tk-root.show { opacity: 1; visibility: visible; }
+    #tk-root.enter { animation: tk-rise .5s cubic-bezier(.2,.8,.25,1) both; }
+    @keyframes tk-rise { from { transform: translateX(-50%) translateY(40px); opacity: 0; }
+                         to   { transform: translateX(-50%) translateY(0);    opacity: 1; } }
+
+    /* The portrait pops ABOVE the bar, centred over the middle column, like a
+       broadcast lower-third. It floats in the root (outside the bar's
+       overflow:hidden) so it is never clipped; the middle column below reserves
+       the horizontal space so the name never collides with the bid figures. */
+    .tk-portrait-wrap {
+      position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 32%);
+      width: clamp(92px, 11vw, 138px); z-index: 3; text-align: center;
+    }
+    .tk-portrait {
+      position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%;
+      overflow: hidden; margin: 0 auto;
+      background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: clamp(30px, 4vw, 52px);
+      box-shadow: 0 12px 34px -8px rgba(0,0,0,.7), 0 0 0 4px rgba(10,16,32,.55);
+    }
+    .tk-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Dynamic background — a rotating conic glow ring behind the portrait. */
+    .tk-portrait-wrap::before {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      width: 152%; height: 152%; transform: translate(-50%, -50%); z-index: -1;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-green),
+                  var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
+      filter: blur(9px); opacity: .85; animation: tk-spin 6s linear infinite;
+    }
+    @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+    .tk-name {
+      font-weight: 800; letter-spacing: .01em;
+      font-size: clamp(14px, 1.5vw, 20px); line-height: 1.15;
+      text-shadow: 0 2px 10px rgba(0,0,0,.7);
+    }
+    .tk-role {
+      margin-top: 2px; font-size: clamp(10px, 1vw, 12px); color: var(--tk-muted);
+      text-shadow: 0 1px 6px rgba(0,0,0,.7);
+    }
+
+    /* The glass bar itself. */
+    .tk-bar {
+      position: relative; display: grid; align-items: center;
+      grid-template-columns: 1fr minmax(140px, 210px) 1fr;
+      gap: clamp(10px, 1.6vw, 22px);
+      padding: clamp(12px, 1.6vh, 18px) clamp(16px, 2vw, 26px);
+      padding-top: clamp(36px, 5.5vh, 52px);          /* room for the portrait overhang */
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(17,24,44,.93), rgba(9,14,28,.96));
+      border: 1px solid rgba(120,150,220,.28);
+      box-shadow: 0 22px 60px -18px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.06);
+      backdrop-filter: blur(8px); overflow: hidden;
+    }
+    /* Sheen sweep across the bar. */
+    .tk-bar::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.10) 46%, transparent 62%);
+      transform: translateX(-60%); animation: tk-sheen 5.5s ease-in-out infinite;
+    }
+    @keyframes tk-sheen { 0%,55% { transform: translateX(-60%); } 100% { transform: translateX(160%); } }
+
+    .tk-cell { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+    .tk-cell.left  { align-items: flex-start; }
+    .tk-cell.center { align-items: center; text-align: center; gap: 2px; }
+    .tk-cell.right { align-items: stretch; }
+    .tk-label {
+      font-size: clamp(9px, .85vw, 11px); letter-spacing: .14em; text-transform: uppercase;
+      color: var(--tk-muted); font-weight: 700;
+    }
+    .tk-amount {
+      font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+      line-height: 1.1;
+    }
+    .tk-base .tk-amount { font-size: clamp(16px, 2vw, 26px); color: var(--tk-ink); }
+
+    /* Right side: current bid (big) + leader, and the next-bid pill. */
+    .tk-bidrow { display: flex; align-items: center; gap: clamp(10px, 1.5vw, 20px); }
+    .tk-current { min-width: 0; }
+    .tk-current .tk-amount { font-size: clamp(22px, 3vw, 40px); color: var(--tk-green); }
+    .tk-leader {
+      display: flex; align-items: center; gap: 8px; margin-top: 4px;
+      font-weight: 700; font-size: clamp(12px, 1.2vw, 16px); min-width: 0;
+    }
+    .tk-leader .tk-lname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tk-crest {
+      width: clamp(22px, 2.4vw, 30px); height: clamp(22px, 2.4vw, 30px);
+      border-radius: 7px; object-fit: contain; flex: none;
+      background: rgba(255,255,255,.08);
+    }
+    .tk-crest.initials {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: #fff;
+      background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
+    }
+    .tk-next {
+      margin-left: auto; text-align: right; padding-left: clamp(10px, 1.4vw, 18px);
+      border-left: 1px solid rgba(120,150,220,.22);
+    }
+    .tk-next .tk-amount { font-size: clamp(15px, 1.7vw, 22px); color: var(--tk-amber); }
+
+    /* Sub-strip: role + compact career line. */
+    .tk-stats {
+      grid-column: 1 / -1; margin-top: clamp(8px, 1.2vh, 12px);
+      padding-top: clamp(6px, 1vh, 10px); border-top: 1px solid rgba(120,150,220,.18);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center;
+      font-size: clamp(10px, 1vw, 13px); color: var(--tk-muted);
+    }
+    .tk-stats b { color: var(--tk-ink); font-variant-numeric: tabular-nums; }
+    .tk-stats .tk-seg { font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--tk-accent); font-size: .85em; }
+    .tk-bidcount { margin-left: auto; color: var(--tk-amber); font-weight: 700; }
+
+    /* SOLD / UNSOLD takeover of the bar (the hammer→purse FX plays over the top). */
+    .tk-bar.sold  { border-color: rgba(45,212,143,.55); }
+    .tk-bar.unsold { border-color: rgba(240,86,74,.5); }
+    .tk-verdict { grid-column: 1 / -1; display: none; align-items: center;
+      gap: clamp(10px, 1.6vw, 20px); }
+    #tk-root.is-sold .tk-bidrow, #tk-root.is-sold .tk-base, #tk-root.is-sold .tk-stats { display: none; }
+    #tk-root.is-sold .tk-verdict { display: flex; }
+    .tk-stamp {
+      font-weight: 900; letter-spacing: .12em; padding: 4px 16px; border-radius: 10px;
+      border: 2px solid var(--tk-green); color: var(--tk-green);
+      font-size: clamp(16px, 2vw, 26px);
+    }
+    .tk-bar.unsold .tk-stamp { border-color: #f0564a; color: #f2988f; }
+    .tk-verdict .tk-deal { display: flex; align-items: center; gap: 10px; font-weight: 800;
+      font-size: clamp(15px, 1.8vw, 24px); }
+    .tk-verdict .tk-deal .tk-amount { color: var(--tk-green); font-size: clamp(18px, 2.2vw, 30px); }
+
+    @media (max-width: 560px) {
+      .tk-bar { grid-template-columns: 1fr; gap: 8px; }
+      .tk-cell.left { align-items: center; }
+      .tk-next { margin-left: 0; border-left: 0; text-align: left; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tk-portrait-wrap::before, .tk-bar::after, #tk-root.enter { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="tk-root">
+    <!-- Portrait floats above the centre column (a broadcast lower-third look). -->
+    <div class="tk-portrait-wrap">
+      <div class="tk-portrait"><img id="tk-poster" alt="" style="display:none"><span id="tk-initials"></span></div>
+    </div>
+
+    <div class="tk-bar" id="tk-bar">
+      <div class="tk-cell left tk-base">
+        <span class="tk-label">Base Price</span>
+        <span class="tk-amount" id="tk-base">₹ —</span>
+      </div>
+
+      <!-- centre column: reserves the space under the portrait for the name -->
+      <div class="tk-cell center">
+        <div class="tk-name" id="tk-name">Player</div>
+        <div class="tk-role" id="tk-role"></div>
+      </div>
+
+      <div class="tk-cell right">
+        <div class="tk-bidrow">
+          <div class="tk-current">
+            <span class="tk-label" id="tk-current-label">Current Bid</span>
+            <div class="tk-amount" id="tk-current">₹ —</div>
+            <div class="tk-leader" id="tk-leader"></div>
+          </div>
+          <div class="tk-next">
+            <span class="tk-label">Next Bid</span>
+            <div class="tk-amount" id="tk-next">₹ —</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOLD / UNSOLD verdict, shown in place of the bid row after a sale -->
+      <div class="tk-verdict" id="tk-verdict">
+        <span class="tk-stamp" id="tk-stamp">SOLD</span>
+        <div class="tk-deal" id="tk-deal"></div>
+      </div>
+
+      <div class="tk-stats" id="tk-stats"></div>
+    </div>
+  </div>
+
+  <script src="tournament-context.js"></script>
+  <script src="team-logo.js?v=2"></script>
+  <script src="sold-fx.js?v=4"></script>
+  <script src="ticker.js?v=1"></script>
+</body>
+</html>

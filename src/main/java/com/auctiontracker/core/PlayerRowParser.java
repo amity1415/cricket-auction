@@ -72,7 +72,14 @@ public class PlayerRowParser {
             Map.entry("bowlingbestbowling", "bestbowling"),
             Map.entry("imagelocation", "image"), Map.entry("image", "image"),
             Map.entry("imageurl", "image"), Map.entry("photo", "image"),
-            Map.entry("photourl", "image"), Map.entry("photolocation", "image"));
+            Map.entry("photourl", "image"), Map.entry("photolocation", "image"),
+            // CricHeroes profile deep-link — shown as a "view stats on CricHeroes"
+            // link on the player analysis page. Optional; tolerant of spellings.
+            Map.entry("cricheroesprofilelink", "cricheroes"),
+            Map.entry("cricheroesprofile", "cricheroes"),
+            Map.entry("cricheroeslink", "cricheroes"),
+            Map.entry("cricheroesurl", "cricheroes"),
+            Map.entry("cricheroes", "cricheroes"));
 
     /** Base prices for pre-auction picks when the sheet gives none. */
     private static final long ICON_DEFAULT_BASE_PRICE = 1_200_000L; // ₹12L Icon fee
@@ -176,6 +183,7 @@ public class PlayerRowParser {
                 economy, bowlingAverage, value(parts, cols, "bestbowling"));
         player.setStats(stats.allNull() ? null : stats);
         player.setPhotoFolderId(toPhotoFolderId(value(parts, cols, "image")));
+        player.setCricheroesUrl(cleanUrl(value(parts, cols, "cricheroes")));
         return player;
     }
 
@@ -319,6 +327,20 @@ public class PlayerRowParser {
             return m.find() ? m.group(1) : null;   // only a real Drive folder link yields an id
         }
         return s;                                   // assume a bare folder id
+    }
+
+    /**
+     * Normalise a profile-link cell (e.g. the CricHeroes column): trim, drop
+     * blanks to null, and prefix {@code https://} onto a bare host link so a
+     * cell like {@code cricheroes.in/player-profile/…} still opens correctly.
+     * A non-URL value is left as-is; the UI only renders http(s) links.
+     */
+    private static String cleanUrl(String raw) {
+        if (raw == null) return null;
+        String s = raw.trim();
+        if (s.isEmpty()) return null;
+        if (s.startsWith("http://") || s.startsWith("https://")) return s;
+        return "https://" + s;
     }
 
     private static String normalizeHeader(String s) {
