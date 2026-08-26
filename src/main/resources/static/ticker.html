@@ -283,7 +283,11 @@
       border: 1px solid rgba(150,176,240,.22);
       box-shadow: 0 22px 60px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06);
       -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px));
+      /* Trapezium: top edge unchanged, bottom edge splayed out wider than the top.
+         The box is widened 34px on each side (negative margin) so the extra width
+         goes to the BOTTOM only; the top corners are inset back to their old width. */
+      margin-inline: -34px;
+      clip-path: polygon(34px 0, calc(100% - 34px) 0, 100% 100%, 0 100%);
       overflow: hidden;
     }
     .tk-bar::before {
