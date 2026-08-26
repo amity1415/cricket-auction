@@ -172,7 +172,20 @@
       0%,100% { opacity: .5;  transform: translate(-50%, -50%) scale(.94); }
       50%     { opacity: .82; transform: translate(-50%, -50%) scale(1.06); }
     }
-    .tk-portrait-wrap::after { content: none; }
+    /* Dynamic backdrop behind the TOP of the player — a slow-rotating ray burst,
+       masked to a soft disc so it fades out at the edges. Sits behind the PNG
+       (z-index -1, above the glow at -2). */
+    .tk-portrait-wrap::after {
+      content: ""; position: absolute; left: 50%; top: 30%;
+      width: 150%; aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -1;
+      background: repeating-conic-gradient(from 0deg,
+        color-mix(in srgb, var(--team) 55%, transparent) 0deg 6deg,
+        transparent 6deg 20deg);
+      -webkit-mask: radial-gradient(circle, #000 8%, rgba(0,0,0,.5) 34%, transparent 62%);
+              mask: radial-gradient(circle, #000 8%, rgba(0,0,0,.5) 34%, transparent 62%);
+      filter: blur(1.5px); opacity: .6; animation: tk-rays 16s linear infinite;
+    }
+    @keyframes tk-rays { to { transform: translate(-50%, -50%) rotate(360deg); } }
     .tk-orbit { display: none; }
 
     /* Name sits ABOVE the portrait glow (higher stacking) and a touch lower so
@@ -465,7 +478,7 @@
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .tk-portrait-wrap::before, .tk-portrait img,
+      .tk-portrait-wrap::before, .tk-portrait-wrap::after, .tk-portrait img,
       .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
       .tk-next .tk-amount::before { animation: none; }
     }
