@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -13,7 +14,17 @@ import java.util.UUID;
 
 /** JPA entity. Money fields are whole rupees. */
 @Entity
-@Table(name = "player")
+// Indexes on the columns every dashboard/pool poll filters by. Without them each
+// poll is a full sequential scan of the (multi-tournament, shared-DB) table, which
+// is the dominant cost under continuous multi-viewer polling. Adding an index never
+// changes query results — only speeds them — so this is behaviour-neutral.
+@Table(name = "player", indexes = {
+        // findByTournamentId(Ordered) and findFirstByStatusAndTournamentId — the
+        // composite covers a tournament_id-only filter (leftmost prefix) too.
+        @Index(name = "idx_player_tournament_status", columnList = "tournament_id, status"),
+        // findBySoldToTeamId + the dashboard's soldToTeamId grouping.
+        @Index(name = "idx_player_sold_to_team", columnList = "sold_to_team_id")
+})
 public class Player {
 
     @Id

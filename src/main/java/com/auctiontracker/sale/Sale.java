@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -16,7 +17,14 @@ import java.util.UUID;
  * teamId/teamName/amount are null for UNSOLD entries.
  */
 @Entity
-@Table(name = "sale")
+// The audit log is re-read on every admin/broadcast/ticker poll via
+// findByTournamentIdOrderByRecordedAtAsc; the composite index serves that filter+sort
+// directly instead of a full sequential scan. Behaviour-neutral (indexes don't change
+// results). player_id supports the per-player deletes on re-auction.
+@Table(name = "sale", indexes = {
+        @Index(name = "idx_sale_tournament_recorded", columnList = "tournament_id, recorded_at"),
+        @Index(name = "idx_sale_player", columnList = "player_id")
+})
 public class Sale {
 
     public enum Type { SOLD, UNSOLD, RETAINED, RELEASED }
