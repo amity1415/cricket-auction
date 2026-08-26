@@ -145,17 +145,36 @@
       color: #fff; font-weight: 800; font-size: clamp(34px, 4.4vw, 60px);
       background: none; overflow: visible;
     }
+    /* The player carries a white outline, then an INTENSE apple-green + lava-blue +
+       lava-red aura hugging that stroke (~0.5cm / up to ~19px), which shimmers as
+       the three colours take turns reaching furthest. It follows the PNG silhouette
+       exactly — there is no frame/box. */
     .tk-portrait img {
       width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block;
-      /* white outline around the cut-out (8 directions) + soft ground shadow */
       filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff)
               drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
               drop-shadow(1.5px 1.5px 0 #fff) drop-shadow(-1.5px -1.5px 0 #fff)
               drop-shadow(1.5px -1.5px 0 #fff) drop-shadow(-1.5px 1.5px 0 #fff)
+              drop-shadow(0 0 10px var(--fx-green)) drop-shadow(0 0 15px var(--fx-blue)) drop-shadow(0 0 20px var(--fx-red))
               drop-shadow(0 12px 16px rgba(0,0,0,.55));
-      animation: tk-float 3.6s ease-in-out infinite;
+      animation: tk-float 3.6s ease-in-out infinite, tk-aura 4.5s ease-in-out infinite;
     }
     @keyframes tk-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    /* Shimmer the aura: each colour takes a turn reaching ~0.5cm out from the stroke. */
+    @keyframes tk-aura {
+      0%,100% { filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+                        drop-shadow(1.5px 1.5px 0 #fff) drop-shadow(-1.5px -1.5px 0 #fff) drop-shadow(1.5px -1.5px 0 #fff) drop-shadow(-1.5px 1.5px 0 #fff)
+                        drop-shadow(0 0 10px var(--fx-green)) drop-shadow(0 0 16px var(--fx-blue)) drop-shadow(0 0 21px var(--fx-red))
+                        drop-shadow(0 12px 16px rgba(0,0,0,.55)); }
+      33%     { filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+                        drop-shadow(1.5px 1.5px 0 #fff) drop-shadow(-1.5px -1.5px 0 #fff) drop-shadow(1.5px -1.5px 0 #fff) drop-shadow(-1.5px 1.5px 0 #fff)
+                        drop-shadow(0 0 21px var(--fx-green)) drop-shadow(0 0 10px var(--fx-blue)) drop-shadow(0 0 16px var(--fx-red))
+                        drop-shadow(0 12px 16px rgba(0,0,0,.55)); }
+      66%     { filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+                        drop-shadow(1.5px 1.5px 0 #fff) drop-shadow(-1.5px -1.5px 0 #fff) drop-shadow(1.5px -1.5px 0 #fff) drop-shadow(-1.5px 1.5px 0 #fff)
+                        drop-shadow(0 0 16px var(--fx-green)) drop-shadow(0 0 21px var(--fx-blue)) drop-shadow(0 0 10px var(--fx-red))
+                        drop-shadow(0 12px 16px rgba(0,0,0,.55)); }
+    }
     /* Initials fallback — a solid rounded tile, shown only when there's no photo. */
     #tk-initials {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -164,57 +183,7 @@
       box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
                   0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    /* Soft team-coloured backlight glow behind the player — pulses gently
-       (replaces the old card ring; there is no frame now). */
-    .tk-portrait-wrap::before {
-      content: ""; position: absolute; left: 50%; top: 48%;
-      width: 120%; height: 120%; transform: translate(-50%, -50%); z-index: -2; border-radius: 50%;
-      background: radial-gradient(circle, color-mix(in srgb, var(--fx-green) 45%, transparent), transparent 70%);
-      filter: blur(18px); opacity: .5; animation: tk-glowpulse 3.4s ease-in-out infinite;
-    }
-    @keyframes tk-glowpulse {
-      0%,100% { opacity: .5;  transform: translate(-50%, -50%) scale(.94); }
-      50%     { opacity: .82; transform: translate(-50%, -50%) scale(1.06); }
-    }
-    /* Full-background plasma behind the player — apple-green + lava-blue + lava-red
-       blobs that drift, scale and MIX across the whole picture area. It fills the
-       portrait box (inset) so it auto-fits the frame at any size; two screen-blended
-       layers cross each other for a living, molten look. */
-    .tk-sweep {
-      position: absolute; inset: -12%; z-index: -1; pointer-events: none;
-      border-radius: 26px; overflow: hidden;
-      -webkit-mask: radial-gradient(125% 120% at 50% 44%, #000 50%, transparent 82%);
-              mask: radial-gradient(125% 120% at 50% 44%, #000 50%, transparent 82%);
-      filter: saturate(1.3) blur(9px); opacity: .92;
-    }
-    .tk-sweep::before, .tk-sweep::after {
-      content: ""; position: absolute; inset: -25%; mix-blend-mode: screen;
-    }
-    .tk-sweep::before {
-      background:
-        radial-gradient(38% 42% at 28% 30%, var(--fx-green) 0%, transparent 60%),
-        radial-gradient(42% 46% at 74% 40%, var(--fx-blue)  0%, transparent 62%),
-        radial-gradient(48% 52% at 52% 82%, var(--fx-red)   0%, transparent 62%);
-      animation: tk-plasma-a 9s ease-in-out infinite alternate;
-    }
-    .tk-sweep::after {
-      background:
-        radial-gradient(40% 44% at 70% 26%, var(--fx-red)   0%, transparent 60%),
-        radial-gradient(44% 48% at 24% 58%, var(--fx-green) 0%, transparent 62%),
-        radial-gradient(46% 50% at 60% 72%, var(--fx-blue)  0%, transparent 62%);
-      animation: tk-plasma-b 11s ease-in-out infinite alternate;
-    }
-    @keyframes tk-plasma-a {
-      0%   { transform: translate(-6%, -3%) scale(1.05) rotate(0deg); }
-      50%  { transform: translate(5%, 4%)   scale(1.18) rotate(7deg); }
-      100% { transform: translate(-3%, 6%)  scale(1.10) rotate(-6deg); }
-    }
-    @keyframes tk-plasma-b {
-      0%   { transform: translate(5%, 4%)   scale(1.12) rotate(0deg); }
-      50%  { transform: translate(-5%, -4%) scale(1.06) rotate(-8deg); }
-      100% { transform: translate(4%, -6%)  scale(1.16) rotate(6deg); }
-    }
-    /* Radar pulse rings — concentric team-coloured rings expand from behind the
+    /* Radar pulse rings — concentric colour rings expand from behind the
        player and fade, staggered so one is always mid-flight. */
     .tk-rings {
       position: absolute; left: 50%; top: 34%; width: 150%; aspect-ratio: 1;
@@ -222,18 +191,18 @@
     }
     .tk-rings i {
       position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 1; border-radius: 50%;
-      color: var(--fx-green); border: 2.5px solid currentColor;
-      box-shadow: 0 0 16px color-mix(in srgb, currentColor 70%, transparent),
-                  inset 0 0 10px color-mix(in srgb, currentColor 50%, transparent);
-      opacity: 0; animation: tk-ping-ring 3s ease-out infinite;
+      color: var(--fx-green); border: 4px solid currentColor;
+      box-shadow: 0 0 26px 4px color-mix(in srgb, currentColor 85%, transparent),
+                  inset 0 0 16px color-mix(in srgb, currentColor 65%, transparent);
+      opacity: 0; animation: tk-ping-ring 2.4s ease-out infinite;
     }
     .tk-rings i:nth-child(1) { color: var(--fx-green); }
-    .tk-rings i:nth-child(2) { color: var(--fx-blue); animation-delay: 1s; }
-    .tk-rings i:nth-child(3) { color: var(--fx-red);  animation-delay: 2s; }
+    .tk-rings i:nth-child(2) { color: var(--fx-blue); animation-delay: .8s; }
+    .tk-rings i:nth-child(3) { color: var(--fx-red);  animation-delay: 1.6s; }
     @keyframes tk-ping-ring {
-      0%   { transform: translate(-50%, -50%) scale(.3); opacity: 0; }
-      12%  { opacity: .85; }
-      100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+      0%   { transform: translate(-50%, -50%) scale(.28); opacity: 0; }
+      10%  { opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.85); opacity: 0; }
     }
     /* Rising sparks — glowing embers that shoot up past the player and twinkle. */
     .tk-sparks { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
@@ -560,7 +529,7 @@
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .tk-portrait-wrap::before, .tk-sweep::before, .tk-sweep::after, .tk-rings i, .tk-sparks i, .tk-portrait img,
+      .tk-rings i, .tk-sparks i, .tk-portrait img,
       .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
       .tk-next .tk-amount::before { animation: none; }
     }
@@ -584,8 +553,8 @@
   <div id="tk-root">
     <!-- Portrait floats above the centre column (broadcast lower-third look). -->
     <div class="tk-portrait-wrap">
-      <!-- Dynamic backdrop behind the player: rotating aura + radar pulse rings + sparks -->
-      <span class="tk-sweep" aria-hidden="true"></span>
+      <!-- Dynamic backdrop behind the player: radar pulse rings + rising sparks
+           (the colour aura hugging the stroke lives on the image filter). -->
       <span class="tk-rings" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="tk-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
       <div class="tk-portrait"><img id="tk-poster" alt="" style="display:none"><span id="tk-initials"></span></div>
