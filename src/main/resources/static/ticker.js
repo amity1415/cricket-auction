@@ -235,7 +235,9 @@ function renderLive(p) {
   if (grp) { grp.textContent = groupLabel(p.category); grp.style.display = p.category ? '' : 'none'; }
 
   const teamBox = $('tk-team');
+  const curWrap = $('tk-current-wrap');
   if (p.currentBidAmount != null) {
+    if (curWrap) curWrap.classList.remove('opening');
     setText('tk-current-label', 'Current Bid');
     setText('tk-current', fmtShort(p.currentBidAmount));
     setText('tk-leadname', p.currentLeadingTeamName || '');
@@ -245,6 +247,7 @@ function renderLive(p) {
     // Pop the figure whenever the bid climbs (same player, higher number).
     if (lastBidPlayer === p.playerId && p.currentBidAmount !== lastBid) pulse('tk-current-wrap', 'bumped');
   } else {
+    if (curWrap) curWrap.classList.add('opening');
     setText('tk-current-label', 'Opening');
     setText('tk-current', fmtShort(p.basePrice));
     if (teamBox) teamBox.style.display = 'none';   // no bids yet → no team display
