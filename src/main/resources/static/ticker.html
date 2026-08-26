@@ -20,11 +20,11 @@
          IDENTICAL for every team (never the per-team hashed colour) and vivid on
          light OR dark video. --tk-fx2 is the near-white hot spark core. */
       --fx-green: #8fe61a; --fx-blue: #2a6cff; --fx-red: #ff3b2e; --tk-fx2: #fffbe6;
-      /* Tinted translucent panel — navy blue at 70% opacity per design. Top layer a
-         lighter navy, base a deeper navy, both at 0.70 alpha so the bar reads clearly
-         navy blue while staying see-through for the video feed. */
-      --tk-glass: rgba(0, 0, 96, 0.70);
-      --tk-glass-top: rgba(24, 42, 120, 0.70);
+      /* Tinted translucent panel — violet at 90% opacity per design. Top layer a
+         lighter violet, base a deeper violet, both at 0.90 alpha so the bar reads
+         clearly violet while staying slightly see-through for the video feed. */
+      --tk-glass: rgba(90, 0, 160, 0.90);
+      --tk-glass-top: rgba(132, 44, 200, 0.90);
       --tk-glass-2: rgba(26, 20, 66, 0.68);      /* denser scrim behind figures/tiles */
       --tk-line: rgba(170, 186, 245, 0.32);
       --tk-shadow: 0 3px 14px rgba(0,0,0,0.85);
@@ -278,10 +278,9 @@
       min-height: clamp(74px, 10vh, 96px);
       /* Softly rounded corners (no bevel clip) for a smoother, more polished pill. */
       border-radius: clamp(18px, 2.2vw, 26px);
-      /* Just the tinted-glass gradients here; the honeycomb texture is a separate
-         static layer (.tk-honey). Keeping it off this element matters because
-         animating any background on a backdrop-filtered bar forces a full repaint
-         plus a backdrop re-blur every frame — the expensive pattern we avoid. */
+      /* Tinted-glass gradients only. Never animate a background on this element:
+         with backdrop-filter active it would force a full repaint plus a backdrop
+         re-blur every frame — the expensive pattern to avoid. */
       background:
         radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 26%, transparent), transparent 60%),
         linear-gradient(180deg, var(--tk-glass-top), var(--tk-glass));
@@ -289,13 +288,6 @@
       box-shadow: 0 22px 60px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06);
       -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
       overflow: hidden;
-    }
-    /* Sea-green-blue honeycomb texture in the background — STATIC (no drift) and
-       fully opaque (100% line opacity) per design. Its own layer behind the text,
-       above the bar's gradients; being static it costs nothing to render. */
-    .tk-honey {
-      position: absolute; z-index: -1; pointer-events: none; inset: 0;
-      background: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='49'%20viewBox='0%200%2028%2049'%3E%3Cpath%20fill='%2320B2AA'%20fill-opacity='1'%20fill-rule='evenodd'%20d='M13.99%209.25l13%207.5v15l-13%207.5L1%2031.75v-15l12.99-7.5zM3%2017.9v12.7l10.99%206.34%2011-6.35V17.9l-11-6.34L3%2017.9zM0%2015l12.98-7.5V0h-2v6.35L0%2012.69v2.3zm0%2018.5L12.98%2041v8h-2v-6.85L0%2035.81v-2.3zM15%200v7.5L27.99%2015H28v-2.31h-.01L17%206.35V0h-2zm0%2049v-8l12.99-7.5H28v2.31h-.01L17%2042.15V49h-2z'/%3E%3C/svg%3E") 0 0 / 46px 80px repeat;
     }
     .tk-bar::before {
       content: ""; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px; border-radius: 4px;
@@ -553,7 +545,7 @@
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .tk-rings i, .tk-sparks i, .tk-portrait img, .tk-bar, .tk-honey,
+      .tk-rings i, .tk-sparks i, .tk-portrait img, .tk-bar,
       .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
       .tk-next .tk-amount::before { animation: none; }
     }
@@ -586,7 +578,6 @@
     </div>
 
     <div class="tk-bar" id="tk-bar">
-      <span class="tk-honey" aria-hidden="true"></span>
       <span class="tk-topline"></span>
       <span class="tk-scan"></span>
 
