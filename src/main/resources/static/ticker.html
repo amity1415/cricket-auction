@@ -130,13 +130,13 @@
        clip/overflow never touches it). Kept small so the band stays compact. */
     .tk-portrait-wrap {
       position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, calc(6% - 13px));
-      width: clamp(94px, 10vw, 142px); z-index: 4; text-align: center;   /* portrait card, lifted ~0.35cm off the name */
+      width: clamp(106px, 11.2vw, 161px); z-index: 4; text-align: center;   /* frame +0.5cm, lifted ~0.35cm off the name */
     }
     /* Portrait CARD (rectangle). object-fit: cover fills it edge-to-edge with
        the photo — no colour padding — cropping top/bottom as needed; the top
        bias keeps the face in frame. */
     .tk-portrait {
-      position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: clamp(12px, 1.6vw, 18px);
+      position: relative; width: 100%; aspect-ratio: 161 / 208; border-radius: clamp(12px, 1.6vw, 18px);
       overflow: hidden; margin: 0 auto;
       background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
       display: flex; align-items: center; justify-content: center;
@@ -144,7 +144,12 @@
       box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
                   0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    .tk-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+    /* Zoom into the face: scale up so ~8% is cropped from every side (the card's
+       overflow:hidden clips it). object-position keeps the head anchored high, and
+       transform-origin biased slightly downward takes any extra crop off the
+       BOTTOM rather than the top. */
+    .tk-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center top;
+      display: block; transform: scale(1.19); transform-origin: center 40%; }
     /* Rotating conic glow ring behind the portrait — the "dynamic background".
        Sized tight so it doesn't wash over the player name below. */
     .tk-portrait-wrap::before {
