@@ -20,11 +20,13 @@
          IDENTICAL for every team (never the per-team hashed colour) and vivid on
          light OR dark video. --tk-fx2 is the near-white hot spark core. */
       --fx-green: #8fe61a; --fx-blue: #2a6cff; --fx-red: #ff3b2e; --tk-fx2: #fffbe6;
-      /* Solid panel — navy blue at 100% opacity per design. Top layer a lighter
-         navy, base a deeper navy, both fully opaque so the bar is solid navy blue
-         (the video feed no longer shows through). */
-      --tk-glass: rgba(0, 0, 90, 1);
-      --tk-glass-top: rgba(20, 40, 120, 1);
+      /* Solid panel — navy blue. The colour is defined once as an RGB triplet so
+         the sold/unsold state can reuse the EXACT same navy at a different opacity
+         (see #tk-root.is-sold). Full opacity here for a solid bar during bidding. */
+      --tk-glass-rgb: 0 0 90;          /* deeper navy — base of the gradient */
+      --tk-glass-top-rgb: 20 40 120;   /* lighter navy — top of the gradient */
+      --tk-glass: rgb(var(--tk-glass-rgb) / 1);
+      --tk-glass-top: rgb(var(--tk-glass-top-rgb) / 1);
       --tk-glass-2: rgba(26, 20, 66, 0.68);      /* denser scrim behind figures/tiles */
       --tk-line: rgba(170, 186, 245, 0.32);
       --tk-shadow: 0 3px 14px rgba(0,0,0,0.85);
@@ -481,12 +483,13 @@
       gap: clamp(10px, 1.6vw, 20px); }
     #tk-root.is-sold .tk-cell.right, #tk-root.is-sold .tk-base, #tk-root.is-sold .tk-stats { display: none; }
     #tk-root.is-sold .tk-verdict { display: flex; }
-    /* On a result, drop the panel to ~20% opacity (80% transparent) so the giant
-       SOLD/UNSOLD words behind the band read clearly through it. */
+    /* On a result (SOLD/UNSOLD), keep the SAME ticker colour but drop it to 60%
+       opacity so the giant SOLD/UNSOLD words behind the band read through it. Only
+       the alpha changes — the navy triplets are reused, so any future colour change
+       to the bar carries over to this state automatically. */
     #tk-root.is-sold .tk-bar {
-      background:
-        radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 14%, transparent), transparent 60%),
-        linear-gradient(180deg, rgba(78,60,168,.20), rgba(48,40,120,.20));
+      --tk-glass: rgb(var(--tk-glass-rgb) / 0.60);
+      --tk-glass-top: rgb(var(--tk-glass-top-rgb) / 0.60);
     }
     /* The in-band SOLD/UNSOLD badge and the status pill are removed on a result —
        the giant side words convey it now. The pill still shows "On the block"
