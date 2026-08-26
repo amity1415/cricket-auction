@@ -130,54 +130,50 @@
        clip/overflow never touches it). Kept small so the band stays compact. */
     .tk-portrait-wrap {
       position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, calc(6% - 13px));
-      width: clamp(106px, 11.2vw, 161px); z-index: 4; text-align: center;   /* frame +0.5cm, lifted ~0.35cm off the name */
+      width: clamp(115px, 12.1vw, 174px); z-index: 4; text-align: center;   /* +0.35cm, lifted ~0.35cm off the name */
     }
-    /* Portrait CARD (rectangle). object-fit: cover fills it edge-to-edge with
-       the photo — no colour padding — cropping top/bottom as needed; the top
-       bias keeps the face in frame. */
+    /* No visible frame: the player is a transparent PNG that floats on its own.
+       object-fit: contain shows the FULL cut-out (no crop), it carries a white
+       stroke and gently bobs. Only the initials fallback keeps a solid tile. */
     .tk-portrait {
-      position: relative; width: 100%; aspect-ratio: 161 / 208; border-radius: clamp(12px, 1.6vw, 18px);
-      overflow: hidden; margin: 0 auto;
-      background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
+      position: relative; width: 100%; aspect-ratio: 174 / 221; margin: 0 auto;
       display: flex; align-items: center; justify-content: center;
       color: #fff; font-weight: 800; font-size: clamp(34px, 4.4vw, 60px);
+      background: none; overflow: visible;
+    }
+    .tk-portrait img {
+      width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block;
+      /* white outline around the cut-out (8 directions) + soft ground shadow */
+      filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff)
+              drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+              drop-shadow(1.5px 1.5px 0 #fff) drop-shadow(-1.5px -1.5px 0 #fff)
+              drop-shadow(1.5px -1.5px 0 #fff) drop-shadow(-1.5px 1.5px 0 #fff)
+              drop-shadow(0 12px 16px rgba(0,0,0,.55));
+      animation: tk-float 3.6s ease-in-out infinite;
+    }
+    @keyframes tk-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    /* Initials fallback — a solid rounded tile, shown only when there's no photo. */
+    #tk-initials {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      border-radius: clamp(12px, 1.6vw, 18px);
+      background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
       box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
                   0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    /* Zoom into the face: scale up so ~8% is cropped from every side (the card's
-       overflow:hidden clips it). object-position keeps the head anchored high, and
-       transform-origin biased slightly downward takes any extra crop off the
-       BOTTOM rather than the top. */
-    .tk-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center top;
-      display: block; transform: scale(1.19); transform-origin: center 40%; }
-    /* Rotating conic glow ring behind the portrait — the "dynamic background".
-       Sized tight so it doesn't wash over the player name below. */
+    /* Soft team-coloured backlight glow behind the player — pulses gently
+       (replaces the old card ring; there is no frame now). */
     .tk-portrait-wrap::before {
-      content: ""; position: absolute; left: 50%; top: 50%;
-      width: 116%; height: 112%; transform: translate(-50%, -50%); z-index: -2;   /* glow behind the card */
-      border-radius: clamp(18px, 2.2vw, 26px);
-      background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-cyan),
-                  var(--tk-green), var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
-      filter: blur(9px); opacity: .9; animation: tk-spin 7s linear infinite;
+      content: ""; position: absolute; left: 50%; top: 48%;
+      width: 120%; height: 120%; transform: translate(-50%, -50%); z-index: -2; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--team) 55%, transparent), transparent 68%);
+      filter: blur(16px); opacity: .7; animation: tk-glowpulse 3.4s ease-in-out infinite;
     }
-    .tk-portrait-wrap::after {
-      content: ""; position: absolute; left: 50%; top: 50%;
-      width: 106%; height: 104%; transform: translate(-50%, -50%); z-index: -1;
-      border-radius: clamp(15px, 1.9vw, 22px); border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
-      animation: tk-halo 2.6s ease-out infinite;
+    @keyframes tk-glowpulse {
+      0%,100% { opacity: .5;  transform: translate(-50%, -50%) scale(.94); }
+      50%     { opacity: .82; transform: translate(-50%, -50%) scale(1.06); }
     }
-    @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-    @keyframes tk-halo {
-      0% { opacity: .8; width: 102%; height: 102%; }
-      100% { opacity: 0; width: 128%; height: 128%; }
-    }
-    /* Orbiting sparks — tucked to hug the smaller glow ring (inset pulls the
-       orbit radius in so the dots ride the rim rather than floating wide). */
-    .tk-orbit { position: absolute; inset: 8%; z-index: -1; animation: tk-spin 9s linear infinite; }
-    .tk-orbit.b { animation-duration: 6s; animation-direction: reverse; }
-    .tk-orbit i { position: absolute; top: -2px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px;
-      border-radius: 50%; background: #fff; box-shadow: 0 0 8px 2px var(--tk-cyan); }
-    .tk-orbit.b i { background: var(--tk-amber); box-shadow: 0 0 8px 2px var(--tk-amber); }
+    .tk-portrait-wrap::after { content: none; }
+    .tk-orbit { display: none; }
 
     /* Name sits ABOVE the portrait glow (higher stacking) and a touch lower so
        the animation never hides it. */
@@ -469,7 +465,7 @@
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .tk-portrait-wrap::before, .tk-portrait-wrap::after, .tk-orbit,
+      .tk-portrait-wrap::before, .tk-portrait img,
       .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
       .tk-next .tk-amount::before { animation: none; }
     }
