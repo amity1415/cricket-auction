@@ -419,9 +419,8 @@ function renderSquad(squad, t) {
 // ---------------------------------------------------------------------------
 // Sold / unsold result popup. On a NEW terminal result (a SOLD or UNSOLD audit
 // entry we haven't shown), play a broadcast-style reveal centred for 4s, then
-// shrink it into a small card pinned to the bottom-right corner that persists as
-// "the last player sold/unsold". On first page load we don't replay the reveal —
-// we just seed the corner card with the most recent result.
+// fade it away. On first page load we don't replay the reveal — we just record
+// the most recent result as the baseline so only the NEXT sale animates.
 let lastResultKey = null; // saleId of the last result we've shown
 let resultBaselineSet = false; // has the first poll established the "already seen" baseline?
 let revealTimer = null;
@@ -439,32 +438,10 @@ function resultBig(r) {
       : `<div class="rv-team">went unsold</div>`}`;
 }
 
-function resultMini(r) {
-  const sold = r.type === 'SOLD';
-  return `
-    <div class="mini-head">Last ${sold ? 'sold' : 'result'}</div>
-    <div class="mini-badge ${sold ? 'sold' : 'unsold'}">${sold ? 'SOLD' : 'UNSOLD'}</div>
-    <div class="mini-name" title="${esc(r.playerName)}">${esc(r.playerName)}</div>
-    ${sold
-      ? `<div class="mini-team" title="${esc(r.teamName)}">${esc(r.teamName)}</div>
-         <div class="mini-amount">${fmtShort(r.amount)}</div>`
-      : `<div class="mini-team">Unsold</div>`}`;
-}
-
-function showMini(r) {
-  const mini = document.getElementById('last-result-mini');
-  if (!mini) return;
-  mini.innerHTML = resultMini(r);
-  mini.style.display = '';
-  mini.classList.remove('pop');
-  void mini.offsetWidth;   // restart the pop animation
-  mini.classList.add('pop');
-}
-
 function playReveal(r) {
   const overlay = document.getElementById('reveal-overlay');
   const card = document.getElementById('reveal-card');
-  if (!overlay || !card) { showMini(r); return; }
+  if (!overlay || !card) return;
   clearTimeout(revealTimer);
   clearTimeout(revealCloseTimer);
 
@@ -476,10 +453,9 @@ function playReveal(r) {
   card.classList.add('enter');
 
   revealTimer = setTimeout(() => {
-    // Shrink toward the corner and pop the persistent mini card into place.
+    // Shrink and fade the reveal away.
     card.classList.add('shrink');
     overlay.classList.add('closing');
-    showMini(r);
     revealCloseTimer = setTimeout(() => {
       overlay.style.display = 'none';
       card.className = 'reveal-card';
@@ -492,22 +468,20 @@ function updateLastResult(audit) {
   const last = results[results.length - 1];
   const key = last ? last.saleId : null;
   if (!resultBaselineSet) {
-    // First poll establishes what's "already happened" — seed the corner card
-    // from any pre-existing result, but never replay its reveal on load. Set the
-    // baseline even when there is no result yet, so the NEXT sale is a reveal.
+    // First poll establishes what's "already happened" — never replay a reveal on
+    // load. Set the baseline even when there is no result yet, so the NEXT sale is
+    // a reveal.
     resultBaselineSet = true;
     lastResultKey = key;
-    if (last) showMini(last);
     return;
   }
   if (key && key !== lastResultKey) {
     lastResultKey = key;
     // A sale flies the player's photo into the buyer's team bag; an unsold result
-    // keeps the existing reveal card. Either way the corner mini-card updates.
+    // plays the centred reveal.
     if (last.type === 'SOLD' && typeof playSoldToTeam === 'function') {
       playSoldToTeam({ playerName: last.playerName, playerId: last.playerId,
                        teamName: last.teamName, amount: last.amount });
-      showMini(last);
     } else {
       playReveal(last);
     }
