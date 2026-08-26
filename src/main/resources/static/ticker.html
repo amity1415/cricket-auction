@@ -160,9 +160,9 @@
               drop-shadow(1.5px -1.5px 0 #fff) drop-shadow(-1.5px 1.5px 0 #fff)
               drop-shadow(0 0 10px var(--fx-green)) drop-shadow(0 0 15px var(--fx-blue)) drop-shadow(0 0 20px var(--fx-red))
               drop-shadow(0 12px 16px rgba(0,0,0,.55));
-      animation: tk-float 3.6s ease-in-out infinite;
+      /* The player stays still — no float/bob. Animating this heavily drop-shadowed
+         image forced constant repaints, so it is now static. */
     }
-    @keyframes tk-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
     /* Initials fallback — a solid rounded tile, shown only when there's no photo. */
     #tk-initials {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -483,8 +483,7 @@
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .tk-portrait img, .tk-bar,
-      .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
+      .tk-bar, .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
       .tk-next .tk-amount::before { animation: none; }
     }
   </style>
