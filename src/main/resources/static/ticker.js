@@ -19,11 +19,13 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
 
 const fmtINR = n => n == null ? '—'
     : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-// Compact money for the tight ticker cells: ₹1.5 Cr / ₹40 L / ₹8,000.
+// Compact money for the tight ticker cells: ₹1.5 Cr / ₹3.45 L / ₹8,000.
+// Two decimals so a ₹3,45,000 bid shows as ₹3.45 L (not rounded to ₹3.5 L);
+// trailing zeros are stripped so round values stay clean (₹40 L, not ₹40.00 L).
 const fmtShort = n => {
   if (n == null) return '—';
   if (n >= 1e7) return '₹' + (n / 1e7).toFixed(2).replace(/\.?0+$/, '') + ' Cr';
-  if (n >= 1e5) return '₹' + (n / 1e5).toFixed(1).replace(/\.0$/, '') + ' L';
+  if (n >= 1e5) return '₹' + (n / 1e5).toFixed(2).replace(/\.?0+$/, '') + ' L';
   return fmtINR(n);
 };
 
