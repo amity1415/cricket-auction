@@ -172,26 +172,24 @@ window.addEventListener('resize', () => {
   if ($('tk-sides') && $('tk-sides').classList.contains('show')) { sizeSides(); restartSides(); }
 });
 
-// Batting/bowling panels rotate on a timer: shown 5s, hidden 10s, repeating.
-// When they fold away the bottom-anchored band slides DOWN (the upper ticker is
-// "pulled down"); when they return it slides back UP. The sponsor bug is
-// position:fixed and never moves with this. The cycle only runs while a player
-// is live — it's stopped (and the panels stay hidden) on a sale or when idle.
-let statsTimer = null, statsCycleOn = false;
+// Batting/bowling panels show ONCE per player: visible for the first 15 seconds
+// a player is on the block, then the panels fold away and — because the band is
+// bottom-anchored — the whole upper ticker slides DOWN and stays there for the
+// rest of that player (they never come back). A brand-new player on the block
+// restarts the 15s window. The sponsor bug is position:fixed and never moves.
+let statsTimer = null, statsPlayerId = null;
 function setStatsCollapsed(collapsed) {
   const r = root(); if (r) r.classList.toggle('stats-collapsed', collapsed);
 }
-function startStatsCycle() {
-  if (statsCycleOn) return;
-  statsCycleOn = true;
-  const step = visible => {
-    setStatsCollapsed(!visible);
-    statsTimer = setTimeout(() => step(!visible), visible ? 5000 : 10000);
-  };
-  step(true);   // start visible for 5s, then hidden for 10s, and so on
+function startStatsCycle(playerId) {
+  if (playerId === statsPlayerId) return;   // same player — window already running/finished
+  statsPlayerId = playerId;
+  clearTimeout(statsTimer);
+  setStatsCollapsed(false);                                 // reveal the stats
+  statsTimer = setTimeout(() => setStatsCollapsed(true), 15000);   // drop after 15s, for good
 }
 function stopStatsCycle() {
-  statsCycleOn = false;
+  statsPlayerId = null;
   clearTimeout(statsTimer);
   setStatsCollapsed(true);
 }
@@ -246,7 +244,7 @@ function renderLive(p) {
   }
   lastBid = p.currentBidAmount; lastBidPlayer = p.playerId;
   setHTML('tk-stats', statsStrip(p.stats));
-  startStatsCycle();   // rotate the batting/bowling panels while live
+  startStatsCycle(p.playerId);   // show stats for the first 15s, then drop the band down
 
   reveal();
 }
