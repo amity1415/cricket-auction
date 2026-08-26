@@ -281,13 +281,21 @@
       /* Translucent honeycomb texture floats over the tinted glass — a subtle
          broadcast-graphic sheen that never obscures the video feed underneath. */
       background:
-        url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='49'%20viewBox='0%200%2028%2049'%3E%3Cpath%20fill='%23ffffff'%20fill-opacity='0.07'%20fill-rule='evenodd'%20d='M13.99%209.25l13%207.5v15l-13%207.5L1%2031.75v-15l12.99-7.5zM3%2017.9v12.7l10.99%206.34%2011-6.35V17.9l-11-6.34L3%2017.9zM0%2015l12.98-7.5V0h-2v6.35L0%2012.69v2.3zm0%2018.5L12.98%2041v8h-2v-6.85L0%2035.81v-2.3zM15%200v7.5L27.99%2015H28v-2.31h-.01L17%206.35V0h-2zm0%2049v-8l12.99-7.5H28v2.31h-.01L17%2042.15V49h-2z'/%3E%3C/svg%3E") 0 0 / 46px 80px repeat,
+        url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='49'%20viewBox='0%200%2028%2049'%3E%3Cpath%20fill='%23ffffff'%20fill-opacity='0.11'%20fill-rule='evenodd'%20d='M13.99%209.25l13%207.5v15l-13%207.5L1%2031.75v-15l12.99-7.5zM3%2017.9v12.7l10.99%206.34%2011-6.35V17.9l-11-6.34L3%2017.9zM0%2015l12.98-7.5V0h-2v6.35L0%2012.69v2.3zm0%2018.5L12.98%2041v8h-2v-6.85L0%2035.81v-2.3zM15%200v7.5L27.99%2015H28v-2.31h-.01L17%206.35V0h-2zm0%2049v-8l12.99-7.5H28v2.31h-.01L17%2042.15V49h-2z'/%3E%3C/svg%3E") 0 0 / 46px 80px repeat,
         radial-gradient(120% 150% at 50% -40%, color-mix(in srgb, var(--team) 26%, transparent), transparent 60%),
         linear-gradient(180deg, var(--tk-glass-top), var(--tk-glass));
       border: 1px solid rgba(150,176,240,.22);
       box-shadow: 0 22px 60px -22px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.06);
       -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
       overflow: hidden;
+      /* The honeycomb (first background layer) slowly drifts one tile down-left on
+         a loop, so the grid gently flows; the two gradient layers stay pinned. */
+      animation: tk-honey-drift 12s linear infinite;
+    }
+    /* One full tile is 46x80px, so travelling exactly that distance loops seamlessly. */
+    @keyframes tk-honey-drift {
+      from { background-position: 0 0, 0 0, 0 0; }
+      to   { background-position: -46px 80px, 0 0, 0 0; }
     }
     .tk-bar::before {
       content: ""; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px; border-radius: 4px;
@@ -374,15 +382,21 @@
        the bar and sized to consume the full band height (no name, no card). */
     .tk-teamcard {
       position: absolute; z-index: 3;
-      right: calc(-1 * clamp(16px, 1.9vw, 24px) + 6px); top: 2px; bottom: 2px; left: auto;
+      right: calc(-1 * clamp(16px, 1.9vw, 24px) + 8px); top: 0; bottom: 0; left: auto;
       display: flex; align-items: center; justify-content: flex-end;
       padding: 0; margin: 0; background: none; border: none; box-shadow: none;
     }
     .tk-team-logo { flex: none; display: inline-flex; height: 100%; align-items: center; }
-    .tk-team-logo .tk-crest { width: auto; height: 100%; aspect-ratio: 1;
+    /* Logo fills the FULL upper-band height; width follows its own aspect ratio
+       (no forced square) so wide crests grow wider instead of shrinking to fit. */
+    .tk-team-logo .tk-crest { width: auto; height: 100%;
+      max-height: clamp(78px, 10.4vh, 100px);
+      max-width: clamp(130px, 18vw, 230px);
       border-radius: 14px; object-fit: contain;
       box-shadow: 0 6px 18px -6px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.12); }
-    .tk-team-logo .tk-crest.initials { font-size: clamp(26px, 3.2vw, 44px); border-radius: 14px; }
+    /* Initials fall back to a square badge, scaled up to match the taller logo. */
+    .tk-team-logo .tk-crest.initials { aspect-ratio: 1; width: auto;
+      font-size: clamp(30px, 3.9vw, 54px); border-radius: 14px; }
     /* Team name is no longer shown in the ticker — only the logo. */
     .tk-team-name { display: none; }
     .tk-trend { color: var(--tk-green); font-size: .5em; opacity: 0; transform: translateY(4px); }
@@ -539,7 +553,7 @@
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .tk-rings i, .tk-sparks i, .tk-portrait img,
+      .tk-rings i, .tk-sparks i, .tk-portrait img, .tk-bar,
       .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
       .tk-next .tk-amount::before { animation: none; }
     }
