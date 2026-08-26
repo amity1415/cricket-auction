@@ -392,6 +392,12 @@ public class SaleService {
         return sales.findAllByOrderByRecordedAtAsc();
     }
 
+    /** The most recent SOLD/UNSOLD result, if any — a single indexed row lookup for
+     * the ticker's fast poll (no full-audit scan). */
+    public java.util.Optional<Sale> latestResult() {
+        return sales.findLatestResult();
+    }
+
     private Player requirePlayer(UUID playerId) {
         return players.findById(playerId).orElseThrow(() ->
                 AuctionException.notFound("PLAYER_NOT_FOUND", "No player with id " + playerId));

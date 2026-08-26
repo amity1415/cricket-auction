@@ -317,29 +317,27 @@ async function refresh() {
   const mySeq = ++pollSeq;
   const current = () => mySeq === pollSeq;
   try {
-    const dash = await getJSON('/api/dashboard');
+    // One tiny payload: the on-the-block state + the latest SOLD/UNSOLD result.
+    // Replaces the heavy full /api/dashboard (+ /api/admin/audit) fetches that made
+    // the current bid and sold/unsold lag 1–3s behind the DB round-trip.
+    const state = await getJSON('/api/dashboard/ticker');
     if (!current()) return;
 
-    // Seed the sold-FX baseline ONCE, from the audit at load time, so the very
-    // next sale animates — including the first sale of the session while a
+    // Seed the sold-FX baseline ONCE, from the latest result at load time, so the
+    // very next sale animates — including the first sale of the session while a
     // player is on the block (otherwise that first sale was silently treated as
     // the baseline and skipped, so no hammer/purse animation ever played).
     if (!baselineDone) {
-      const seed = await getJSON('/api/admin/audit').catch(() => []);
-      if (!current()) return;
-      const lastSeed = [].concat(seed).reverse().find(a => a.type === 'SOLD' || a.type === 'UNSOLD');
-      lastFxSaleId = lastSeed ? lastSeed.saleId : null;
+      lastFxSaleId = state.lastResult ? state.lastResult.saleId : null;
       fxBaseline = true;
       baselineDone = true;
     }
 
     // A player on the block always wins — show the live band.
-    if (dash.onTheBlock) { renderLive(dash.onTheBlock); return; }
+    if (state.onTheBlock) { renderLive(state.onTheBlock); return; }
 
     // Nobody on the block: react to the most recent terminal result.
-    const audit = await getJSON('/api/admin/audit').catch(() => []);
-    if (!current()) return;
-    const last = [].concat(audit).reverse().find(a => a.type === 'SOLD' || a.type === 'UNSOLD');
+    const last = state.lastResult;
     if (last) {
       const fresh = noteResult(last);
       if (fresh || Date.now() < soldBandUntil) { renderSold(last); return; }
@@ -353,6 +351,7 @@ async function refresh() {
 
 async function pollForever() {
   await refresh();
-  setTimeout(pollForever, 1000);
+  // Endpoint is now light, so poll a touch faster for snappier live updates.
+  setTimeout(pollForever, 600);
 }
 pollForever();

@@ -25,6 +25,13 @@ public class InMemorySaleRepository implements SaleRepository {
     }
 
     @Override
+    public java.util.Optional<Sale> findLatestResult() {
+        return store.values().stream()
+                .filter(s -> s.getType() == Sale.Type.SOLD || s.getType() == Sale.Type.UNSOLD)
+                .max(Comparator.comparing(Sale::getRecordedAt));
+    }
+
+    @Override
     public void deleteByPlayerId(UUID playerId) {
         store.values().removeIf(s -> s.getPlayerId().equals(playerId));
     }

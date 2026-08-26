@@ -12,6 +12,9 @@ public interface SaleRepository {
 
     List<Sale> findAllByOrderByRecordedAtAsc();
 
+    /** The most recent terminal result (SOLD or UNSOLD) for the active tournament. */
+    java.util.Optional<Sale> findLatestResult();
+
     /** Wipes every audit row for one player — used when a sale is reverted. */
     void deleteByPlayerId(java.util.UUID playerId);
 

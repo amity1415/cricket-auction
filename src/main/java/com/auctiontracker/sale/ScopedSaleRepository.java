@@ -38,6 +38,15 @@ public class ScopedSaleRepository implements SaleRepository {
     }
 
     @Override
+    public java.util.Optional<Sale> findLatestResult() {
+        UUID tid = ruleBook.activeTournamentId();
+        var types = List.of(Sale.Type.SOLD, Sale.Type.UNSOLD);
+        return tid == null
+                ? jpa.findFirstByTypeInOrderByRecordedAtDesc(types)
+                : jpa.findFirstByTournamentIdAndTypeInOrderByRecordedAtDesc(tid, types);
+    }
+
+    @Override
     public void deleteByPlayerId(UUID playerId) {
         jpa.deleteByPlayerId(playerId); // player id is tournament-unique — no scoping needed
     }

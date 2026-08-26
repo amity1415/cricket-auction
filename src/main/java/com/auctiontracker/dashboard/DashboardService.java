@@ -101,6 +101,17 @@ public class DashboardService {
                 maxBidForBlock);
     }
 
+    /**
+     * Just the on-the-block state (or null) — the current bid, leading team and
+     * next bid — WITHOUT computing any team snapshots. This is what the broadcast
+     * ticker polls, so it gets a tiny fast payload (one player lookup + in-memory
+     * bid state) instead of the whole board every second.
+     */
+    public OnTheBlockView onTheBlock() {
+        Player blockPlayer = blockPlayer();
+        return blockPlayer == null ? null : onTheBlockView(blockPlayer);
+    }
+
     /** The player currently under auction, if any. */
     private Player blockPlayer() {
         return players.findFirstByStatus(PlayerStatus.UNDER_AUCTION).orElse(null);
