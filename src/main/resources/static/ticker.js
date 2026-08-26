@@ -136,6 +136,14 @@ let sideSaleId = null;
 function sizeSides() {
   const vw = window.innerWidth;
   const l = $('tk-side-l'), r = $('tk-side-r');
+  // Anchor the giant words' vertical CENTRE to the band's centre line (they use
+  // bottom:var(--tk-band-mid) + translateY(50%)), so the bar bisects the word.
+  const bar = $('tk-bar'), box = $('tk-sides');
+  if (bar && box) {
+    const b = bar.getBoundingClientRect();
+    const mid = Math.round(window.innerHeight - (b.top + b.height / 2));
+    box.style.setProperty('--tk-band-mid', mid + 'px');
+  }
   // Full sweep: at the "centre" extreme the word is centred on screen (behind the
   // band, emerging from it); at the "edge" extreme it sits at its screen-edge
   // anchor. So each word travels the whole way from centre out to the edge.

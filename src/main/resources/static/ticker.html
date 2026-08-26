@@ -53,10 +53,13 @@
     }
     #tk-sides.show { opacity: 1; visibility: visible; }
     .tk-side {
-      position: absolute; bottom: clamp(12px, 3vh, 34px); opacity: .92;
+      /* Vertically CENTRED on the band (its middle line), not bottom-anchored: the
+         bar bisects the giant word (IPL look). The translateY(50%) in the motion
+         keyframes drops each word's own centre onto this line at any size. */
+      position: absolute; bottom: var(--tk-band-mid, 64px); opacity: .92;
       font-family: "Arial Black", "Segoe UI", system-ui, sans-serif;
       font-weight: 900; font-style: italic; letter-spacing: -.02em; line-height: .82;
-      font-size: clamp(42px, 9.1vh, 102px);         /* 1.75x larger */
+      font-size: clamp(60px, 13vh, 150px);          /* enlarged SOLD / UNSOLD */
       text-transform: uppercase; white-space: nowrap;
       color: transparent; -webkit-background-clip: text; background-clip: text;
       -webkit-text-stroke: 2px rgba(255,255,255,.18);
@@ -73,16 +76,16 @@
     .tk-side.red   { background-image: linear-gradient(180deg, #ff8578, #ff2013 48%, #c40800);
       --sglow: rgba(255,40,25,.85); }
     @keyframes tk-osc-l {
-      0%   { transform: translateX(var(--travel, 20vw)) skewX(-7deg); }
-      100% { transform: translateX(0)                   skewX(-7deg); } }
+      0%   { transform: translateX(var(--travel, 20vw)) translateY(50%) skewX(-7deg); }
+      100% { transform: translateX(0)                   translateY(50%) skewX(-7deg); } }
     @keyframes tk-osc-r {
-      0%   { transform: translateX(calc(-1 * var(--travel, 20vw))) skewX(-7deg); }
-      100% { transform: translateX(0)                              skewX(-7deg); } }
+      0%   { transform: translateX(calc(-1 * var(--travel, 20vw))) translateY(50%) skewX(-7deg); }
+      100% { transform: translateX(0)                              translateY(50%) skewX(-7deg); } }
     @keyframes tk-side-glow {
       0%,100% { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 6px var(--sglow, transparent)); }
       50%     { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 22px var(--sglow, transparent)); } }
     @media (prefers-reduced-motion: reduce) {
-      .tk-side.left, .tk-side.right { animation: none; opacity: .92; transform: skewX(-7deg); }
+      .tk-side.left, .tk-side.right { animation: none; opacity: .92; transform: translateY(50%) skewX(-7deg); }
     }
     #tk-root.show { opacity: 1; visibility: visible; }
     #tk-root.enter { animation: tk-rise .5s cubic-bezier(.16,.84,.28,1) both; }
@@ -412,9 +415,19 @@
     @keyframes tk-stamp-in { 0%{transform:rotate(-6deg) scale(0);opacity:0} 100%{transform:rotate(-4deg) scale(1);opacity:1} }
     .tk-bar.unsold .tk-stamp { border-color: var(--tk-red); color: var(--tk-red);
       text-shadow: 0 0 16px rgba(255,106,94,.5); box-shadow: 0 0 22px -6px rgba(255,106,94,.6); }
-    .tk-deal { display: flex; align-items: center; gap: 9px; font-weight: 800;
-      font-size: clamp(14px, 1.7vw, 22px); color: #fff; text-shadow: var(--tk-shadow); }
-    .tk-deal .tk-amount { color: var(--tk-green); font-size: clamp(17px, 2.1vw, 28px);
+    /* On a result the player name is larger and never wraps — long names just
+       stretch across the band (the side cells are hidden on a result). */
+    #tk-root.is-sold .tk-name {
+      font-size: clamp(30px, 3.5vw, 46px); white-space: nowrap; line-height: 1.02;
+    }
+    /* Verdict row under the name: team logo + team name + hammer price, all on
+       one line, enlarged. */
+    .tk-deal { display: flex; align-items: center; gap: clamp(9px, 1.2vw, 16px); font-weight: 800;
+      font-size: clamp(20px, 2.5vw, 34px); color: #fff; text-shadow: var(--tk-shadow);
+      white-space: nowrap; max-width: 96vw; }
+    .tk-deal .tk-crest { width: clamp(36px, 4vw, 56px); height: clamp(36px, 4vw, 56px); border-radius: 10px; }
+    .tk-deal .tk-crest.initials { font-size: clamp(16px, 1.8vw, 26px); border-radius: 10px; }
+    .tk-deal .tk-amount { color: var(--tk-green); font-size: clamp(26px, 3.1vw, 42px);
       background: none; box-shadow: none; padding: 0; }
 
     /* ===================== Sponsor bug (CSAITECH) ===================== */
@@ -532,6 +545,6 @@
   <script src="tournament-context.js"></script>
   <script src="team-logo.js?v=2"></script>
   <script src="sold-fx.js?v=7"></script>
-  <script src="ticker.js?v=22"></script>
+  <script src="ticker.js?v=23"></script>
 </body>
 </html>
