@@ -16,10 +16,10 @@
       --tk-ink: #f4f8ff; --tk-label: #eaf0ff; --tk-muted: #c4d0ee;
       --tk-green: #46eaa8; --tk-amber: #ffcb5e; --tk-red: #ff6a5e;
       --tk-accent: #5b8cff; --tk-accent-2: #a06bff; --tk-cyan: #35d6e6;
-      /* Fixed backdrop-animation colour — a vivid gold used for the sweep/rings/
-         sparks so it is IDENTICAL for every team and pops on light OR dark video
-         (never the per-team hashed colour). --tk-fx2 is the near-white hot core. */
-      --tk-fx: #ffce3a; --tk-fx2: #fff3c2;
+      /* Fixed backdrop-animation palette — apple green + lava blue + lava red,
+         IDENTICAL for every team (never the per-team hashed colour) and vivid on
+         light OR dark video. --tk-fx2 is the near-white hot spark core. */
+      --fx-green: #8fe61a; --fx-blue: #2a6cff; --fx-red: #ff3b2e; --tk-fx2: #fffbe6;
       /* Tinted translucent panel — a mid-tone indigo/violet that reads against
          BOTH light and dark video (dark enough to sit on white, saturated and
          light enough to stand off black), kept see-through for the feed. */
@@ -169,30 +169,51 @@
     .tk-portrait-wrap::before {
       content: ""; position: absolute; left: 50%; top: 48%;
       width: 120%; height: 120%; transform: translate(-50%, -50%); z-index: -2; border-radius: 50%;
-      background: radial-gradient(circle, color-mix(in srgb, var(--tk-fx) 55%, transparent), transparent 68%);
-      filter: blur(16px); opacity: .7; animation: tk-glowpulse 3.4s ease-in-out infinite;
+      background: radial-gradient(circle, color-mix(in srgb, var(--fx-green) 45%, transparent), transparent 70%);
+      filter: blur(18px); opacity: .5; animation: tk-glowpulse 3.4s ease-in-out infinite;
     }
     @keyframes tk-glowpulse {
       0%,100% { opacity: .5;  transform: translate(-50%, -50%) scale(.94); }
       50%     { opacity: .82; transform: translate(-50%, -50%) scale(1.06); }
     }
-    /* Dynamic backdrop behind the player's TOP — a soft rotating spotlight sweep:
-       broad wedges of team-light + a white core, heavily blurred and masked to a
-       disc so it reads like a slow-turning stadium beam, not hard rays. Sits
-       behind the PNG (z-index -1, above the glow at -2). */
-    .tk-portrait-wrap { --sweep: color-mix(in srgb, var(--tk-fx) 60%, transparent); }
+    /* Full-background plasma behind the player — apple-green + lava-blue + lava-red
+       blobs that drift, scale and MIX across the whole picture area. It fills the
+       portrait box (inset) so it auto-fits the frame at any size; two screen-blended
+       layers cross each other for a living, molten look. */
     .tk-sweep {
-      position: absolute; left: 50%; top: 34%; width: 185%; aspect-ratio: 1;
-      transform: translate(-50%, -50%); z-index: -1; border-radius: 50%; pointer-events: none;
-      background: conic-gradient(from 0deg,
-        transparent 0deg, var(--sweep) 26deg, rgba(255,255,255,.42) 50deg, var(--sweep) 74deg, transparent 104deg,
-        transparent 180deg, var(--sweep) 206deg, rgba(255,255,255,.30) 226deg, var(--sweep) 250deg, transparent 284deg,
-        transparent 360deg);
-      -webkit-mask: radial-gradient(circle, #000 4%, rgba(0,0,0,.55) 30%, transparent 60%);
-              mask: radial-gradient(circle, #000 4%, rgba(0,0,0,.55) 30%, transparent 60%);
-      filter: blur(6px); opacity: .8; animation: tk-sweep 4.5s linear infinite;
+      position: absolute; inset: -12%; z-index: -1; pointer-events: none;
+      border-radius: 26px; overflow: hidden;
+      -webkit-mask: radial-gradient(125% 120% at 50% 44%, #000 50%, transparent 82%);
+              mask: radial-gradient(125% 120% at 50% 44%, #000 50%, transparent 82%);
+      filter: saturate(1.3) blur(9px); opacity: .92;
     }
-    @keyframes tk-sweep { to { transform: translate(-50%, -50%) rotate(360deg); } }
+    .tk-sweep::before, .tk-sweep::after {
+      content: ""; position: absolute; inset: -25%; mix-blend-mode: screen;
+    }
+    .tk-sweep::before {
+      background:
+        radial-gradient(38% 42% at 28% 30%, var(--fx-green) 0%, transparent 60%),
+        radial-gradient(42% 46% at 74% 40%, var(--fx-blue)  0%, transparent 62%),
+        radial-gradient(48% 52% at 52% 82%, var(--fx-red)   0%, transparent 62%);
+      animation: tk-plasma-a 9s ease-in-out infinite alternate;
+    }
+    .tk-sweep::after {
+      background:
+        radial-gradient(40% 44% at 70% 26%, var(--fx-red)   0%, transparent 60%),
+        radial-gradient(44% 48% at 24% 58%, var(--fx-green) 0%, transparent 62%),
+        radial-gradient(46% 50% at 60% 72%, var(--fx-blue)  0%, transparent 62%);
+      animation: tk-plasma-b 11s ease-in-out infinite alternate;
+    }
+    @keyframes tk-plasma-a {
+      0%   { transform: translate(-6%, -3%) scale(1.05) rotate(0deg); }
+      50%  { transform: translate(5%, 4%)   scale(1.18) rotate(7deg); }
+      100% { transform: translate(-3%, 6%)  scale(1.10) rotate(-6deg); }
+    }
+    @keyframes tk-plasma-b {
+      0%   { transform: translate(5%, 4%)   scale(1.12) rotate(0deg); }
+      50%  { transform: translate(-5%, -4%) scale(1.06) rotate(-8deg); }
+      100% { transform: translate(4%, -6%)  scale(1.16) rotate(6deg); }
+    }
     /* Radar pulse rings — concentric team-coloured rings expand from behind the
        player and fade, staggered so one is always mid-flight. */
     .tk-rings {
@@ -201,13 +222,14 @@
     }
     .tk-rings i {
       position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 1; border-radius: 50%;
-      border: 2.5px solid var(--tk-fx);
-      box-shadow: 0 0 14px color-mix(in srgb, var(--tk-fx) 65%, transparent),
-                  inset 0 0 10px color-mix(in srgb, var(--tk-fx) 50%, transparent);
+      color: var(--fx-green); border: 2.5px solid currentColor;
+      box-shadow: 0 0 16px color-mix(in srgb, currentColor 70%, transparent),
+                  inset 0 0 10px color-mix(in srgb, currentColor 50%, transparent);
       opacity: 0; animation: tk-ping-ring 3s ease-out infinite;
     }
-    .tk-rings i:nth-child(2) { animation-delay: 1s; }
-    .tk-rings i:nth-child(3) { animation-delay: 2s; }
+    .tk-rings i:nth-child(1) { color: var(--fx-green); }
+    .tk-rings i:nth-child(2) { color: var(--fx-blue); animation-delay: 1s; }
+    .tk-rings i:nth-child(3) { color: var(--fx-red);  animation-delay: 2s; }
     @keyframes tk-ping-ring {
       0%   { transform: translate(-50%, -50%) scale(.3); opacity: 0; }
       12%  { opacity: .85; }
@@ -217,10 +239,15 @@
     .tk-sparks { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
     .tk-sparks i {
       position: absolute; bottom: 14%; width: 6px; height: 6px; border-radius: 50%;
-      background: radial-gradient(circle at 40% 35%, var(--tk-fx2), var(--tk-fx));
-      box-shadow: 0 0 10px 3px color-mix(in srgb, var(--tk-fx) 85%, transparent);
+      color: var(--fx-green);
+      background: radial-gradient(circle at 40% 35%, var(--tk-fx2), currentColor);
+      box-shadow: 0 0 12px 3px color-mix(in srgb, currentColor 90%, transparent);
       opacity: 0; animation: tk-spark-rise 3.4s ease-in infinite;
     }
+    /* cycle the three lava colours across the sparks */
+    .tk-sparks i:nth-child(3n+1) { color: var(--fx-green); }
+    .tk-sparks i:nth-child(3n+2) { color: var(--fx-blue); }
+    .tk-sparks i:nth-child(3n)   { color: var(--fx-red); }
     @keyframes tk-spark-rise {
       0%   { transform: translateY(0) scale(.4);   opacity: 0; }
       10%  { opacity: 1; }
@@ -533,7 +560,7 @@
       .stat-panels { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .tk-portrait-wrap::before, .tk-sweep, .tk-rings i, .tk-sparks i, .tk-portrait img,
+      .tk-portrait-wrap::before, .tk-sweep::before, .tk-sweep::after, .tk-rings i, .tk-sparks i, .tk-portrait img,
       .tk-bar::after, .tk-topline, .tk-scan, .tk-live-dot, #tk-root.enter,
       .tk-next .tk-amount::before { animation: none; }
     }
