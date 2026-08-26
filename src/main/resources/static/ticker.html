@@ -348,17 +348,20 @@
        amount row) at matching size, base on the left, current on the right. */
     .tk-base, .tk-current {
       padding: 4px 13px; border-radius: 8px;
+      /* Identical backdrop chip — same shape AND size on both sides. */
+      display: flex; flex-direction: column; justify-content: center;
+      min-width: clamp(120px, 13vw, 158px); min-height: clamp(46px, 6vh, 58px);
       background: linear-gradient(180deg, rgba(255,255,255,.05), var(--tk-glass-2));
       box-shadow: inset 0 0 0 1px rgba(150,176,240,.16);
     }
-    .tk-base { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; text-align: right;
+    .tk-base { align-self: flex-end; align-items: flex-end; text-align: right;
       margin-right: clamp(24px, 4.4vw, 58px); }   /* pushed ~1.5cm further left */
     .tk-base .tk-amount { font-size: clamp(23px, 2.85vw, 36px); color: #fff; }
 
     /* Right cell holds just the current-bid block, hugging the centre (mirrors
        Base Price on the left). */
     .tk-cell.right { flex-direction: row; align-items: center; justify-content: flex-start; align-self: stretch; }
-    .tk-current { min-width: 0; flex: none; margin-left: clamp(24px, 4.4vw, 58px); }  /* ~1.5cm further right */
+    .tk-current { flex: none; align-items: flex-start; margin-left: clamp(24px, 4.4vw, 58px); }  /* ~1.5cm further right */
     .tk-cur-row { display: flex; align-items: baseline; gap: 4px; }
     .tk-current .tk-amount { font-size: clamp(23px, 2.85vw, 36px); color: var(--tk-green);
       text-shadow: 0 2px 12px rgba(0,0,0,.9), 0 0 16px color-mix(in srgb, var(--tk-green) 45%, transparent); }
