@@ -29,7 +29,12 @@ public class TickerController {
 
     @GetMapping("/api/dashboard/ticker")
     public TickerState ticker() {
-        return new TickerState(dashboard.onTheBlock(), sales.latestResult().orElse(null));
+        OnTheBlockView onBlock = dashboard.onTheBlock();
+        // While a player is on the block the ticker shows the live band and ignores
+        // lastResult, so skip that DB round-trip entirely — one fewer query per poll
+        // during active bidding, which is exactly when update latency is noticed.
+        Sale last = onBlock == null ? sales.latestResult().orElse(null) : null;
+        return new TickerState(onBlock, last);
     }
 
     /** {@code onTheBlock} is null when no player is under auction; {@code lastResult}

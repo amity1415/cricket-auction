@@ -351,7 +351,7 @@ async function refresh() {
 
 async function pollForever() {
   await refresh();
-  // Endpoint is now light, so poll a touch faster for snappier live updates.
-  setTimeout(pollForever, 600);
+  // Endpoint is light (one query during bidding), so poll fast for snappy updates.
+  setTimeout(pollForever, 400);
 }
 pollForever();
