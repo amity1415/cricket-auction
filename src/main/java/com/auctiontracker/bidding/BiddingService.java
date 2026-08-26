@@ -186,6 +186,18 @@ public class BiddingService {
         }
     }
 
+    /**
+     * The player currently on the block for the active tournament, straight from
+     * the in-memory session — no DB. Null when nothing is live (including right
+     * after a sale/unsold closes the session, and after a restart until the next
+     * bid re-opens it). Lets the ticker serve live updates without a DB round-trip.
+     */
+    public UUID currentBlockPlayerId() {
+        synchronized (lock) {
+            return session().currentPlayerId();
+        }
+    }
+
     /** Current leading team, or null if no bids (or not live). */
     public UUID currentLeadingTeamId(UUID playerId) {
         synchronized (lock) {

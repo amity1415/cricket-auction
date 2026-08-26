@@ -37,6 +37,11 @@ class LiveBidSession {
         return playerId != null && playerId.equals(this.playerId);
     }
 
+    /** The player currently on the block in this session, or null if none is open. */
+    UUID currentPlayerId() {
+        return playerId;
+    }
+
     void push(UUID teamId, long amount) {
         steps.addLast(new Step(teamId, amount, Instant.now()));
     }
