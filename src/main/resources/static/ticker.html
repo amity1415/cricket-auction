@@ -166,34 +166,44 @@
       box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
                   0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    /* Rotating conic glow ring behind the portrait — the "dynamic background".
-       Sized tight so it doesn't wash over the player name below. */
+    /* Rotating conic glow behind the portrait — the "dynamic background".
+       A CIRCLE (aspect-ratio 1 + border-radius 50%) sitting behind the
+       rectangular card, so only the rotation ring is round; the frame stays
+       rectangular. Sized so it doesn't wash over the player name below. */
     .tk-portrait-wrap::before {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 116%; height: 112%; transform: translate(-50%, -50%); z-index: -2;   /* glow behind the card */
-      border-radius: clamp(18px, 2.2vw, 26px);
+      width: 140%; aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -2;   /* glow disc behind the card */
+      border-radius: 50%;
       background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-cyan),
                   var(--tk-green), var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
       filter: blur(9px); opacity: .9; animation: tk-spin 7s linear infinite;
     }
     .tk-portrait-wrap::after {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 106%; height: 104%; transform: translate(-50%, -50%); z-index: -1;
-      border-radius: clamp(15px, 1.9vw, 22px); border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
+      width: 120%; aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -1;
+      border-radius: 50%; border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
       animation: tk-halo 2.6s ease-out infinite;
     }
     @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+    /* Circular halo pulse — animate the diameter only; aspect-ratio keeps it round. */
     @keyframes tk-halo {
-      0% { opacity: .8; width: 102%; height: 102%; }
-      100% { opacity: 0; width: 128%; height: 128%; }
+      0% { opacity: .8; width: 116%; }
+      100% { opacity: 0; width: 150%; }
     }
-    /* Orbiting sparks — tucked to hug the smaller glow ring (inset pulls the
-       orbit radius in so the dots ride the rim rather than floating wide). */
-    .tk-orbit { position: absolute; inset: 8%; z-index: -1; animation: tk-spin 9s linear infinite; }
+    /* Orbiting sparks — ride a CIRCULAR path around the card (centred square +
+       aspect-ratio 1) so the dots hug the round glow rim. */
+    .tk-orbit {
+      position: absolute; left: 50%; top: 50%; width: 132%; aspect-ratio: 1;
+      transform: translate(-50%, -50%); z-index: -1; animation: tk-orbit-spin 9s linear infinite;
+    }
     .tk-orbit.b { animation-duration: 6s; animation-direction: reverse; }
     .tk-orbit i { position: absolute; top: -2px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px;
       border-radius: 50%; background: #fff; box-shadow: 0 0 8px 2px var(--tk-cyan); }
     .tk-orbit.b i { background: var(--tk-amber); box-shadow: 0 0 8px 2px var(--tk-amber); }
+    @keyframes tk-orbit-spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(360deg); }
+    }
 
     /* Name sits ABOVE the portrait glow (higher stacking) and a touch lower so
        the animation never hides it. */
