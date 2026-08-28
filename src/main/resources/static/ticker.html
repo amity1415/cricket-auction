@@ -80,10 +80,12 @@
       background: linear-gradient(90deg, transparent, var(--sglow, #fff) 45%, #fff 60%, var(--sglow, #fff) 72%, transparent);
       opacity: 0; filter: drop-shadow(0 0 8px var(--sglow, transparent));
     }
-    .tk-side.left::before  { right: 92%; animation: tk-flare-l 2.1s ease-out infinite; }
-    .tk-side.left::after   { right: 92%; top: 34%; animation: tk-flare-l 2.1s ease-out 1.05s infinite; }
-    .tk-side.right::before { left: 92%;  animation: tk-flare-r 2.1s ease-out infinite; }
-    .tk-side.right::after  { left: 92%;  top: 66%; animation: tk-flare-r 2.1s ease-out 1.05s infinite; }
+    /* Left and right flares share IDENTICAL vertical positions (44% / 56%) so the
+       two sides line up on the same alignment. */
+    .tk-side.left::before  { right: 92%; top: 44%; animation: tk-flare-l 2.1s ease-out infinite; }
+    .tk-side.left::after   { right: 92%; top: 56%; animation: tk-flare-l 2.1s ease-out 1.05s infinite; }
+    .tk-side.right::before { left: 92%;  top: 44%; animation: tk-flare-r 2.1s ease-out infinite; }
+    .tk-side.right::after  { left: 92%;  top: 56%; animation: tk-flare-r 2.1s ease-out 1.05s infinite; }
     @keyframes tk-flare-l {
       0%   { opacity: 0; transform: translateX(0)     scaleX(.35); }
       22%  { opacity: 1; }
@@ -193,9 +195,10 @@
        A CIRCLE (aspect-ratio 1 + border-radius 50%) sitting behind the
        rectangular card, so only the rotation ring is round; the frame stays
        rectangular. Sized so it doesn't wash over the player name below. */
+    /* Diameters carry a +1cm term so the disc radius is 0.5cm larger. */
     .tk-portrait-wrap::before {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 140%; aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -2;   /* glow disc behind the card */
+      width: calc(140% + 1cm); aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -2;   /* glow disc behind the card */
       border-radius: 50%;
       background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-cyan),
                   var(--tk-green), var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
@@ -203,20 +206,20 @@
     }
     .tk-portrait-wrap::after {
       content: ""; position: absolute; left: 50%; top: 50%;
-      width: 120%; aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -1;
+      width: calc(120% + 1cm); aspect-ratio: 1; transform: translate(-50%, -50%); z-index: -1;
       border-radius: 50%; border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
       animation: tk-halo 2.6s ease-out infinite;
     }
     @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
     /* Circular halo pulse — animate the diameter only; aspect-ratio keeps it round. */
     @keyframes tk-halo {
-      0% { opacity: .8; width: 116%; }
-      100% { opacity: 0; width: 150%; }
+      0% { opacity: .8; width: calc(116% + 1cm); }
+      100% { opacity: 0; width: calc(150% + 1cm); }
     }
     /* Orbiting sparks — ride a CIRCULAR path around the card (centred square +
        aspect-ratio 1) so the dots hug the round glow rim. */
     .tk-orbit {
-      position: absolute; left: 50%; top: 50%; width: 132%; aspect-ratio: 1;
+      position: absolute; left: 50%; top: 50%; width: calc(132% + 1cm); aspect-ratio: 1;
       transform: translate(-50%, -50%); z-index: -1; animation: tk-orbit-spin 9s linear infinite;
     }
     .tk-orbit.b { animation-duration: 6s; animation-direction: reverse; }
