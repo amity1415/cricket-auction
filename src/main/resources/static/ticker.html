@@ -25,8 +25,10 @@
          (see #tk-root.is-sold). Full opacity here for a solid bar during bidding. */
       --tk-glass-rgb: 0 0 90;          /* deeper navy — base of the gradient */
       --tk-glass-top-rgb: 20 40 120;   /* lighter navy — top of the gradient */
-      --tk-glass: rgb(var(--tk-glass-rgb) / 1);
-      --tk-glass-top: rgb(var(--tk-glass-top-rgb) / 1);
+      /* Bar sits at 60% opacity during bidding (the video shows through). The
+         sold/unsold state keeps the same 60% (see #tk-root.is-sold). */
+      --tk-glass: rgb(var(--tk-glass-rgb) / 0.60);
+      --tk-glass-top: rgb(var(--tk-glass-top-rgb) / 0.60);
       --tk-glass-2: rgba(26, 20, 66, 0.68);      /* denser scrim behind figures/tiles */
       --tk-line: rgba(170, 186, 245, 0.32);
       --tk-shadow: 0 3px 14px rgba(0,0,0,0.85);
@@ -62,14 +64,34 @@
       /* Vertically CENTRED on the band (its middle line), not bottom-anchored: the
          bar bisects the giant word (IPL look). The translateY(50%) in the motion
          keyframes drops each word's own centre onto this line at any size. */
-      position: absolute; bottom: var(--tk-band-mid, 64px); opacity: .92;
+      position: absolute; bottom: var(--tk-band-mid, 64px); opacity: 1;
       font-family: "Arial Black", "Segoe UI", system-ui, sans-serif;
       font-weight: 900; font-style: italic; letter-spacing: -.02em; line-height: .82;
-      font-size: clamp(60px, 13vh, 150px);          /* enlarged SOLD / UNSOLD */
+      font-size: clamp(45px, 9.75vh, 112px);        /* SOLD / UNSOLD at 75% of former size */
       text-transform: uppercase; white-space: nowrap;
       color: transparent; -webkit-background-clip: text; background-clip: text;
-      -webkit-text-stroke: 2px rgba(255,255,255,.18);
+      -webkit-text-stroke: 2px rgba(255,255,255,.22);
     }
+    /* Horizontal flares streaming out of the word toward its own screen edge,
+       continuously. Two per word (staggered) read as a steady jet of light. */
+    .tk-side::before, .tk-side::after {
+      content: ""; position: absolute; top: 50%; height: clamp(4px, .7vh, 8px);
+      width: clamp(120px, 20vw, 320px); border-radius: 99px; pointer-events: none;
+      background: linear-gradient(90deg, transparent, var(--sglow, #fff) 45%, #fff 60%, var(--sglow, #fff) 72%, transparent);
+      opacity: 0; filter: drop-shadow(0 0 8px var(--sglow, transparent));
+    }
+    .tk-side.left::before  { right: 92%; animation: tk-flare-l 2.1s ease-out infinite; }
+    .tk-side.left::after   { right: 92%; top: 34%; animation: tk-flare-l 2.1s ease-out 1.05s infinite; }
+    .tk-side.right::before { left: 92%;  animation: tk-flare-r 2.1s ease-out infinite; }
+    .tk-side.right::after  { left: 92%;  top: 66%; animation: tk-flare-r 2.1s ease-out 1.05s infinite; }
+    @keyframes tk-flare-l {
+      0%   { opacity: 0; transform: translateX(0)     scaleX(.35); }
+      22%  { opacity: 1; }
+      100% { opacity: 0; transform: translateX(-42vw) scaleX(1.5); } }
+    @keyframes tk-flare-r {
+      0%   { opacity: 0; transform: translateX(0)     scaleX(.35); }
+      22%  { opacity: 1; }
+      100% { opacity: 0; transform: translateX(42vw)  scaleX(1.5); } }
     /* Rebounding motion: each word starts near the centre (tucked behind the
        team block), drifts slowly out to its edge and back, forever. The centre
        stays uncovered because the band sits on top (z-index 2 > 1). */
@@ -77,10 +99,10 @@
       animation: tk-osc-l 3.8s ease-in-out infinite alternate, tk-side-glow 2.4s ease-in-out infinite; }
     .tk-side.right { right: clamp(2px, 1.4vw, 28px); transform-origin: right center;
       animation: tk-osc-r 3.8s ease-in-out infinite alternate, tk-side-glow 2.4s ease-in-out .3s infinite; }
-    .tk-side.green { background-image: linear-gradient(180deg, #59ffab, #02e878 48%, #00a84f);
-      --sglow: rgba(0,235,120,.85); }
-    .tk-side.red   { background-image: linear-gradient(180deg, #ff8578, #ff2013 48%, #c40800);
-      --sglow: rgba(255,40,25,.85); }
+    .tk-side.green { background-image: linear-gradient(180deg, #7dffbe, #00ff84 46%, #00c95c);
+      --sglow: rgba(0,255,120,1); }
+    .tk-side.red   { background-image: linear-gradient(180deg, #ff9a8a, #ff0a00 46%, #e00000);
+      --sglow: rgba(255,26,0,1); }
     @keyframes tk-osc-l {
       0%   { transform: translateX(var(--travel, 20vw)) translateY(50%) skewX(-7deg); }
       100% { transform: translateX(0)                   translateY(50%) skewX(-7deg); } }
@@ -88,10 +110,11 @@
       0%   { transform: translateX(calc(-1 * var(--travel, 20vw))) translateY(50%) skewX(-7deg); }
       100% { transform: translateX(0)                              translateY(50%) skewX(-7deg); } }
     @keyframes tk-side-glow {
-      0%,100% { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 6px var(--sglow, transparent)); }
-      50%     { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 22px var(--sglow, transparent)); } }
+      0%,100% { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 12px var(--sglow, transparent)); }
+      50%     { filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)) drop-shadow(0 0 34px var(--sglow, transparent)) drop-shadow(0 0 14px var(--sglow, transparent)); } }
     @media (prefers-reduced-motion: reduce) {
-      .tk-side.left, .tk-side.right { animation: none; opacity: .92; transform: translateY(50%) skewX(-7deg); }
+      .tk-side.left, .tk-side.right { animation: none; opacity: 1; transform: translateY(50%) skewX(-7deg); }
+      .tk-side::before, .tk-side::after { display: none; }
     }
     #tk-root.show { opacity: 1; visibility: visible; }
     #tk-root.enter { animation: tk-rise .5s cubic-bezier(.16,.84,.28,1) both; }
@@ -454,6 +477,11 @@
     #tk-root.is-sold .tk-bar {
       --tk-glass: rgb(var(--tk-glass-rgb) / 0.60);
       --tk-glass-top: rgb(var(--tk-glass-top-rgb) / 0.60);
+      /* On a result the band shrinks to ~80% height (min-height + vertical
+         padding both scaled by 0.8) so the giant SOLD/UNSOLD reads more. */
+      min-height: clamp(59px, 8vh, 77px);
+      padding-top: clamp(5px, .8vh, 10px);
+      padding-bottom: clamp(5px, .8vh, 10px);
     }
     /* The in-band SOLD/UNSOLD badge and the status pill are removed on a result —
        the giant side words convey it now. The pill still shows "On the block"
