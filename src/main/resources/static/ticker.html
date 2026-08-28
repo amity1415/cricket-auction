@@ -138,30 +138,25 @@
       position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, calc(6% - 13px));
       width: clamp(115px, 12.1vw, 174px); z-index: 4; text-align: center;   /* +0.35cm, lifted ~0.35cm off the name */
     }
-    /* No visible frame: the player is a transparent PNG that floats on its own.
-       object-fit: contain shows the FULL cut-out (no crop), it carries a white
-       stroke and gently bobs. Only the initials fallback keeps a solid tile. */
+    /* Portrait CARD (rectangle). object-fit: cover fills it edge-to-edge with
+       the photo — no colour padding — cropping as needed; the top bias keeps the
+       face in frame. Frame position/size unchanged (still perfect). */
     .tk-portrait {
-      position: relative; width: 100%; aspect-ratio: 174 / 221; margin: 0 auto;
+      position: relative; width: 100%; aspect-ratio: 174 / 221; border-radius: clamp(12px, 1.6vw, 18px);
+      overflow: hidden; margin: 0 auto;
       display: flex; align-items: center; justify-content: center;
       color: #fff; font-weight: 800; font-size: clamp(34px, 4.4vw, 60px);
-      background: none; overflow: visible;
+      background: linear-gradient(135deg, var(--tk-accent), var(--tk-accent-2));
+      box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
+                  0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    /* The player carries a white outline plus a STATIC apple-green + lava-blue +
-       lava-red glow hugging that stroke (~0.5cm). The glow used to shimmer, but
-       animating this 11-layer drop-shadow filter every frame was too heavy to
-       render, so the aura is now static; only the gentle float bob remains. It
-       follows the PNG silhouette exactly — there is no frame/box. */
+    /* Zoom into the face: scale up so ~8% is cropped from every side (the card's
+       overflow:hidden clips it). object-position keeps the head anchored high, and
+       transform-origin biased slightly downward takes an extra ~8% crop off the
+       BOTTOM rather than the top. */
     .tk-portrait img {
-      width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block;
-      filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff)
-              drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
-              drop-shadow(1.5px 1.5px 0 #fff) drop-shadow(-1.5px -1.5px 0 #fff)
-              drop-shadow(1.5px -1.5px 0 #fff) drop-shadow(-1.5px 1.5px 0 #fff)
-              drop-shadow(0 0 10px var(--fx-green)) drop-shadow(0 0 15px var(--fx-blue)) drop-shadow(0 0 20px var(--fx-red))
-              drop-shadow(0 12px 16px rgba(0,0,0,.55));
-      /* The player stays still — no float/bob. Animating this heavily drop-shadowed
-         image forced constant repaints, so it is now static. */
+      width: 100%; height: 100%; object-fit: cover; object-position: center top;
+      display: block; transform: scale(1.19); transform-origin: center 40%;
     }
     /* Initials fallback — a solid rounded tile, shown only when there's no photo. */
     #tk-initials {
@@ -171,10 +166,34 @@
       box-shadow: 0 16px 40px -12px rgba(0,0,0,.82),
                   0 0 0 3px rgba(8,12,26,.85), 0 0 0 4px color-mix(in srgb, var(--team) 70%, transparent);
     }
-    /* Removed for render performance: the lava green/blue/red radar rings and the
-       rising lava sparks that animated in the background around the player. The
-       player keeps its static white stroke + colour glow and the gentle bob. */
-    .tk-orbit { display: none; }
+    /* Rotating conic glow ring behind the portrait — the "dynamic background".
+       Sized tight so it doesn't wash over the player name below. */
+    .tk-portrait-wrap::before {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      width: 116%; height: 112%; transform: translate(-50%, -50%); z-index: -2;   /* glow behind the card */
+      border-radius: clamp(18px, 2.2vw, 26px);
+      background: conic-gradient(from 0deg, var(--tk-accent), var(--tk-cyan),
+                  var(--tk-green), var(--tk-amber), var(--tk-accent-2), var(--tk-accent));
+      filter: blur(9px); opacity: .9; animation: tk-spin 7s linear infinite;
+    }
+    .tk-portrait-wrap::after {
+      content: ""; position: absolute; left: 50%; top: 50%;
+      width: 106%; height: 104%; transform: translate(-50%, -50%); z-index: -1;
+      border-radius: clamp(15px, 1.9vw, 22px); border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
+      animation: tk-halo 2.6s ease-out infinite;
+    }
+    @keyframes tk-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+    @keyframes tk-halo {
+      0% { opacity: .8; width: 102%; height: 102%; }
+      100% { opacity: 0; width: 128%; height: 128%; }
+    }
+    /* Orbiting sparks — tucked to hug the smaller glow ring (inset pulls the
+       orbit radius in so the dots ride the rim rather than floating wide). */
+    .tk-orbit { position: absolute; inset: 8%; z-index: -1; animation: tk-spin 9s linear infinite; }
+    .tk-orbit.b { animation-duration: 6s; animation-direction: reverse; }
+    .tk-orbit i { position: absolute; top: -2px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px;
+      border-radius: 50%; background: #fff; box-shadow: 0 0 8px 2px var(--tk-cyan); }
+    .tk-orbit.b i { background: var(--tk-amber); box-shadow: 0 0 8px 2px var(--tk-amber); }
 
     /* Name sits ABOVE the portrait glow (higher stacking) and a touch lower so
        the animation never hides it. */
@@ -506,8 +525,10 @@
   <div id="tk-root">
     <!-- Portrait floats above the centre column (broadcast lower-third look). -->
     <div class="tk-portrait-wrap">
-      <!-- Dynamic backdrop behind the player: radar pulse rings + rising sparks
-           (the colour aura hugging the stroke lives on the image filter). -->
+      <!-- Dynamic backdrop behind the framed portrait: rotating conic glow,
+           halo pulse ring (::before/::after) and two counter-orbiting sparks. -->
+      <span class="tk-orbit a"><i></i></span>
+      <span class="tk-orbit b"><i></i></span>
       <div class="tk-portrait"><img id="tk-poster" alt="" style="display:none"><span id="tk-initials"></span></div>
       <span class="tk-serial" id="tk-serial" style="display:none"></span>   <!-- lot / SL number -->
     </div>
