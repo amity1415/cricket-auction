@@ -73,6 +73,7 @@ public class KcplSeeder implements CommandLineRunner {
             // retention.maxPerGroup field so it runs exactly once and never clobbers
             // a later deliberate edit.
             resyncRulesIfStale(existing);
+            patchIncrementBandIfStale(existing);
             return;
         }
         try {
@@ -125,6 +126,40 @@ public class KcplSeeder implements CommandLineRunner {
         }
     }
 
+    /**
+     * One-time increment-band fix for an already-seeded KCPL Season 2 whose stored
+     * rules still carry the old band {@code (upTo ₹3L inclusive → +₹20K)}. That
+     * inclusive bound meant a bid AT ₹3L took the +₹20K step (→ ₹3.20L) instead of
+     * the "₹3L onwards → +₹25K" default (→ ₹3.25L). We lower that band's upper
+     * bound to ₹2,99,999 so ₹3L falls through to the +₹25K default. Only the
+     * increment bands are touched — every other rule (incl. organizer edits) is
+     * preserved — and once patched the band no longer matches, so it runs once.
+     */
+    private void patchIncrementBandIfStale(Tournament t) {
+        try {
+            AuctionProperties cur = tournaments.rulesOf(t.getId());
+            List<IncrementRule> rules = cur.incrementRules();
+            if (rules == null) {
+                return;
+            }
+            boolean stale = rules.stream()
+                    .anyMatch(r -> r.upTo() == 300_000L && r.increment() == 20_000L);
+            if (!stale) {
+                return; // already fixed (or never had the old band) — nothing to do
+            }
+            List<IncrementRule> patched = rules.stream()
+                    .map(r -> (r.upTo() == 300_000L && r.increment() == 20_000L)
+                            ? new IncrementRule(299_999L, r.increment())
+                            : r)
+                    .toList();
+            tournaments.updateRules(t.getId(), null, cur.withIncrementRules(patched), t.getPhotosFolderId());
+            log.info("Patched '{}' ({}) increment band: a bid at ₹3L now takes the +₹25K step "
+                    + "(→ ₹3.25L), not +₹20K (→ ₹3.20L).", NAME, t.getId());
+        } catch (Exception e) {
+            log.warn("KCPL Season 2 increment-band patch skipped: {}", e.getMessage());
+        }
+    }
+
     /** The initial KCPL Season 2 rule book — a fully data-driven carry-forward config. */
     private AuctionProperties kcplRules() {
         // Base prices, in pool order (A ₹3L, B ₹1L, C ₹50K, D ₹20K).
@@ -156,10 +191,10 @@ public class KcplSeeder implements CommandLineRunner {
         return new AuctionProperties(
                 20_000L,                                        // minViablePrice (= Pool D base)
                 basePrices,
-                List.of(new IncrementRule(50_000L, 5_000L),     // ₹20K–50K  → +₹5K
-                        new IncrementRule(100_000L, 10_000L),   // ₹50K–1L   → +₹10K
-                        new IncrementRule(300_000L, 20_000L)),  // ₹1L–3L    → +₹20K
-                25_000L,                                        // ₹3L onwards → +₹25K
+                List.of(new IncrementRule(50_000L, 5_000L),     // ₹20K–50K       → +₹5K
+                        new IncrementRule(100_000L, 10_000L),   // ₹50K–1L        → +₹10K
+                        new IncrementRule(299_999L, 20_000L)),  // ₹1L–below ₹3L  → +₹20K
+                25_000L,                                        // ₹3L onwards (inclusive) → +₹25K
                 quotas,
                 // 2 Icon @ ₹12L + 1 Owner @ ₹6L = ₹30L. Per-group caps enforce the
                 // KCPL split (2 Icons, 1 Owner) rather than the generic A/lower one.

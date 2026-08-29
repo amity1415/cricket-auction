@@ -90,6 +90,16 @@ public record AuctionProperties(
     /** One band of the increment table. {@code upTo} is an inclusive upper bound. */
     public record IncrementRule(long upTo, long increment) {}
 
+    /** A copy of this rule book with only the increment bands replaced (all other
+     *  fields, including any organizer edits, preserved). Used by targeted rule-book
+     *  migrations that must not clobber the rest of the config. */
+    public AuctionProperties withIncrementRules(List<IncrementRule> newIncrementRules) {
+        return new AuctionProperties(minViablePrice, basePrices, newIncrementRules, defaultIncrement,
+                categoryRules, retention, teamDefaults, demoteUnsoldPlayers, seedDemoData,
+                unsoldTransitions, retentionBasePriceMultiplier, groupSequence,
+                budgetCarryForward, preAuctionCountsInPools);
+    }
+
     /**
      * Per-team squad composition rule for one group. {@code maxPerTeam} is a
      * hard block at bid and sale time (null = unlimited); {@code minPerTeam}

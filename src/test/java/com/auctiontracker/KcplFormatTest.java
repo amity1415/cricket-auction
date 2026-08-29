@@ -71,7 +71,7 @@ class KcplFormatTest {
                 20_000L, basePrices,
                 List.of(new IncrementRule(50_000L, 5_000L),
                         new IncrementRule(100_000L, 10_000L),
-                        new IncrementRule(300_000L, 20_000L)),
+                        new IncrementRule(299_999L, 20_000L)),
                 25_000L, quotas,
                 new Retention(3, 2, 1, 1_200_000L, 600_000L, null),
                 new TeamDefaults(15_000_000L, 20),
@@ -91,6 +91,35 @@ class KcplFormatTest {
         p.setSoldPrice(price);
         players.save(p);
         team.getSquadPlayerIds().add(p.getPlayerId());
+    }
+
+    // ---- Bid increment ladder (KCPL bands) ---------------------------------
+
+    /**
+     * KCPL bands: ₹50K→+₹5K, ₹1L→+₹10K, and — the fix — a bid AT ₹3L takes the
+     * "₹3L onwards" +₹25K step (→ ₹3.25L), not the ₹1L–₹3L +₹20K step (→ ₹3.20L).
+     * The flow is identical for ongoing bids (each later bid adds the current band).
+     */
+    @Test
+    void incrementLadderStepsUpCorrectlyAtEachBasePrice() {
+        IncrementRuleEngine engine =
+                new IncrementRuleEngine(RuleBook.fixed(kcplProps(true, false)));
+
+        // Pool C base ₹50K → next bid ₹55K (+₹5K)
+        assertEquals(5_000L, engine.incrementFor(50_000L));
+        assertEquals(55_000L, engine.nextBidAmount(50_000L, 50_000L));
+
+        // Pool B base ₹1L → next bid ₹1.1L (+₹10K)
+        assertEquals(10_000L, engine.incrementFor(100_000L));
+        assertEquals(110_000L, engine.nextBidAmount(100_000L, 100_000L));
+
+        // Pool A base ₹3L → next bid ₹3.25L (+₹25K), NOT ₹3.20L (+₹20K)
+        assertEquals(25_000L, engine.incrementFor(300_000L));
+        assertEquals(325_000L, engine.nextBidAmount(300_000L, 300_000L));
+
+        // Just below ₹3L still takes the +₹20K band; above ₹3L keeps the +₹25K step.
+        assertEquals(20_000L, engine.incrementFor(299_000L));
+        assertEquals(350_000L, engine.nextBidAmount(300_000L, 325_000L));
     }
 
     // ---- Carry-forward -----------------------------------------------------
