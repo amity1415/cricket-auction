@@ -406,3 +406,43 @@ document.getElementById('form-team').onsubmit = async e => {
 getJSON('/api/config').then(c => { auctionConfig = c; }).catch(() => {});
 refresh();
 setInterval(refresh, 2000);
+
+// --- End / reopen the auction (publishes the public Final Squads page) --------
+const btnEndAuction = document.getElementById('btn-end-auction');
+
+/** Reflect whether the auction is currently ended (Final Squads published). */
+function paintEndState(complete) {
+  if (!btnEndAuction) return;
+  btnEndAuction.dataset.complete = complete ? '1' : '0';
+  btnEndAuction.textContent = complete ? '↻ Reopen auction' : '🏁 End auction';
+  btnEndAuction.classList.toggle('ended', complete);
+  btnEndAuction.title = complete
+    ? 'Auction ended — Final Squads is live. Click to reopen for more bidding.'
+    : 'End the auction and publish the Final Squads page';
+}
+
+async function loadEndState() {
+  try {
+    const s = await getJSON('/api/dashboard/showcase');
+    paintEndState(!!s.complete);
+  } catch (e) { /* leave the default label */ }
+}
+
+if (btnEndAuction) {
+  btnEndAuction.onclick = async () => {
+    const complete = btnEndAuction.dataset.complete === '1';
+    const next = !complete;
+    const ok = confirm(next
+      ? 'End the auction now?\n\nThis publishes the public "Final Squads" page (showcase.html) for everyone. You can reopen the auction afterwards to keep bidding.'
+      : 'Reopen the auction?\n\nThis unpublishes the Final Squads page until you end the auction again.');
+    if (!ok) return;
+    btnEndAuction.disabled = true;
+    const r = await post('/api/admin/showcase', { complete: next });
+    btnEndAuction.disabled = false;
+    if (r) {
+      paintEndState(!!r.complete);
+      toast(next ? 'Auction ended — Final Squads published 🏆' : 'Auction reopened — bidding resumed');
+    }
+  };
+  loadEndState();
+}
