@@ -189,7 +189,7 @@
     // who am I (for the admin toggle + preview)
     try {
       const me = await (await fetch('/api/auth/me')).json();
-      state.isAdmin = me && me.role === 'ADMIN';
+      state.isAdmin = me && (me.role === 'ADMIN' || me.role === 'TOURNAMENT_ADMIN');
     } catch (_) { state.isAdmin = false; }
 
     const data = await (await fetch(api('/api/dashboard/showcase'))).json();

@@ -98,7 +98,7 @@ public class SecurityConfig {
                 // context for players/teams/owners).
                 .requestMatchers("/api/admin/tournaments/**").access(tournamentAuth)
                 .requestMatchers("/api/admin/players/**", "/api/admin/teams/**",
-                        "/api/admin/users/**").access(tournamentAuth)
+                        "/api/admin/users/**", "/api/admin/showcase").access(tournamentAuth)
 
                 // Anything else under /api/admin stays app-admin only.
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

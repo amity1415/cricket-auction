@@ -454,10 +454,10 @@ if (btnEndAuction && auctionControls) {
     }
   };
 
-  // Reveal only for the app ADMIN (the only role /api/admin/showcase accepts).
+  // Reveal for whoever can run this auction — the app admin or its tournament admin.
   const gate = window.authReady || Promise.resolve(window.currentUser || null);
   gate.then(me => {
-    if (me && me.role === 'ADMIN') {
+    if (me && (me.role === 'ADMIN' || me.role === 'TOURNAMENT_ADMIN')) {
       auctionControls.style.display = 'flex';
       loadEndState();
     }
