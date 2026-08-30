@@ -408,7 +408,12 @@ refresh();
 setInterval(refresh, 2000);
 
 // --- End / reopen the auction (publishes the public Final Squads page) --------
+// The control strip lives in the body (auth.js rebuilds the header <nav> into a
+// hamburger menu, so it can't live there). Only the app ADMIN may end/reopen an
+// auction, so the strip stays hidden until the auth check confirms the role.
+const auctionControls = document.getElementById('auction-controls');
 const btnEndAuction = document.getElementById('btn-end-auction');
+const acState = document.getElementById('ac-state');
 
 /** Reflect whether the auction is currently ended (Final Squads published). */
 function paintEndState(complete) {
@@ -419,6 +424,10 @@ function paintEndState(complete) {
   btnEndAuction.title = complete
     ? 'Auction ended — Final Squads is live. Click to reopen for more bidding.'
     : 'End the auction and publish the Final Squads page';
+  if (acState) {
+    acState.textContent = complete ? '🏆 Auction ended — Final Squads is live' : 'Auction in progress';
+    acState.classList.toggle('live', complete);
+  }
 }
 
 async function loadEndState() {
@@ -428,7 +437,7 @@ async function loadEndState() {
   } catch (e) { /* leave the default label */ }
 }
 
-if (btnEndAuction) {
+if (btnEndAuction && auctionControls) {
   btnEndAuction.onclick = async () => {
     const complete = btnEndAuction.dataset.complete === '1';
     const next = !complete;
@@ -444,5 +453,13 @@ if (btnEndAuction) {
       toast(next ? 'Auction ended — Final Squads published 🏆' : 'Auction reopened — bidding resumed');
     }
   };
-  loadEndState();
+
+  // Reveal only for the app ADMIN (the only role /api/admin/showcase accepts).
+  const gate = window.authReady || Promise.resolve(window.currentUser || null);
+  gate.then(me => {
+    if (me && me.role === 'ADMIN') {
+      auctionControls.style.display = 'flex';
+      loadEndState();
+    }
+  });
 }

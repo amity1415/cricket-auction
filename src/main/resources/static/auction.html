@@ -9,11 +9,19 @@
 <body>
 <header>
   <h1>🏏 Cricket Auction Tracker <span class="muted">— Admin Console</span></h1>
-  <nav><a href="index.html">← Setup</a> <a href="team.html">Team-owner view →</a> <a href="showcase.html">🏆 Final squads</a> <a href="swagger-ui.html">API docs</a>
-    <button id="btn-end-auction" class="nav-cta end-auction" title="End the auction and publish the Final Squads page">🏁 End auction</button></nav>
+  <nav><a href="index.html">← Setup</a> <a href="team.html">Team-owner view →</a> <a href="swagger-ui.html">API docs</a></nav>
 </header>
 
 <div id="toast" class="toast hidden"></div>
+
+<!-- Admin-only control strip: end/reopen the auction (publishes Final Squads).
+     Shown only for the app ADMIN — app.js reveals it after the auth check. -->
+<div id="auction-controls" class="auction-controls" style="display:none">
+  <span class="ac-state" id="ac-state">Auction in progress</span>
+  <span class="ac-spacer"></span>
+  <a class="ac-link" id="ac-view-squads" href="showcase.html" target="_blank" rel="noopener">🏆 View Final Squads</a>
+  <button id="btn-end-auction" class="end-auction" title="End the auction and publish the Final Squads page">🏁 End auction</button>
+</div>
 
 <main class="layout">
   <div class="col">
