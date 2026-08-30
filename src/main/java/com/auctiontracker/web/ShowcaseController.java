@@ -3,12 +3,16 @@ package com.auctiontracker.web;
 import com.auctiontracker.core.Player;
 import com.auctiontracker.core.PlayerCategory;
 import com.auctiontracker.core.PlayerRepository;
+import com.auctiontracker.core.PlayerStats;
 import com.auctiontracker.core.PlayerStatus;
 import com.auctiontracker.core.Team;
 import com.auctiontracker.core.TeamRepository;
 import com.auctiontracker.tournament.RuleBook;
 import com.auctiontracker.tournament.Tournament;
 import com.auctiontracker.tournament.TournamentService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +20,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +102,88 @@ public class ShowcaseController {
             tournaments.setAuctionComplete(tid, request.complete());
         }
         return showcase(authentication);
+    }
+
+    /**
+     * A spreadsheet of every player with all available data — identity, pool, base
+     * price, status, the team they went to and the price, plus career stats — for
+     * the current tournament. Served as a downloadable CSV (opens in Excel/Sheets).
+     */
+    @GetMapping(value = "/api/dashboard/players-export.csv", produces = "text/csv")
+    public ResponseEntity<byte[]> playersCsv() {
+        Map<UUID, String> teamNames = teams.findAll().stream()
+                .collect(Collectors.toMap(Team::getTeamId, Team::getName));
+
+        String[] header = {
+                "SL No", "Name", "Role", "Category", "Base Price", "Status",
+                "Team", "Sold/Retained Price",
+                "Matches", "Bat Inns", "Runs", "Highest Score", "Batting Avg", "Strike Rate",
+                "Bowl Inns", "Wickets", "Economy", "Bowling Avg", "Best Bowling",
+                "CricHeroes URL"
+        };
+        StringBuilder csv = new StringBuilder();
+        csv.append('\uFEFF');   // BOM so Excel reads UTF-8 names correctly
+        appendRow(csv, header);
+
+        players.findAll().stream()
+                .sorted(Comparator.comparing((Player p) -> p.getSeq() == null ? Integer.MAX_VALUE : p.getSeq())
+                        .thenComparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
+                .forEach(p -> {
+                    PlayerStats s = p.getStats();
+                    String team = p.getSoldToTeamId() == null ? "" : teamNames.getOrDefault(p.getSoldToTeamId(), "");
+                    appendRow(csv,
+                            p.getSeq() == null ? "" : String.valueOf(p.getSeq()),
+                            p.getName(),
+                            p.getRole() == null ? "" : p.getRole().name(),
+                            p.getCategory() == null ? "" : p.getCategory().name(),
+                            String.valueOf(p.getBasePrice()),
+                            p.getStatus() == null ? "" : p.getStatus().name(),
+                            team,
+                            p.getSoldPrice() == null ? "" : String.valueOf(p.getSoldPrice()),
+                            num(s == null ? null : s.matches()),
+                            num(s == null ? null : s.battingInnings()),
+                            num(s == null ? null : s.runs()),
+                            s == null ? "" : nz(s.highestScore()),
+                            num(s == null ? null : s.battingAverage()),
+                            num(s == null ? null : s.strikeRate()),
+                            num(s == null ? null : s.bowlingInnings()),
+                            num(s == null ? null : s.wickets()),
+                            num(s == null ? null : s.economyRate()),
+                            num(s == null ? null : s.bowlingAverage()),
+                            s == null ? "" : nz(s.bestBowling()),
+                            nz(p.getCricheroesUrl()));
+                });
+
+        UUID tid = ruleBook.activeTournamentId();
+        String name = tid == null ? "players" : tournaments.get(tid).getName();
+        String file = slug(name) + "-players-" + LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file + "\"")
+                .body(csv.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void appendRow(StringBuilder sb, String... cells) {
+        for (int i = 0; i < cells.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(csvCell(cells[i]));
+        }
+        sb.append("\r\n");
+    }
+
+    /** RFC-4180 quoting: wrap in quotes and double any embedded quotes. */
+    private static String csvCell(String v) {
+        String s = v == null ? "" : v;
+        return '"' + s.replace("\"", "\"\"") + '"';
+    }
+
+    private static String num(Number n) { return n == null ? "" : n.toString(); }
+    private static String nz(String s) { return s == null ? "" : s; }
+
+    private static String slug(String name) {
+        String s = name == null ? "players" : name.trim().toLowerCase().replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+        return s.isEmpty() ? "players" : s;
     }
 
     /**

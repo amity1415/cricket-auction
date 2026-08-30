@@ -169,14 +169,19 @@
     .tc-foot .event { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--gold); text-align: right;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Small screenshot button on each card (hidden in focus + print) */
-    .tc-shot {
-      position: absolute; top: 10px; right: 10px; z-index: 5;
+    /* Card action buttons — Save PNG + Focus (hidden in focus + print + export) */
+    .tc-shot, .tc-save {
+      position: absolute; top: 10px; z-index: 5;
       font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; color: #fff;
-      background: rgba(8,12,28,.6); border: 1px solid var(--line); border-radius: 9px; padding: 5px 9px;
+      border: 1px solid var(--line); border-radius: 9px; padding: 5px 9px;
       -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; transition: opacity .15s ease;
     }
-    .team-card:hover .tc-shot { opacity: 1; }
+    .tc-shot { right: 10px; background: rgba(8,12,28,.6); }
+    .tc-save { right: 92px; color: #04140c; border-color: transparent;
+      background: linear-gradient(100deg, #7dffbe, #00e07a); }
+    .tc-save:disabled { opacity: .6 !important; cursor: default; }
+    .team-card:hover .tc-shot, .team-card:hover .tc-save { opacity: 1; }
+    @media (hover: none) { .tc-shot, .tc-save { opacity: 1; } }   /* always visible on touch */
 
     /* ---------------- Focus / lightbox (a clean single card to screenshot) -- */
     #sc-focus {
@@ -185,7 +190,7 @@
       background: radial-gradient(80% 80% at 50% 40%, #0a1130, #04060d 80%);
     }
     #sc-focus.on { display: flex; }
-    #sc-focus .tc-shot { display: none; }
+    #sc-focus .tc-shot, #sc-focus .tc-save { display: none; }
     #sc-focus .stagewrap { position: relative; display: flex; align-items: flex-start; justify-content: center;
       min-height: 100%; width: 100%; }
     #sc-focus .team-card { width: min(900px, 100%); min-height: 0; margin: auto; }
@@ -208,7 +213,7 @@
 
     /* Print: one clean card per page, no chrome. */
     @media print {
-      .sc-bar, .tc-shot, #sc-focus, .focus-btn, .focus-hint { display: none !important; }
+      .sc-bar, .tc-shot, .tc-save, #sc-focus, .focus-btn, .focus-hint { display: none !important; }
       body { background: #05070f; }
       #sc-stage { gap: 0; padding: 0; }
       .team-card { width: 100%; max-width: 720px; box-shadow: none; break-after: page; page-break-after: always; }
@@ -223,6 +228,8 @@
     </div>
     <div class="sc-jump" id="sc-jump"></div>
     <div class="spacer"></div>
+    <a class="btn ghost" id="sc-csv" href="/api/dashboard/players-export.csv" download
+       title="Download every player with all data, team and price (CSV / Excel)">⬇ Players data (CSV)</a>
     <div class="sc-admin" id="sc-admin" style="display:none">
       <span class="pill" id="sc-status"></span>
       <button class="btn primary" id="sc-publish">Publish showcase</button>
@@ -236,11 +243,13 @@
     <button class="focus-btn" id="sc-prev" title="Previous team">‹</button>
     <div class="stagewrap" id="sc-focus-stage"></div>
     <button class="focus-btn" id="sc-next" title="Next team">›</button>
+    <button class="btn primary focus-save" id="sc-focus-save" style="position:fixed;top:14px;left:16px;z-index:101;width:auto;height:auto;border-radius:10px;padding:8px 14px">⬇ Save PNG</button>
     <button class="btn ghost focus-btn-close" id="sc-close" style="width:auto;height:auto;border-radius:10px;padding:8px 14px">✕ Close</button>
-    <div class="focus-hint">Screenshot this card to post it • use ‹ › to switch teams • Esc to close</div>
+    <div class="focus-hint">Save this card as an image (or screenshot it) • use ‹ › to switch teams • Esc to close</div>
   </div>
 
   <script src="team-logo.js?v=2"></script>
-  <script src="showcase.js?v=2"></script>
+  <script src="card-export.js?v=1"></script>
+  <script src="showcase.js?v=3"></script>
 </body>
 </html>

@@ -65,7 +65,8 @@
     el.style.setProperty('--accent', accentFor(team.name));
     el.dataset.index = index;
     el.innerHTML =
-      `<button class="tc-shot" title="Open a clean card to screenshot">📸 Focus</button>`
+      `<button class="tc-save" title="Download this card as a PNG image">⬇ Save PNG</button>`
+      + `<button class="tc-shot" title="Open a clean card to screenshot">📸 Focus</button>`
       + `<div class="tc-head"><span class="tc-crest">${crest}</span>`
       + `<div class="tc-titles"><div class="tc-kicker">${esc(state.name)}</div>`
       + `<div class="tc-name">${esc(team.name)}</div>`
@@ -79,7 +80,24 @@
       + `<span class="event">${esc(state.name)} • Final Squad</span></div>`;
 
     el.addEventListener('click', () => openFocus(index));
+    const saveBtn = el.querySelector('.tc-save');
+    if (saveBtn) saveBtn.addEventListener('click', e => { e.stopPropagation(); saveCard(el, team.name, saveBtn); });
     return el;
+  }
+
+  // Filename-safe slug from a team name.
+  const fileSlug = s => String(s || 'team').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'team';
+
+  async function saveCard(cardEl, teamName, btn) {
+    const label = btn && btn.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      await CardExport.downloadPng(cardEl, fileSlug(state.name) + '-' + fileSlug(teamName) + '.png');
+    } catch (e) {
+      alert('Sorry — could not generate the image on this browser. You can still screenshot the card.\n\n' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
   }
 
   function render() {
@@ -164,6 +182,10 @@
   }
 
   async function load() {
+    // The players CSV export carries the tournament context too.
+    const csv = $('sc-csv');
+    if (csv) csv.href = api('/api/dashboard/players-export.csv');
+
     // who am I (for the admin toggle + preview)
     try {
       const me = await (await fetch('/api/auth/me')).json();
@@ -182,6 +204,10 @@
   $('sc-prev').addEventListener('click', () => step(-1));
   $('sc-next').addEventListener('click', () => step(1));
   $('sc-close').addEventListener('click', closeFocus);
+  $('sc-focus-save').addEventListener('click', () => {
+    const card = $('sc-focus-stage').firstChild;
+    if (card && focusIndex >= 0) saveCard(card, state.teams[focusIndex].name, $('sc-focus-save'));
+  });
   $('sc-focus').addEventListener('click', e => { if (e.target.id === 'sc-focus' || e.target.id === 'sc-focus-stage') closeFocus(); });
   document.addEventListener('keydown', e => {
     if (!$('sc-focus').classList.contains('on')) return;
