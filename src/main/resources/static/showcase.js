@@ -57,7 +57,6 @@
     const rest = team.players.filter(p => !p.label);
 
     const featuredHtml = [...owners, ...icons].map(featured).join('');
-    const cols = rest.length > 12 ? 5 : (rest.length <= 6 ? 3 : 4);
     const gridHtml = rest.map(squareCell).join('');
     const crest = TeamLogo.teamCrest(team.name, { gradient: accentFor(team.name) });
 
@@ -74,8 +73,7 @@
       + `</div></div>`
       + `<div class="tc-body">`
       + (featuredHtml ? `<div class="tc-featured">${featuredHtml}</div>` : '')
-      + (gridHtml ? `<div class="tc-squad-label">Squad</div>`
-          + `<div class="tc-grid ${cols === 5 ? 'cols-5' : ''}" style="--cols:${cols}">${gridHtml}</div>` : '')
+      + (gridHtml ? `<div class="tc-squad-label">Squad</div><div class="tc-grid">${gridHtml}</div>` : '')
       + `</div>`
       + `<div class="tc-foot"><span class="brand"><img src="img/csaitech-logo.png" alt="CSAITECH">Powered by CSAITECH</span>`
       + `<span class="event">${esc(state.name)} • Final Squad</span></div>`;

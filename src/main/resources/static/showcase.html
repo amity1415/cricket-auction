@@ -75,7 +75,7 @@
 
     /* One team = one Instagram-portrait (4:5) card. */
     .team-card {
-      position: relative; width: min(540px, 94vw); aspect-ratio: 4 / 5;
+      position: relative; width: min(880px, 96vw); min-height: min(1100px, 120vw);
       border-radius: 26px; overflow: hidden; scroll-margin-top: 78px;
       color: var(--ink);
       background:
@@ -110,43 +110,42 @@
       text-shadow: 0 2px 10px rgba(0,0,0,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tc-count { font-size: 12px; color: var(--dim); font-weight: 600; margin-top: 2px; }
 
-    .tc-body { flex: 1 1 auto; overflow: hidden; padding: 4px clamp(16px, 4%, 24px) 6px;
-      display: flex; flex-direction: column; gap: 10px; }
+    .tc-body { flex: 1 1 auto; overflow: visible; padding: 6px clamp(18px, 3.5%, 30px) 10px;
+      display: flex; flex-direction: column; gap: 12px; }
 
     /* Featured OWNER / ICON row (wraps to 2-per-row when there are 3+ so names fit) */
     .tc-featured { display: flex; gap: 10px; flex-wrap: wrap; }
     .feat {
-      flex: 1 1 calc(50% - 5px); min-width: 0; display: flex; align-items: center; gap: 11px;
-      padding: 9px 11px; border-radius: 15px;
+      flex: 1 1 calc(50% - 6px); min-width: 0; display: flex; align-items: center; gap: 14px;
+      padding: 12px 15px; border-radius: 16px;
       background: linear-gradient(120deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
       border: 1px solid var(--line);
     }
-    .feat .ava { width: 52px; height: 52px; flex: none; }
+    .feat .ava { width: 74px; height: 74px; flex: none; }
+    .feat .ava .ini { font-size: 24px; }
     .feat .who { min-width: 0; }
     .feat .badge {
-      display: inline-block; font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase;
-      padding: 2px 8px; border-radius: 999px; margin-bottom: 3px;
+      display: inline-block; font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 999px; margin-bottom: 5px;
     }
     .badge.owner { color: #241a05; background: linear-gradient(100deg, var(--gold), var(--gold2));
       box-shadow: 0 2px 8px -2px rgba(255,180,60,.6); }
     .badge.icon { color: #04121a; background: linear-gradient(100deg, #8be9f5, var(--cyan));
       box-shadow: 0 2px 8px -2px rgba(53,214,230,.6); }
-    .feat .nm { font-weight: 800; font-size: 14.5px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feat .nm { font-weight: 800; font-size: 17px; line-height: 1.14; overflow-wrap: anywhere; }
     .feat.owner { border-color: rgba(255,203,94,.4); }
     .feat.icon  { border-color: rgba(53,214,230,.4); }
 
     .tc-squad-label { font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
       color: var(--dim); margin: 2px 2px -2px; }
-    /* squad grid — players by name + photo only (no category) */
-    .tc-grid { flex: 1 1 auto; overflow: hidden;
-      display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); gap: 9px 6px; align-content: start; }
-    /* Denser layouts for bigger squads keep everyone inside the 4:5 frame. */
-    .tc-grid.cols-5 .ava { width: clamp(46px, 12%, 62px); }
-    .tc-grid.cols-5 .plr .nm { font-size: 10px; }
-    .plr { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
-    .plr .nm { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.12;
-      color: #eaf0ff; max-width: 100%;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    /* squad grid — players by name + photo only (no category). Auto-fills as many
+       comfortable columns as the (now wide) card allows, so avatars stay large and
+       every name has room; the card grows taller for big squads instead of shrinking. */
+    .tc-grid { flex: 0 0 auto; overflow: visible;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px 10px; align-content: start; }
+    .plr { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+    .plr .nm { font-size: 14px; font-weight: 700; text-align: center; line-height: 1.18;
+      color: #eaf0ff; max-width: 100%; overflow-wrap: anywhere;
       text-shadow: 0 1px 4px rgba(0,0,0,.6); }
 
     /* Avatar (photo with initials fallback) */
@@ -154,9 +153,9 @@
       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 60%, #10152e), #0c1230);
       box-shadow: 0 4px 12px -3px rgba(0,0,0,.6), inset 0 0 0 2px rgba(255,255,255,.14);
       display: flex; align-items: center; justify-content: center; }
-    .plr .ava { width: clamp(56px, 15.5%, 74px); height: clamp(56px, 15.5%, 74px); aspect-ratio: 1; }
+    .plr .ava { width: clamp(84px, 12vw, 108px); height: clamp(84px, 12vw, 108px); aspect-ratio: 1; }
     .ava img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
-    .ava .ini { font-weight: 800; color: #dfe7fb; font-size: 15px; letter-spacing: .02em; }
+    .ava .ini { font-weight: 800; color: #dfe7fb; font-size: 20px; letter-spacing: .02em; }
     .ava.ring-gold { box-shadow: 0 4px 12px -3px rgba(0,0,0,.6), 0 0 0 2px var(--gold), 0 0 14px -2px rgba(255,180,60,.7); }
     .ava.ring-cyan { box-shadow: 0 4px 12px -3px rgba(0,0,0,.6), 0 0 0 2px var(--cyan), 0 0 14px -2px rgba(53,214,230,.7); }
 
@@ -182,13 +181,14 @@
     /* ---------------- Focus / lightbox (a clean single card to screenshot) -- */
     #sc-focus {
       position: fixed; inset: 0; z-index: 100; display: none;
-      align-items: center; justify-content: center; padding: 18px;
+      align-items: flex-start; justify-content: center; padding: 18px 64px; overflow: auto;
       background: radial-gradient(80% 80% at 50% 40%, #0a1130, #04060d 80%);
     }
     #sc-focus.on { display: flex; }
     #sc-focus .tc-shot { display: none; }
-    #sc-focus .stagewrap { position: relative; display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; }
-    #sc-focus .team-card { width: auto; height: min(94vh, calc(94vw * 1.25)); aspect-ratio: 4/5; }
+    #sc-focus .stagewrap { position: relative; display: flex; align-items: flex-start; justify-content: center;
+      min-height: 100%; width: 100%; }
+    #sc-focus .team-card { width: min(900px, 100%); min-height: 0; margin: auto; }
     .focus-btn {
       position: fixed; z-index: 101; top: 50%; transform: translateY(-50%);
       width: 46px; height: 46px; border-radius: 50%; cursor: pointer;
@@ -241,6 +241,6 @@
   </div>
 
   <script src="team-logo.js?v=2"></script>
-  <script src="showcase.js?v=1"></script>
+  <script src="showcase.js?v=2"></script>
 </body>
 </html>
