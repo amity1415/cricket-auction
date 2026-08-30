@@ -68,6 +68,15 @@ public class Tournament {
     @Column(name = "photos_folder_id")
     private String photosFolderId;
 
+    /**
+     * True once the admin marks the auction finished, which publishes the public
+     * team-showcase page (see {@code showcase.html}). Nullable/opt-in so it adds a
+     * plain column via ddl-auto=update without a NOT NULL default that would break
+     * inserts on the shared DB; null is treated as "not complete".
+     */
+    @Column(name = "auction_complete")
+    private Boolean auctionComplete;
+
     protected Tournament() {
         // for JPA
     }
@@ -103,4 +112,8 @@ public class Tournament {
     /** Drive folder id for this tournament's player photos; null if none configured. */
     public String getPhotosFolderId() { return photosFolderId; }
     public void setPhotosFolderId(String photosFolderId) { this.photosFolderId = photosFolderId; }
+
+    /** True once the admin has marked the auction finished (null = not complete). */
+    public boolean isAuctionComplete() { return Boolean.TRUE.equals(auctionComplete); }
+    public void setAuctionComplete(boolean complete) { this.auctionComplete = complete; }
 }

@@ -75,6 +75,18 @@ public class TournamentService {
     }
 
     /**
+     * Marks a tournament's auction finished (or reopens it), which publishes/hides
+     * the public team-showcase page. Admin-only; only this flag changes.
+     */
+    @Transactional
+    public Tournament setAuctionComplete(UUID id, boolean complete) {
+        Tournament t = get(id);
+        t.setAuctionComplete(complete);
+        tournaments.save(t);
+        return t;
+    }
+
+    /**
      * Creates a new tournament with its own rule book. It COEXISTS with the
      * others (does not disturb the current default) and starts empty — the admin
      * opens it by id and drives the same setup → auction flow. The very first

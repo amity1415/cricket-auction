@@ -60,7 +60,8 @@ public class SecurityConfig {
                 // that must render without a login), and the read-only player
                 // list + analysis + profile + team dashboards.
                 .requestMatchers("/login.html", "/auctions.html", "/broadcast.html",
-                        "/ticker.html", "/players.html", "/player.html", "/team.html").permitAll()
+                        "/ticker.html", "/players.html", "/player.html", "/team.html",
+                        "/showcase.html").permitAll()
 
                 // Public auth endpoints (login/self-lookup/logout + team list).
                 .requestMatchers("/api/auth/login", "/api/auth/teams",
