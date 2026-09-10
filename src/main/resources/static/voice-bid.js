@@ -1,34 +1,42 @@
 /* Voice bidding — the auctioneer speaks; the console auto-updates the bid.
  * ---------------------------------------------------------------------------
- * Feature:
- *   - Auctioneer says only an AMOUNT ("fifty thousand!")  → the current bid
- *     rises to that amount and the leading-team LOGO is HIDDEN (we don't yet
- *     know who bid). This is held server-side as a "pending verbal bid" so the
- *     audience broadcast screen (a different device) shows it too.
- *   - Auctioneer names a TEAM ("... Warriors!")           → the pending amount
- *     is attributed to that team as a REAL bid, and the logo appears.
- *   - Says both together ("fifty thousand Warriors")       → placed at once.
- *   - Amount and team may arrive in EITHER order, across separate utterances.
+ * WHAT the auctioneer can say (English / Indian numbering, en-IN):
+ *   - An AMOUNT and/or a TEAM, in either order, across separate phrases:
+ *       "fifty thousand"           → raise to ₹50,000, team logo hidden
+ *       "... Warriors"             → attribute the pending amount to the team
+ *       "seventy five Warriors"    → both at once
+ *   - Bare numbers are SCALED to the current bid's magnitude (see below):
+ *       prev ₹70,000, say "75"     → ₹75,000
+ *       prev ₹3.5L,   say "350"    → ₹3,50,000
+ *   - "sold confirm"               → confirm the sale to the leading team
+ *   - "unsold confirm"             → mark the player unsold
+ *   - "stop listening" / "pause"   → pause acting on speech (mic stays on)
+ *   - "start listening" / "resume" → resume acting on speech
+ *   - "cancel" / "clear"           → drop a mis-heard pending amount
  *
- * How it drives the real auction (per product decision): a recognized amount is
- * treated as the NEW TOTAL bid (not a delta), and once a team is known we place
- * a genuine bid through the existing /place-bid endpoint, so purse/feasibility/
- * confirm-sale all keep working. Amount-only is parked via /verbal-bid.
+ * RAPID BIDDING (buffer): every recognized phrase is pushed onto a QUEUE and
+ * applied ONE AT A TIME by an async worker. So when several teams bid in quick
+ * succession the phrases don't race — they buffer, apply in order, and the
+ * on-screen amount/leader catch up as the queue drains. When bidding slows the
+ * queue empties and the 2-second dashboard poll leaves every screen in sync.
  *
- * Runs only on the auctioneer's console (this page). Uses the Web Speech API
- * (Chrome/Edge). It reads shared globals from app.js: lastBlock, lastTeams,
- * post(), refresh(), toast(), fmtINR().
+ * CONTEXT-AWARE SCALING: a bare number (no "thousand/lakh/crore") is aligned to
+ * the CURRENT bid's number of digits, so "75" after ₹70,000 becomes ₹75,000 and
+ * "350" after ₹3,50,000 becomes ₹3,50,000. Say an explicit unit to jump across
+ * magnitudes ("one lakh"). The reference amount is the freshest we know — the
+ * amount we last applied locally, else the live pending/current/base price.
  *
- * WHERE IT CAN FAIL / limitations:
- *   - Speech recognition is best-effort: accents, noise and homophones cause
- *     mis-hears. That is why nothing here is destructive — the worst case is a
- *     wrong pending amount, which the auctioneer fixes by saying the right
- *     number again, "cancel", or using the on-screen Undo/Manual bid.
- *   - Bare numbers are taken literally; say the UNIT ("forty THOUSAND", "one
- *     LAKH") so the amount scales correctly. Supported units: thousand/k,
- *     lakh/lac, crore/cr, plus hundred.
- *   - The Web Speech API needs Chrome/Edge and a mic permission; unsupported
- *     browsers just never see the control.
+ * How it drives the real auction: a recognized amount is the NEW TOTAL bid;
+ * once a team is known we place a genuine bid via /place-bid (purse/feasibility/
+ * confirm-sale all apply). Amount-only is parked via /verbal-bid so the audience
+ * broadcast screen shows the rising amount with the logo hidden.
+ *
+ * Runs only on the auctioneer's console. Web Speech API (Chrome/Edge). Reads
+ * shared globals from app.js: lastBlock, lastTeams, post(), refresh(), toast(),
+ * fmtINR(). WHERE IT CAN FAIL: recognition is best-effort (accents/noise); the
+ * worst case is a wrong pending amount fixed by re-saying it, "cancel", or the
+ * on-screen Undo/Manual controls. Nothing here is irreversible on its own —
+ * confirm-sale/mark-unsold hit the same guarded endpoints as the buttons.
  */
 (function () {
   'use strict';
@@ -43,7 +51,6 @@
   };
   if (!el.wrap || !el.toggle) return;
 
-  // Unsupported browser: reveal a disabled hint instead of a dead button.
   if (!SR) {
     el.wrap.style.display = 'flex';
     el.toggle.disabled = true;
@@ -53,7 +60,7 @@
   }
   el.wrap.style.display = 'flex';
 
-  // --- number-word parsing (English + Indian units) ------------------------
+  // ── number parsing ───────────────────────────────────────────────────────
   const SMALL = {
     zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
     eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
@@ -61,138 +68,192 @@
     nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
     seventy: 70, eighty: 80, ninety: 90,
   };
-  // Scale words that "flush" the running value into the total.
+  // "Big" scale words — their presence means the amount is EXPLICIT (no scaling).
   const MAG = { thousand: 1e3, k: 1e3, lakh: 1e5, lac: 1e5, lakhs: 1e5, crore: 1e7, cr: 1e7, crores: 1e7 };
 
   /**
-   * Parse a spoken amount from free text. Handles "fifty thousand",
-   * "one lakh twenty thousand", "1.5 crore", "40000". Returns whole rupees, or
-   * null if no number is present. Non-number words (team names, filler) are
-   * ignored, so "fifty thousand warriors" still yields 50000.
+   * Parse a spoken amount. Returns { value, hadBigUnit } in whole rupees, or
+   * null if no number is present. hadBigUnit is true when a thousand/lakh/crore
+   * word was used, meaning the value is explicit and must NOT be context-scaled.
+   * The recognizer usually returns compound numbers as digits ("350"), so the
+   * word path is mostly a fallback.
    */
   function parseAmount(text) {
     const words = text.toLowerCase().replace(/,/g, '').replace(/[-]/g, ' ').split(/\s+/);
-    let total = 0, current = 0, found = false;
+    let total = 0, current = 0, found = false, hadBigUnit = false;
     for (const w of words) {
       if (w === '') continue;
       if (/^\d+(\.\d+)?$/.test(w)) { current += parseFloat(w); found = true; continue; }
       if (SMALL[w] != null) { current += SMALL[w]; found = true; continue; }
       if (w === 'hundred' || w === 'hundreds') { current = (current || 1) * 100; found = true; continue; }
-      if (MAG[w] != null) { current = (current || 1) * MAG[w]; total += current; current = 0; found = true; continue; }
-      // any other word (team name, "for", "going once"...) is ignored
+      if (MAG[w] != null) { current = (current || 1) * MAG[w]; total += current; current = 0; found = true; hadBigUnit = true; continue; }
     }
     total += current;
-    return found ? Math.round(total) : null;
+    return found ? { value: Math.round(total), hadBigUnit } : null;
   }
 
-  // --- team matching -------------------------------------------------------
-  const lettersOnly = s => String(s || '').toLowerCase().replace(/[^a-z\s]/g, ' ');
+  const digitCount = n => String(Math.max(1, Math.round(Math.abs(n)))).length;
 
   /**
-   * Find which registered team the auctioneer named, by matching significant
-   * words of the team name against the transcript. Returns a teamId or null.
-   * Longer keyword matches win, so "kolkata knight riders" beats a stray short
-   * word. Falls back to null when no team is clearly named.
+   * Align a bare number to the reference amount's magnitude by multiplying by a
+   * power of ten so it has the same digit count. "75" vs ₹70,000 → 75,000;
+   * "350" vs ₹3,50,000 → 3,50,000. If the number already has >= the reference's
+   * digits, it is taken as-is (a full amount was spoken).
    */
+  function scaleToContext(value, reference) {
+    if (!reference || reference <= 0) return value;
+    const k = digitCount(reference) - digitCount(value);
+    return k > 0 ? value * Math.pow(10, k) : value;
+  }
+
+  // ── team matching ─────────────────────────────────────────────────────────
+  const lettersOnly = s => String(s || '').toLowerCase().replace(/[^a-z\s]/g, ' ');
+
   function parseTeam(text) {
     const said = ' ' + lettersOnly(text) + ' ';
     let best = null, bestScore = 0;
     for (const t of (typeof lastTeams !== 'undefined' ? lastTeams : [])) {
-      const words = lettersOnly(t.name).split(/\s+/).filter(w => w.length >= 3);
-      let score = 0;
-      for (const w of words) {
-        if (said.includes(' ' + w + ' ')) score = Math.max(score, w.length);
+      for (const w of lettersOnly(t.name).split(/\s+/).filter(w => w.length >= 3)) {
+        if (said.includes(' ' + w + ' ') && w.length > bestScore) { bestScore = w.length; best = t.teamId; }
       }
-      if (score > bestScore) { bestScore = score; best = t.teamId; }
     }
     return best;
   }
 
-  // --- reconciliation state ------------------------------------------------
-  // Local mirror so team/amount spoken in separate utterances line up even
-  // before the 2s dashboard poll refreshes lastBlock.
-  const state = { playerId: null, pendingTeamId: null, pendingAmount: null };
+  // ── shared helpers ────────────────────────────────────────────────────────
+  const currentBlock = () => (typeof lastBlock !== 'undefined') ? lastBlock : null;
+
+  // Reconciliation + scaling state. runningAmount is the freshest amount we've
+  // applied locally — used as the scaling reference so rapid bare numbers line
+  // up even before the 2s dashboard poll refreshes lastBlock.
+  const state = { playerId: null, pendingTeamId: null, pendingAmount: null, runningAmount: null };
 
   function resetPending() { state.pendingTeamId = null; state.pendingAmount = null; }
-
   function syncPlayer(block) {
     const pid = block ? block.playerId : null;
-    if (pid !== state.playerId) { state.playerId = pid; resetPending(); }
+    if (pid !== state.playerId) { state.playerId = pid; resetPending(); state.runningAmount = null; }
+  }
+  function referenceAmount() {
+    if (state.runningAmount != null) return state.runningAmount;
+    const b = currentBlock();
+    if (!b) return null;
+    return b.pendingBidAmount != null ? b.pendingBidAmount
+         : b.currentBidAmount != null ? b.currentBidAmount
+         : b.basePrice;
   }
 
+  // ── server actions ────────────────────────────────────────────────────────
   async function placeBid(playerId, teamId, amount) {
     const r = await post(`/api/admin/players/${playerId}/place-bid`, { teamId, amount });
     if (r) {
-      toast(`🎙 Bid #${r.bidNumber}: ${r.currentLeadingTeamName} → ${fmtINR(r.currentBidAmount)}`);
+      state.runningAmount = r.currentBidAmount;
       resetPending();
+      toast(`🎙 Bid #${r.bidNumber}: ${r.currentLeadingTeamName} → ${fmtINR(r.currentBidAmount)}`);
       refresh();
     }
-    // On failure post() already toasted; keep pending so the auctioneer can retry.
   }
-
   async function setVerbalBid(playerId, amount) {
     const r = await post(`/api/admin/players/${playerId}/verbal-bid`, { amount });
-    if (r) {
-      state.pendingAmount = amount;
-      toast(`🎙 ${fmtINR(amount)} — awaiting team…`);
-      refresh();
-    }
+    if (r) { toast(`🎙 ${fmtINR(amount)} — awaiting team…`); refresh(); }
   }
-
   async function clearVerbal(playerId) {
     resetPending();
     await post(`/api/admin/players/${playerId}/clear-verbal-bid`);
-    toast('🎙 Pending bid cleared');
-    refresh();
+    toast('🎙 Pending bid cleared'); refresh();
+  }
+  async function sell(playerId) {
+    const r = await post(`/api/admin/players/${playerId}/confirm-sale`);
+    if (r) {
+      resetPending(); state.runningAmount = null;
+      const p = r.player || {};
+      toast(`🔨 SOLD! ${p.name || ''}${p.soldPrice ? ' → ' + fmtINR(p.soldPrice) : ''}`);
+      refresh();
+    }
+  }
+  async function unsold(playerId) {
+    const r = await post(`/api/admin/players/${playerId}/mark-unsold`);
+    if (r) { resetPending(); state.runningAmount = null; toast(`🚫 Unsold: ${r.name || ''}`); refresh(); }
   }
 
-  /** Turn one final utterance into an action. */
-  function handleUtterance(text) {
-    const block = (typeof lastBlock !== 'undefined') ? lastBlock : null;
+  // ── async queue (the rapid-bid buffer) ────────────────────────────────────
+  const queue = [];
+  let draining = false;
+  function enqueue(intent) { queue.push(intent); if (!draining) drain(); }
+  async function drain() {
+    draining = true;
+    try {
+      while (queue.length) {
+        const it = queue.shift();
+        try { await handleIntent(it); } catch (_) { /* post() already toasts */ }
+      }
+    } finally { draining = false; }
+  }
+
+  async function handleIntent(it) {
+    const block = currentBlock();
+    if (!block) { toast('No player is under auction — put one on the block first', true); return; }
     syncPlayer(block);
 
-    // Explicit correction keywords.
-    if (/\b(cancel|clear|reset|scratch)\b/i.test(text)) {
-      if (block) clearVerbal(block.playerId);
-      return;
-    }
+    if (it.kind === 'clear')  { await clearVerbal(block.playerId); return; }
+    if (it.kind === 'sold')   { await sell(block.playerId); return; }
+    if (it.kind === 'unsold') { await unsold(block.playerId); return; }
 
-    const amount = parseAmount(text);
-    const teamId = parseTeam(text);
-    if (amount == null && teamId == null) return; // nothing biddable in this phrase
-
-    if (!block) { toast('No player is under auction — put one on the block first', true); return; }
-
-    const effTeam = teamId || state.pendingTeamId;
+    // kind === 'bid': scale the amount now, against the freshest reference.
+    const amount = it.amountRaw == null ? null
+        : (it.hadBigUnit ? it.amountRaw : scaleToContext(it.amountRaw, referenceAmount()));
+    const effTeam = it.teamId || state.pendingTeamId;
     const effAmount = amount != null ? amount
         : (state.pendingAmount != null ? state.pendingAmount : block.pendingBidAmount);
 
     if (effAmount != null && effTeam) {
-      placeBid(block.playerId, effTeam, effAmount);           // both known → real bid
+      if (amount != null) state.runningAmount = amount;
+      await placeBid(block.playerId, effTeam, effAmount);
     } else if (amount != null) {
-      state.pendingAmount = amount;                           // remember now (beat the async POST/poll)
-      setVerbalBid(block.playerId, amount);                   // amount only → park it, hide logo
-    } else if (teamId) {
-      state.pendingTeamId = teamId;                           // team first → wait for the amount
-      const name = (lastTeams.find(t => t.teamId === teamId) || {}).name || 'Team';
+      state.pendingAmount = amount;
+      state.runningAmount = amount;
+      await setVerbalBid(block.playerId, amount);
+    } else if (it.teamId) {
+      state.pendingTeamId = it.teamId;
+      const name = (lastTeams.find(t => t.teamId === it.teamId) || {}).name || 'Team';
       toast(`🎙 ${name} noted — say the bid amount`);
     }
   }
 
-  // --- Web Speech API wiring ----------------------------------------------
-  let listening = false;
+  // ── classify one utterance into an intent (or a control command) ──────────
+  function classify(text) {
+    const t = text.toLowerCase();
+    // Order matters: "unsold" contains "sold", so test unsold first.
+    if (/\bunsold\b/.test(t) && /\bconfirm\b/.test(t)) return { kind: 'unsold' };
+    if (/\bsold\b/.test(t)   && /\bconfirm\b/.test(t)) return { kind: 'sold' };
+    if (/\b(cancel|clear|reset|scratch)\b/.test(t))    return { kind: 'clear' };
+    const amt = parseAmount(text);
+    const teamId = parseTeam(text);
+    if (amt == null && teamId == null) return null;
+    return { kind: 'bid', amountRaw: amt ? amt.value : null, hadBigUnit: amt ? amt.hadBigUnit : false, teamId };
+  }
+
+  // ── Web Speech API wiring ─────────────────────────────────────────────────
+  let micOn = false;   // recognition running (needs a click to start — gesture)
+  let armed = false;   // acting on speech (voice can pause/resume without a click)
   const rec = new SR();
-  rec.lang = 'en-IN';           // Indian English + rupee-scale numbers
-  rec.continuous = true;         // keep listening across pauses
-  rec.interimResults = true;     // show what's being heard live
+  rec.lang = 'en-IN';
+  rec.continuous = true;
+  rec.interimResults = true;
 
   rec.onresult = (e) => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const res = e.results[i];
       if (res.isFinal) {
-        el.heard.textContent = '“' + res[0].transcript.trim() + '”';
-        handleUtterance(res[0].transcript);
+        const text = res[0].transcript.trim();
+        el.heard.textContent = '“' + text + '”';
+        const t = text.toLowerCase();
+        // Arm/pause commands work even while paused (so voice can re-arm).
+        if (/\b(stop|pause) listening\b/.test(t) || /\bgo to sleep\b/.test(t)) { setArmed(false); continue; }
+        if (/\b(start|resume) listening\b/.test(t) || /\bwake up\b/.test(t))   { setArmed(true); continue; }
+        if (!armed) continue;                 // paused: ignore bids/commands
+        const intent = classify(text);
+        if (intent) enqueue(intent);
       } else {
         interim += res[0].transcript;
       }
@@ -201,36 +262,44 @@
   };
 
   rec.onerror = (e) => {
-    if (e.error === 'no-speech' || e.error === 'aborted') return; // benign, keep going
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
       toast('Microphone blocked — allow mic access to use voice bidding', true);
-      stop();
+      stopMic();
       return;
     }
     toast('Voice error: ' + e.error, true);
   };
+  rec.onend = () => { if (micOn) { try { rec.start(); } catch (_) {} } };
 
-  // Chrome ends recognition periodically; restart while the user wants it on.
-  rec.onend = () => { if (listening) { try { rec.start(); } catch (_) {} } };
-
-  function start() {
-    try { rec.start(); } catch (_) { /* already starting */ }
-    listening = true;
-    el.toggle.textContent = '🔴 Stop';
-    el.toggle.classList.add('listening');
-    el.status.textContent = 'Listening — say the amount and/or team';
-    el.status.classList.remove('muted');
+  function updateUI() {
+    el.toggle.classList.toggle('listening', micOn && armed);
+    el.toggle.classList.toggle('paused', micOn && !armed);
+    if (!micOn) {
+      el.toggle.textContent = '🎙 Listen';
+      el.status.textContent = 'Voice off';
+      el.status.classList.add('muted');
+      el.heard.textContent = '';
+    } else if (armed) {
+      el.toggle.textContent = '🔴 Stop';
+      el.status.textContent = 'Listening — amount and/or team; say “sold confirm” to sell';
+      el.status.classList.remove('muted');
+    } else {
+      el.toggle.textContent = '⏸ Paused';
+      el.status.textContent = 'Paused — say “start listening” to resume (click to stop)';
+      el.status.classList.remove('muted');
+    }
   }
 
-  function stop() {
-    listening = false;
-    try { rec.stop(); } catch (_) {}
-    el.toggle.textContent = '🎙 Listen';
-    el.toggle.classList.remove('listening');
-    el.status.textContent = 'Voice off';
-    el.status.classList.add('muted');
-    el.heard.textContent = '';
+  function startMic() { try { rec.start(); } catch (_) {} micOn = true; armed = true; updateUI(); }
+  function stopMic()  { micOn = false; try { rec.stop(); } catch (_) {} updateUI(); }
+  function setArmed(v) {
+    if (!micOn || armed === v) return;
+    armed = v;
+    updateUI();
+    toast(v ? '🎙 Listening resumed' : '🎙 Paused');
   }
 
-  el.toggle.addEventListener('click', () => (listening ? stop() : start()));
+  el.toggle.addEventListener('click', () => (micOn ? stopMic() : startMic()));
+  updateUI();
 })();
