@@ -230,6 +230,68 @@ class BiddingServiceTest {
         assertEquals(5_000_000L, bidding.placeBid(p.getPlayerId(), team.getTeamId()).amount());
     }
 
+    // --- Voice/verbal bidding (amount called before a team is named) --------
+
+    @Test
+    void verbalBidParksAnAmountWithoutCommittingABid() {
+        saveTeam(150_000_000L);
+        Player p = saveUnderAuction(5_000_000L);
+
+        long amt = bidding.setVerbalBid(p.getPlayerId(), 6_000_000L);
+
+        assertEquals(6_000_000L, amt);
+        assertEquals(6_000_000L, bidding.pendingVerbalBidAmount(p.getPlayerId()));
+        // It is display-only: no committed bid, no leader, nothing persisted.
+        assertNull(bidding.currentBidAmount(p.getPlayerId()));
+        assertEquals(0, bidding.bidCount(p.getPlayerId()));
+    }
+
+    @Test
+    void verbalBidBelowBasePriceRejected() {
+        saveTeam(150_000_000L);
+        Player p = saveUnderAuction(5_000_000L);
+
+        var ex = assertThrows(AuctionException.class,
+                () -> bidding.setVerbalBid(p.getPlayerId(), 4_000_000L));
+        assertEquals("BID_TOO_LOW", ex.getCode());
+    }
+
+    @Test
+    void verbalBidNotAboveCurrentBidRejected() {
+        Team team = saveTeam(150_000_000L);
+        Player p = saveUnderAuction(5_000_000L);
+        bidding.placeBid(p.getPlayerId(), team.getTeamId()); // current 5M
+
+        var ex = assertThrows(AuctionException.class,
+                () -> bidding.setVerbalBid(p.getPlayerId(), 5_000_000L));
+        assertEquals("BID_TOO_LOW", ex.getCode());
+    }
+
+    @Test
+    void namingTheTeamCommitsThePendingAmountAndClearsIt() {
+        Team team = saveTeam(150_000_000L);
+        Player p = saveUnderAuction(5_000_000L);
+        bidding.setVerbalBid(p.getPlayerId(), 6_000_000L);
+
+        // The console places a real bid at the pending amount once a team is named.
+        var result = bidding.placeBid(p.getPlayerId(), team.getTeamId(), 6_000_000L);
+
+        assertEquals(6_000_000L, result.amount());
+        assertEquals(team.getTeamId(), result.leadingTeam().getTeamId());
+        assertNull(bidding.pendingVerbalBidAmount(p.getPlayerId())); // committing clears the pending amount
+    }
+
+    @Test
+    void clearVerbalBidRemovesThePendingAmount() {
+        saveTeam(150_000_000L);
+        Player p = saveUnderAuction(5_000_000L);
+        bidding.setVerbalBid(p.getPlayerId(), 6_000_000L);
+
+        bidding.clearVerbalBid(p.getPlayerId());
+
+        assertNull(bidding.pendingVerbalBidAmount(p.getPlayerId()));
+    }
+
     @Test
     void confirmSaleFlushesTheLiveTrailToTheDatabase() {
         Team t1 = saveTeam(150_000_000L);

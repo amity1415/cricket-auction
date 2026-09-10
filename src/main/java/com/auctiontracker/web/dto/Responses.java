@@ -86,4 +86,14 @@ public final class Responses {
             Instant lastUpdated) {}
 
     public record BulkImportResponse(int imported, List<PlayerView> players) {}
+
+    /**
+     * Result of setting/clearing a voice-called bid amount that has no team yet.
+     * {@code pendingBidAmount} is null after a clear. The screens refresh from
+     * the dashboard; this is mainly for the console's confirmation toast.
+     */
+    public record VerbalBidView(
+            UUID playerId,
+            Long pendingBidAmount,
+            Instant lastUpdated) {}
 }

@@ -13,12 +13,14 @@ import com.auctiontracker.web.dto.Requests.RegisterPlayerRequest;
 import com.auctiontracker.web.dto.Requests.RegisterTeamRequest;
 import com.auctiontracker.web.dto.Requests.RetainRequest;
 import com.auctiontracker.web.dto.Requests.UpdateTeamRequest;
+import com.auctiontracker.web.dto.Requests.VerbalBidRequest;
 import com.auctiontracker.web.dto.Responses.BidView;
 import com.auctiontracker.web.dto.Responses.BulkImportResponse;
 import com.auctiontracker.web.dto.Responses.ConfirmSaleResponse;
 import com.auctiontracker.web.dto.Responses.CurrentBidView;
 import com.auctiontracker.web.dto.Responses.PlaceBidResponse;
 import com.auctiontracker.web.dto.Responses.PlayerView;
+import com.auctiontracker.web.dto.Responses.VerbalBidView;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -199,6 +201,27 @@ public class AdminController {
                 bidding.nextBidAmount(player),
                 bidding.bidCount(playerId),
                 Instant.now());
+    }
+
+    /**
+     * A bid amount the auctioneer called out by VOICE with no team named yet.
+     * Held in the live session as display-only: the broadcast and console show
+     * it as the current amount with the leading-team logo hidden, until a team
+     * is spoken and the console places a real bid at this amount. Any order of
+     * amount/team works — the console reconciles the two.
+     */
+    @PostMapping("/players/{id}/verbal-bid")
+    public VerbalBidView verbalBid(@PathVariable("id") UUID playerId,
+                                   @Valid @RequestBody VerbalBidRequest request) {
+        long amount = bidding.setVerbalBid(playerId, request.amount());
+        return new VerbalBidView(playerId, amount, Instant.now());
+    }
+
+    /** Cancels a pending voice amount (misrecognition or auctioneer correction). */
+    @PostMapping("/players/{id}/clear-verbal-bid")
+    public VerbalBidView clearVerbalBid(@PathVariable("id") UUID playerId) {
+        bidding.clearVerbalBid(playerId);
+        return new VerbalBidView(playerId, null, Instant.now());
     }
 
     @PostMapping("/players/{id}/confirm-sale")

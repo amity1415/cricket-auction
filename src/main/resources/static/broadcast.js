@@ -183,7 +183,14 @@ function renderLive(player, teams) {
       + metaChips(player));
   setHTML('bc-status', statsStrip(player.stats));
 
-  if (player.currentBidAmount) {
+  // A voice-called amount with no team yet takes precedence on every screen:
+  // show the rising amount but HIDE the leading-team crest until the auctioneer
+  // names the team (feature: "logo hidden, comes up when the team is named").
+  const pending = player.pendingBidAmount != null;
+  if (pending) {
+    setText('bc-current-bid', fmtINR(player.pendingBidAmount));
+    setHTML('bc-leading-team', '<span class="bc-awaiting">🎙 Awaiting team…</span>');
+  } else if (player.currentBidAmount) {
     setText('bc-current-bid', fmtINR(player.currentBidAmount));
     // Show the leading team's crest right beside its name.
     setHTML('bc-leading-team',
@@ -196,7 +203,8 @@ function renderLive(player, teams) {
   setText('bc-next-bid', fmtINR(player.nextBidAmount));
   setHTML('bc-bid-count', player.bidCount ? `<span class="bid-count">Bid #${player.bidCount}</span>` : '');
 
-  renderTeams(teams, player.currentLeadingTeamId, player);
+  // While an amount is pending with no team, no team is "leading" — don't crown one.
+  renderTeams(teams, pending ? null : player.currentLeadingTeamId, player);
   showState('live');
 }
 

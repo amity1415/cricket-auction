@@ -46,6 +46,12 @@ public final class Requests {
     public record PlaceBidRequest(@NotNull UUID teamId, Long amount) {}
 
     /**
+     * A bid amount the auctioneer called out by voice with no team named yet.
+     * Display-only until a team is spoken; must be a positive whole-rupee amount.
+     */
+    public record VerbalBidRequest(@NotNull @Positive Long amount) {}
+
+    /**
      * Optional body for a pre-auction retention. {@code price} is the editable
      * retention fee from the setup screen — null falls back to the rule-book's
      * computed cost; must be >= 0 when given.

@@ -44,7 +44,14 @@ public final class DashboardViews {
             int bidCount,
             boolean hasPhoto,
             /** 1-based lot/serial number (import order); null for rows without a seq. */
-            Integer serial) {}
+            Integer serial,
+            /**
+             * A voice-called bid amount not yet attributed to a team (the
+             * auctioneer said the number before naming who bid). When non-null,
+             * every screen shows THIS as the current amount and HIDES the leading
+             * team logo until a team is named. Null on the normal committed path.
+             */
+            Long pendingBidAmount) {}
 
     public record DashboardView(
             OnTheBlockView onTheBlock,

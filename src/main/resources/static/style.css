@@ -2147,3 +2147,37 @@ table.pool tbody tr:hover {
   .group-row .cat-tag { grid-column: 1 / -1; }
   .group-row .gr-del { grid-column: 1 / -1; justify-self: end; }
 }
+
+/* ── Voice bidding (auctioneer console) ─────────────────────────────────── */
+.voice-bid {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 2px;
+  flex-wrap: wrap;
+}
+.voice-toggle {
+  cursor: pointer;
+  border: 1px solid var(--line, #d0d5dd);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.voice-toggle.listening {
+  background: #fdecec;
+  border-color: #e5484d;
+  color: #b42318;
+  animation: vb-pulse 1.3s ease-in-out infinite;
+}
+@keyframes vb-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(229,72,77,.35);} 50% { box-shadow: 0 0 0 6px rgba(229,72,77,0);} }
+.vb-status { font-size: 13px; }
+.vb-heard { font-size: 13px; color: var(--muted, #667085); font-style: italic; }
+
+/* Pending (voice amount, no team yet) — console "On the Block" line */
+.bid-line .amount.pending { color: #b54708; }
+.leader.awaiting { color: #b54708; }
+
+/* Pending — audience broadcast "leading team" slot: amount shows, logo hidden */
+.bc-awaiting { opacity: .9; font-style: italic; }

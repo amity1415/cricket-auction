@@ -22,15 +22,28 @@ class LiveBidSession {
     private UUID playerId;
     private final Deque<Step> steps = new ArrayDeque<>();
 
+    /**
+     * A bid amount the auctioneer has called out by VOICE but not yet attributed
+     * to a team ("fifty thousand!" before naming who bid). It is display-only —
+     * it never becomes a real bid until a team is named, at which point a normal
+     * {@link #push} commits it and clears this. Held here (not just in the
+     * browser) so the audience broadcast screen — a different device — can show
+     * the rising amount with the team logo hidden until the team is spoken.
+     * Null whenever there is no un-attributed amount pending.
+     */
+    private Long pendingVerbalAmount;
+
     /** Starts a fresh trail for a player, discarding any previous one. */
     void open(UUID playerId) {
         this.playerId = playerId;
         steps.clear();
+        pendingVerbalAmount = null;
     }
 
     void close() {
         playerId = null;
         steps.clear();
+        pendingVerbalAmount = null;
     }
 
     boolean isFor(UUID playerId) {
@@ -44,6 +57,17 @@ class LiveBidSession {
 
     void push(UUID teamId, long amount) {
         steps.addLast(new Step(teamId, amount, Instant.now()));
+        // A committed bid supersedes any un-attributed verbal amount.
+        pendingVerbalAmount = null;
+    }
+
+    /** Records/updates the un-attributed verbal amount (display only). */
+    void setPendingVerbalAmount(Long amount) {
+        this.pendingVerbalAmount = amount;
+    }
+
+    Long pendingVerbalAmount() {
+        return pendingVerbalAmount;
     }
 
     /** Removes and returns the most recent bid, or null if there are none. */

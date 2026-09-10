@@ -33,6 +33,7 @@ const poolRoles = new Set();       // 2nd-level Role refine (empty = all)
 const poolCats = new Set();        // 2nd-level Category refine (empty = all)
 let lastPlayers = [];     // latest poll results, so search re-renders instantly
 let lastTeams = [];
+let lastBlock = null;     // latest on-the-block payload (read by voice-bid.js)
 
 function toast(message, isError) {
   const el = document.getElementById('toast');
@@ -71,6 +72,7 @@ async function refresh() {
     ]);
     lastPlayers = players;
     lastTeams = dash.teams;
+    lastBlock = dash.onTheBlock;
     renderBlock(dash);
     renderTeams(dash);
     renderPool(players, dash.teams);
@@ -116,6 +118,17 @@ function renderBlock(dash) {
   }
 
   const hasBid = block.currentBidAmount != null;
+  // A voice-called amount with no team yet is shown first, with the leader
+  // hidden until the auctioneer names the team (see voice-bid.js).
+  const pending = block.pendingBidAmount != null;
+  const bidLine = pending
+    ? `<span class="amount pending">${fmtINR(block.pendingBidAmount)}</span>
+       <span class="leader awaiting"> 🎙 awaiting team… <b>(logo hidden)</b></span>`
+    : hasBid
+      ? `<span class="amount">${fmtINR(block.currentBidAmount)}</span>
+         <span class="leader"> leading: <b>${esc(block.currentLeadingTeamName)}</b> · bid #${block.bidCount}</span>`
+      : `<span class="amount">${fmtINR(block.basePrice)}</span>
+         <span class="leader"> base price — no bids yet</span>`;
   content.innerHTML = `
     <div class="block-player">
       <a class="name plink" href="player.html?playerId=${block.playerId}" title="Open full profile">${esc(block.name)}</a>
@@ -125,13 +138,7 @@ function renderBlock(dash) {
       </span>
     </div>
     ${profileStats(block.stats)}
-    <div class="bid-line">
-      ${hasBid
-        ? `<span class="amount">${fmtINR(block.currentBidAmount)}</span>
-           <span class="leader"> leading: <b>${esc(block.currentLeadingTeamName)}</b> · bid #${block.bidCount}</span>`
-        : `<span class="amount">${fmtINR(block.basePrice)}</span>
-           <span class="leader"> base price — no bids yet</span>`}
-    </div>
+    <div class="bid-line">${bidLine}</div>
     <div class="next-bid">Next bid: <b>${fmtINR(block.nextBidAmount)}</b></div>`;
 
   buttons.innerHTML = '';

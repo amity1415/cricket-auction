@@ -177,6 +177,59 @@ public class BiddingService {
         }
     }
 
+    /**
+     * Records a bid amount the auctioneer called out by VOICE before naming the
+     * team ("fifty thousand!" with no team yet). Display only — no DB write and
+     * no feasibility check, because there is no team to check against. It must
+     * clear the base price and beat the current committed bid, the same lower
+     * bounds a manual bid enforces. When a team is finally named the console
+     * places a real bid at this amount via {@link #placeBid}, which then runs
+     * the full acquire-time feasibility check. Returns the accepted amount.
+     */
+    public long setVerbalBid(UUID playerId, long amount) {
+        synchronized (lock) {
+            LiveBidSession session = session();
+            Player player = requirePlayer(playerId);
+            if (player.getStatus() != PlayerStatus.UNDER_AUCTION) {
+                throw AuctionException.conflict("INVALID_STATE",
+                        "%s is not under auction (status: %s) — mark them under auction first"
+                                .formatted(player.getName(), player.getStatus()));
+            }
+            ensureSessionFor(session, playerId);
+            if (amount < player.getBasePrice()) {
+                throw AuctionException.badRequest("BID_TOO_LOW",
+                        "Bid %s is below %s's base price of %s".formatted(
+                                Money.inr(amount), player.getName(), Money.inr(player.getBasePrice())));
+            }
+            LiveBidSession.Step leading = session.last();
+            if (leading != null && amount <= leading.amount()) {
+                throw AuctionException.conflict("BID_TOO_LOW",
+                        "Bid %s must be higher than the current bid of %s".formatted(
+                                Money.inr(amount), Money.inr(leading.amount())));
+            }
+            session.setPendingVerbalAmount(amount);
+            return amount;
+        }
+    }
+
+    /** Cancels a pending voice amount (misrecognition / auctioneer correction). */
+    public void clearVerbalBid(UUID playerId) {
+        synchronized (lock) {
+            LiveBidSession session = session();
+            if (session.isFor(playerId)) {
+                session.setPendingVerbalAmount(null);
+            }
+        }
+    }
+
+    /** The un-attributed voice amount for the on-block player, or null. */
+    public Long pendingVerbalBidAmount(UUID playerId) {
+        synchronized (lock) {
+            LiveBidSession session = session();
+            return session.isFor(playerId) ? session.pendingVerbalAmount() : null;
+        }
+    }
+
     /** Current live price for the player, or null if no bids (or not live). */
     public Long currentBidAmount(UUID playerId) {
         synchronized (lock) {
