@@ -362,6 +362,64 @@
     }));
   }
 
+  // ── low-latency dispatch ──────────────────────────────────────────────────
+  // The browser only emits a FINAL result after ~1–2s of end-of-speech silence,
+  // which is the lag. Interim results stream almost instantly, so we apply BIDS
+  // as soon as the interim text stabilises (STABILIZE_MS unchanged), and keep
+  // TERMINAL commands (sold/unsold/on-block/arm) on the final result only — a
+  // half-heard "sol…" must never sell. A per-segment signature dedupes so the
+  // fast interim and the eventual final don't double-apply the same bid, while a
+  // revision (amount changed, or a team newly named) has a new signature and is
+  // applied. If this proves flaky, delete this block and restore the simple
+  // "act on final only" handler (see git history).
+  const STABILIZE_MS = 500;
+  let curIdx = -1;             // recognition result segment we're tracking
+  let lastFinalIdx = -1;       // segment already finalised (duplicate-final guard)
+  let appliedSigs = new Map(); // segment position -> last-applied amount|team signature
+  let stabilizeTimer = null;
+
+  function commandLike(text) {
+    const t = text.toLowerCase();
+    return /\b(sold|unsold|cancel|clear|reset|scratch)\b/.test(t)
+        || /(stop|start|pause|resume) listening/.test(t)
+        || /\bgo to sleep\b/.test(t) || /\bwake up\b/.test(t)
+        || BRING_RE.test(t);
+  }
+
+  function bidSigAndIntent(seg) {
+    const teamId = parseTeam(seg.text);
+    const scaled = seg.amt.hadBigUnit ? seg.amt.value : scaleToContext(seg.amt.value, referenceAmount());
+    return { sig: scaled + '|' + (teamId || ''), intent: { kind: 'bid', amountRaw: scaled, hadBigUnit: true, teamId } };
+  }
+
+  function applyBidSegments(text) {
+    const segs = amountSegments(text).filter(s => s.amt != null);
+    segs.forEach((seg, i) => {
+      const { sig, intent } = bidSigAndIntent(seg);
+      if (appliedSigs.get(i) !== sig) { appliedSigs.set(i, sig); enqueue(intent); }
+    });
+    return segs.length;
+  }
+
+  function runInterim(text, idx) {
+    if (idx !== curIdx || idx === lastFinalIdx || !armed) return;
+    if (commandLike(text)) return;          // commands wait for the final result
+    applyBidSegments(text);                 // fast: apply/refresh amounts as they stabilise
+  }
+
+  function runFinal(text) {
+    const t = text.toLowerCase();
+    // Arm/pause work even while paused, so voice can re-arm.
+    if (/\b(stop|pause) listening\b/.test(t) || /\bgo to sleep\b/.test(t)) { setArmed(false); return; }
+    if (/\b(start|resume) listening\b/.test(t) || /\bwake up\b/.test(t))   { setArmed(true); return; }
+    if (!armed) return;
+    if (commandLike(text)) { for (const it of classifyToIntents(text)) enqueue(it); return; }
+    if (applyBidSegments(text) === 0) {     // no amount → maybe a team-only phrase
+      const teamId = parseTeam(text);
+      if (teamId) enqueue({ kind: 'bid', amountRaw: null, hadBigUnit: false, teamId });
+    }
+  }
+
   // ── Web Speech API wiring ─────────────────────────────────────────────────
   let micOn = false;   // recognition running (needs a click to start — gesture)
   let armed = false;   // acting on speech (voice can pause/resume without a click)
@@ -371,23 +429,24 @@
   rec.interimResults = true;
 
   rec.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const res = e.results[i];
-      if (res.isFinal) {
-        const text = res[0].transcript.trim();
-        el.heard.textContent = '“' + text + '”';
-        const t = text.toLowerCase();
-        // Arm/pause commands work even while paused (so voice can re-arm).
-        if (/\b(stop|pause) listening\b/.test(t) || /\bgo to sleep\b/.test(t)) { setArmed(false); continue; }
-        if (/\b(start|resume) listening\b/.test(t) || /\bwake up\b/.test(t))   { setArmed(true); continue; }
-        if (!armed) continue;                 // paused: ignore bids/commands
-        for (const intent of classifyToIntents(text)) enqueue(intent);
-      } else {
-        interim += res[0].transcript;
-      }
+    const results = e.results;
+    const idx = results.length - 1;
+    if (idx < 0) return;
+    const res = results[idx];
+    const text = res[0].transcript.trim();
+    const isFinal = res.isFinal;
+    el.heard.textContent = '“' + text + (isFinal ? '”' : '”…');
+
+    if (idx !== curIdx) { curIdx = idx; appliedSigs = new Map(); clearTimeout(stabilizeTimer); }
+    if (isFinal) {
+      if (idx === lastFinalIdx) return;     // this segment was already finalised
+      lastFinalIdx = idx;
+      clearTimeout(stabilizeTimer);
+      runFinal(text);
+    } else {
+      clearTimeout(stabilizeTimer);
+      stabilizeTimer = setTimeout(() => runInterim(text, idx), STABILIZE_MS);
     }
-    if (interim) el.heard.textContent = '“' + interim.trim() + '”…';
   };
 
   rec.onerror = (e) => {
