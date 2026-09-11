@@ -75,6 +75,38 @@
   // "Big" scale words — their presence means the amount is EXPLICIT (no scaling).
   const MAG = { thousand: 1e3, k: 1e3, lakh: 1e5, lac: 1e5, lakhs: 1e5, crore: 1e7, cr: 1e7, crores: 1e7 };
 
+  // Highest amount we treat as a real bid; anything larger is a mis-transcription.
+  const MAX_PLAUSIBLE = 1e9;   // ₹100 crore — far above any auction purse
+
+  /**
+   * Chrome (en-IN) sometimes returns a compound spoken amount as ONE concatenated
+   * digit string — "one lakh fifty thousand" → "10000050000" (i.e. "100000" then
+   * "50000"), which naively reads as ₹10,00,00,50,000. Any bare integer with >= 10
+   * digits is implausible for an auction bid, so we treat it as such a concatenation
+   * and split it back into descending Indian denominations, summing the pieces:
+   * "10000050000" → 100000 + 50000 = 150000. If it can't be split cleanly it's left
+   * as-is and the MAX_PLAUSIBLE guard later rejects it.
+   */
+  function decomposeConcat(s) {
+    const n = Number(s);
+    if (!/^\d+$/.test(s) || s.length < 10) return n;
+    for (let cut = 1; cut < s.length; cut++) {
+      const right = s.slice(cut);
+      if (right[0] === '0') continue;                  // right part can't start with 0
+      const lv = Number(s.slice(0, cut));
+      if (lv % 100000 === 0 || lv % 10000000 === 0) {  // a clean lakh/crore leading chunk
+        const rv = decomposeConcat(right);
+        if (rv < lv) return lv + rv;                   // strictly-descending denominations
+      }
+    }
+    return n;   // no clean split — leave as-is
+  }
+
+  /** parseFloat, but decompose an implausibly long concatenated integer first. */
+  function numToken(w) {
+    return (/^\d+$/.test(w) && w.length >= 10) ? decomposeConcat(w) : parseFloat(w);
+  }
+
   /**
    * Parse a spoken amount. Returns { value, hadBigUnit } in whole rupees, or
    * null if no number is present. hadBigUnit is true when a thousand/lakh/crore
@@ -87,7 +119,7 @@
     let total = 0, current = 0, found = false, hadBigUnit = false;
     for (const w of words) {
       if (w === '') continue;
-      if (/^\d+(\.\d+)?$/.test(w)) { current += parseFloat(w); found = true; continue; }
+      if (/^\d+(\.\d+)?$/.test(w)) { current += numToken(w); found = true; continue; }
       if (SMALL[w] != null) { current += SMALL[w]; found = true; continue; }
       if (w === 'hundred' || w === 'hundreds') { current = (current || 1) * 100; found = true; continue; }
       if (MAG[w] != null) { current = (current || 1) * MAG[w]; total += current; current = 0; found = true; hadBigUnit = true; continue; }
@@ -98,7 +130,7 @@
 
   /** Numeric value of a single token ("220" or "fifty"), or null if not a number. */
   function tokenNumber(w) {
-    if (/^\d+(\.\d+)?$/.test(w)) return parseFloat(w);
+    if (/^\d+(\.\d+)?$/.test(w)) return numToken(w);
     return SMALL[w] != null ? SMALL[w] : null;
   }
 
@@ -302,6 +334,7 @@
     if (it.kind === 'sold') {
       const amount = it.amountRaw == null ? null
           : (it.hadBigUnit ? it.amountRaw : scaleToContext(it.amountRaw, referenceAmount()));
+      if (amount != null && amount > MAX_PLAUSIBLE) { toast('Didn’t catch the amount — please repeat', true); return; }
       await doSold(block, it.teamId, amount);
       return;
     }
@@ -309,6 +342,7 @@
     // kind === 'bid': scale the amount now, against the freshest reference.
     const amount = it.amountRaw == null ? null
         : (it.hadBigUnit ? it.amountRaw : scaleToContext(it.amountRaw, referenceAmount()));
+    if (amount != null && amount > MAX_PLAUSIBLE) { toast('Didn’t catch the amount — please repeat', true); return; }
     const effTeam = it.teamId || state.pendingTeamId;
     const effAmount = amount != null ? amount
         : (state.pendingAmount != null ? state.pendingAmount : block.pendingBidAmount);
