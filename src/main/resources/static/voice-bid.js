@@ -74,6 +74,10 @@
   };
   // "Big" scale words — their presence means the amount is EXPLICIT (no scaling).
   const MAG = { thousand: 1e3, k: 1e3, lakh: 1e5, lac: 1e5, lakhs: 1e5, crore: 1e7, cr: 1e7, crores: 1e7 };
+  // Words that mark a RESTATEMENT of the same amount ("950 or 9 lakh 50"), not two
+  // separate bids — used to boundary-split, then keep just one amount (see below).
+  const RESTATE_WORDS = new Set(['or', 'sorry', 'rather', 'correction', 'actually', 'meaning']);
+  const RESTATE_RE = /\b(or|sorry|rather|correction|actually|meaning)\b/;
 
   // Highest amount we treat as a real bid; anything larger is a mis-transcription.
   const MAX_PLAUSIBLE = 1e9;   // ₹100 crore — far above any auction purse
@@ -116,13 +120,21 @@
    */
   function parseAmount(text) {
     const words = text.toLowerCase().replace(/,/g, '').replace(/[-]/g, ' ').split(/\s+/);
-    let total = 0, current = 0, found = false, hadBigUnit = false;
+    let total = 0, current = 0, found = false, hadBigUnit = false, lastBig = 0;
     for (const w of words) {
       if (w === '') continue;
       if (/^\d+(\.\d+)?$/.test(w)) { current += numToken(w); found = true; continue; }
       if (SMALL[w] != null) { current += SMALL[w]; found = true; continue; }
       if (w === 'hundred' || w === 'hundreds') { current = (current || 1) * 100; found = true; continue; }
-      if (MAG[w] != null) { current = (current || 1) * MAG[w]; total += current; current = 0; found = true; hadBigUnit = true; continue; }
+      if (MAG[w] != null) { current = (current || 1) * MAG[w]; total += current; current = 0; found = true; hadBigUnit = true; lastBig = MAG[w]; continue; }
+    }
+    // A trailing bare tens/units after lakh/crore is the NEXT-LOWER unit, as in
+    // Indian auction speak: "nine lakh fifty" = 9.5L (50→50 thousand), "nine crore
+    // fifty" = 9.5cr (50→50 lakh). "…lakh fifty thousand" is unaffected (the 50 was
+    // already consumed by "thousand", leaving no trailing value here).
+    if (current > 0 && current < 100) {
+      if (lastBig === 1e5) current *= 1000;
+      else if (lastBig === 1e7) current *= 1e5;
     }
     total += current;
     return found ? { value: Math.round(total), hadBigUnit } : null;
@@ -178,12 +190,29 @@
           cur = tail; scaleMin = null; trailStart = 0;
         }
         cur.push(w); scaleMin = scaleMin == null ? M : Math.min(scaleMin, M); lastMag = M; sealed = true;
+      } else if (RESTATE_WORDS.has(w)) {
+        flush();       // "or"/"sorry"/… ends the current amount (a restatement follows)
       } else {
         cur.push(w);   // connector / team word: keep, but don't split or move magnitude
       }
     }
     flush();
     return groups.map(g => ({ amt: parseAmount(g), text: g }));
+  }
+
+  /**
+   * Amount segments to actually bid on. Normally each spoken amount is its own
+   * bid, BUT when the phrase restates one amount ("950 or 9 lakh 50") we keep a
+   * SINGLE amount — the explicit-unit one if present (least ambiguous), else the
+   * last — so a clarification doesn't fire two bids.
+   */
+  function bidSegmentsFor(text) {
+    const segs = amountSegments(text).filter(s => s.amt != null);
+    if (segs.length > 1 && RESTATE_RE.test(text)) {
+      const explicit = segs.filter(s => s.amt.hadBigUnit);
+      return [explicit.length ? explicit[explicit.length - 1] : segs[segs.length - 1]];
+    }
+    return segs;
   }
 
   const digitCount = n => String(Math.max(1, Math.round(Math.abs(n)))).length;
@@ -203,12 +232,42 @@
   // ── team matching ─────────────────────────────────────────────────────────
   const lettersOnly = s => String(s || '').toLowerCase().replace(/[^a-z\s]/g, ' ');
 
+  /** Levenshtein edit distance (small strings). */
+  function editDistance(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n; if (!n) return m;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      const cur = [i];
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  /** Score how well a spoken word matches a team keyword; 0 = no match. Exact wins;
+   *  otherwise a near-miss within 1-2 edits (mis-hears like "maverics" ~ "mavericks"). */
+  function fuzzyWordScore(spoken, key) {
+    if (spoken === key) return key.length + 100;
+    const maxD = key.length <= 5 ? 1 : 2;
+    if (Math.abs(spoken.length - key.length) <= maxD && editDistance(spoken, key) <= maxD) return key.length;
+    return 0;
+  }
+
+  /** Find the team the auctioneer named, tolerant of mis-hears and surrounding
+   *  words ("currently the bid is with Maverics" → Mavericks). Longest keyword wins. */
   function parseTeam(text) {
-    const said = ' ' + lettersOnly(text) + ' ';
+    const spokenWords = lettersOnly(text).split(/\s+/).filter(w => w.length >= 4);
     let best = null, bestScore = 0;
     for (const t of (typeof lastTeams !== 'undefined' ? lastTeams : [])) {
-      for (const w of lettersOnly(t.name).split(/\s+/).filter(w => w.length >= 3)) {
-        if (said.includes(' ' + w + ' ') && w.length > bestScore) { bestScore = w.length; best = t.teamId; }
+      for (const key of lettersOnly(t.name).split(/\s+/).filter(w => w.length >= 4)) {
+        for (const sw of spokenWords) {
+          const sc = fuzzyWordScore(sw, key);
+          if (sc > bestScore) { bestScore = sc; best = t.teamId; }
+        }
       }
     }
     return best;
@@ -406,7 +465,7 @@
   // revision (amount changed, or a team newly named) has a new signature and is
   // applied. If this proves flaky, delete this block and restore the simple
   // "act on final only" handler (see git history).
-  const STABILIZE_MS = 500;
+  const STABILIZE_MS = 850;   // let a full spoken phrase settle before acting
   let curIdx = -1;             // recognition result segment we're tracking
   let lastFinalIdx = -1;       // segment already finalised (duplicate-final guard)
   let appliedSigs = new Map(); // segment position -> last-applied amount|team signature
@@ -427,7 +486,7 @@
   }
 
   function applyBidSegments(text) {
-    const segs = amountSegments(text).filter(s => s.amt != null);
+    const segs = bidSegmentsFor(text);
     segs.forEach((seg, i) => {
       const { sig, intent } = bidSigAndIntent(seg);
       if (appliedSigs.get(i) !== sig) { appliedSigs.set(i, sig); enqueue(intent); }
