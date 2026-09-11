@@ -2179,6 +2179,19 @@ table.pool tbody tr:hover {
 @keyframes vb-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(229,72,77,.35);} 50% { box-shadow: 0 0 0 6px rgba(229,72,77,0);} }
 .vb-status { font-size: 13px; }
 .vb-heard { font-size: 13px; color: var(--muted, #667085); font-style: italic; }
+.voice-help {
+  margin: 4px 0 2px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--panel, #f8fafc);
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 8px;
+  color: var(--muted, #475569);
+}
+.voice-help b { color: inherit; }
+.voice-help ul { margin: 4px 0 0; padding-left: 18px; }
+.voice-help li { margin: 2px 0; }
 
 /* Pending (voice amount, no team yet) — console "On the Block" line */
 .bid-line .amount.pending { color: #b54708; }

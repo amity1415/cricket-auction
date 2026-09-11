@@ -38,6 +38,17 @@
         <span id="vb-status" class="vb-status muted">Voice off</span>
         <span id="vb-heard" class="vb-heard"></span>
       </div>
+      <!-- On-screen reference of what the auctioneer can say (revealed by voice-bid.js). -->
+      <div id="voice-help" class="voice-help" style="display:none">
+        <b>🎙 Voice commands</b>
+        <ul>
+          <li><b>On the block:</b> “next player &lt;name&gt;”, “bring up &lt;name&gt;”, “nominate &lt;name&gt;”, “call up &lt;name&gt;”</li>
+          <li><b>Bid:</b> “seventy five”, “two twenty” · rapid “220 240 260” · with team “… Warriors”</li>
+          <li><b>Sell:</b> “SOLD to &lt;team&gt; at &lt;amount&gt;”</li>
+          <li><b>Unsold:</b> “UNSOLD”</li>
+          <li><b>Control:</b> “stop listening” / “start listening” · “cancel”</li>
+        </ul>
+      </div>
       <div id="custom-bid" class="custom-bid" style="display:none">
         <span class="cb-label">✍️ Manual bid</span>
         <input id="cb-amount" type="number" min="1" placeholder="Amount (₹)" autocomplete="off">
@@ -130,6 +141,6 @@
 <script src="profile-modal.js?v=15"></script>
 <script src="team-logo.js?v=2"></script>
 <script src="app.js?v=47"></script>
-<script src="voice-bid.js?v=3"></script>
+<script src="voice-bid.js?v=4"></script>
 </body>
 </html>

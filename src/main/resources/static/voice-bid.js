@@ -48,17 +48,21 @@
     toggle: document.getElementById('vb-toggle'),
     status: document.getElementById('vb-status'),
     heard:  document.getElementById('vb-heard'),
+    help:   document.getElementById('voice-help'),
   };
   if (!el.wrap || !el.toggle) return;
+  const showHelp = () => { if (el.help) el.help.style.display = 'block'; };
 
   if (!SR) {
     el.wrap.style.display = 'flex';
     el.toggle.disabled = true;
     el.toggle.textContent = '🎙 Voice N/A';
     el.status.textContent = 'Use Chrome or Edge for voice bidding';
+    showHelp();
     return;
   }
   el.wrap.style.display = 'flex';
+  showHelp();
 
   // ── number parsing ───────────────────────────────────────────────────────
   const SMALL = {
@@ -178,6 +182,26 @@
     return best;
   }
 
+  // Keywords that put a player on the block, e.g. "next player Virat Kohli".
+  const BRING_RE = /\b(next player|next up|up next|bring up|bring in|bring on|call up|put up|on the block|nominate)\b/;
+
+  /**
+   * Match a spoken name to an AVAILABLE player in the pool (best keyword overlap).
+   * Returns { playerId, name } or null. Only AVAILABLE players can be put on the
+   * block, so SOLD/UNSOLD ones are skipped.
+   */
+  function parsePlayer(text) {
+    const said = ' ' + lettersOnly(text) + ' ';
+    let best = null, bestName = null, bestScore = 0;
+    for (const p of (typeof lastPlayers !== 'undefined' ? lastPlayers : [])) {
+      if (p.status && p.status !== 'AVAILABLE') continue;
+      for (const w of lettersOnly(p.name).split(/\s+/).filter(w => w.length >= 3)) {
+        if (said.includes(' ' + w + ' ') && w.length > bestScore) { bestScore = w.length; best = p.playerId; bestName = p.name; }
+      }
+    }
+    return best ? { playerId: best, name: bestName } : null;
+  }
+
   // ── shared helpers ────────────────────────────────────────────────────────
   const currentBlock = () => (typeof lastBlock !== 'undefined') ? lastBlock : null;
 
@@ -209,6 +233,7 @@
       toast(`🎙 Bid #${r.bidNumber}: ${r.currentLeadingTeamName} → ${fmtINR(r.currentBidAmount)}`);
       refresh();
     }
+    return r;   // null on failure (post already toasted) — callers gate the sale on this
   }
   async function setVerbalBid(playerId, amount) {
     const r = await post(`/api/admin/players/${playerId}/verbal-bid`, { amount });
@@ -230,7 +255,24 @@
   }
   async function unsold(playerId) {
     const r = await post(`/api/admin/players/${playerId}/mark-unsold`);
-    if (r) { resetPending(); state.runningAmount = null; toast(`🚫 Unsold: ${r.name || ''}`); refresh(); }
+    if (r) { resetPending(); state.runningAmount = null; toast(`🚫 UNSOLD: ${r.name || ''}`); refresh(); }
+  }
+  async function bringOnBlock(playerId, spokenName) {
+    if (!playerId) { toast(`Couldn't find an available player matching “${spokenName}”`, true); return; }
+    const r = await post(`/api/admin/players/${playerId}/mark-under-auction`);
+    if (r) { resetPending(); state.runningAmount = null; toast(`🎯 On the block: ${r.name || ''}`); refresh(); }
+  }
+  /**
+   * "SOLD to <team> at <amount>": make that team the winning bid, then sell.
+   * If the team already leads, just confirm (a team can't outbid itself); if the
+   * bid can't be placed (e.g. purse), post() toasts and we do NOT sell.
+   */
+  async function doSold(block, teamId, amount) {
+    if (teamId && block.currentLeadingTeamId !== teamId) {
+      const r = await placeBid(block.playerId, teamId, amount);   // amount may be null → server increment
+      if (!r) return;
+    }
+    await sell(block.playerId);
   }
 
   // ── async queue (the rapid-bid buffer) ────────────────────────────────────
@@ -248,13 +290,21 @@
   }
 
   async function handleIntent(it) {
+    // "On the block" SETS the current player, so it runs even when none is live.
+    if (it.kind === 'onblock') { await bringOnBlock(it.playerId, it.playerName); return; }
+
     const block = currentBlock();
-    if (!block) { toast('No player is under auction — put one on the block first', true); return; }
+    if (!block) { toast('No player is under auction — say “next player <name>” to put one up', true); return; }
     syncPlayer(block);
 
     if (it.kind === 'clear')  { await clearVerbal(block.playerId); return; }
-    if (it.kind === 'sold')   { await sell(block.playerId); return; }
     if (it.kind === 'unsold') { await unsold(block.playerId); return; }
+    if (it.kind === 'sold') {
+      const amount = it.amountRaw == null ? null
+          : (it.hadBigUnit ? it.amountRaw : scaleToContext(it.amountRaw, referenceAmount()));
+      await doSold(block, it.teamId, amount);
+      return;
+    }
 
     // kind === 'bid': scale the amount now, against the freshest reference.
     const amount = it.amountRaw == null ? null
@@ -283,9 +333,19 @@
   // the queue and apply one by one instead of being summed.
   function classifyToIntents(text) {
     const t = text.toLowerCase();
-    // Order matters: "unsold" contains "sold", so test unsold first.
-    if (/\bunsold\b/.test(t) && /\bconfirm\b/.test(t)) return [{ kind: 'unsold' }];
-    if (/\bsold\b/.test(t)   && /\bconfirm\b/.test(t)) return [{ kind: 'sold' }];
+    // Order matters: "unsold" contains "sold", so test unsold first. \bsold\b does
+    // NOT match inside "unsold" (no word boundary), so the two never collide.
+    if (/\bunsold\b/.test(t)) return [{ kind: 'unsold' }];                       // "UNSOLD"
+    if (/\bsold\b/.test(t)) {                                                     // "SOLD to <team> at <amount>"
+      const amt = parseAmount(text);
+      return [{ kind: 'sold', teamId: parseTeam(text),
+                amountRaw: amt ? amt.value : null, hadBigUnit: amt ? amt.hadBigUnit : false }];
+    }
+    if (BRING_RE.test(t)) {                                                       // "next player <name>", etc.
+      const name = text.replace(BRING_RE, ' ').trim();
+      const p = parsePlayer(name);
+      return [{ kind: 'onblock', playerId: p ? p.playerId : null, playerName: name }];
+    }
     if (/\b(cancel|clear|reset|scratch)\b/.test(t))    return [{ kind: 'clear' }];
 
     const amtSegs = amountSegments(text).filter(s => s.amt != null);
@@ -351,7 +411,7 @@
       el.heard.textContent = '';
     } else if (armed) {
       el.toggle.textContent = '🔴 Stop';
-      el.status.textContent = 'Listening — amount and/or team; say “sold confirm” to sell';
+      el.status.textContent = 'Listening — say a bid or a command (see list)';
       el.status.classList.remove('muted');
     } else {
       el.toggle.textContent = '⏸ Paused';
