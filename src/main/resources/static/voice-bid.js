@@ -92,6 +92,64 @@
     return found ? { value: Math.round(total), hadBigUnit } : null;
   }
 
+  /** Numeric value of a single token ("220" or "fifty"), or null if not a number. */
+  function tokenNumber(w) {
+    if (/^\d+(\.\d+)?$/.test(w)) return parseFloat(w);
+    return SMALL[w] != null ? SMALL[w] : null;
+  }
+
+  /**
+   * Split an utterance into SEPARATE spoken amounts. The auctioneer often
+   * rattles off several bids in one breath ("220 240 260" or "220 and 240").
+   * parseAmount would SUM those into one wrong number, so we first segment.
+   *
+   * The rule: a new amount starts when a number token does NOT continue the
+   * current one in place-value terms. A token continues only if it is strictly
+   * SMALLER than the running magnitude (a lower-order term, e.g. the "fifty" in
+   * "…lakh fifty thousand", or the unit in "twenty five"); anything equal or
+   * larger ("240" after "220", "eighty" after "seventy five") begins a new
+   * amount. Scale words (hundred/thousand/lakh/crore) set the running magnitude
+   * so their following lower-order terms stay attached. Connector/team words
+   * ("and", "Warriors") don't split and don't move the magnitude — so
+   * "two hundred and fifty" stays 250 while "220 and 240" splits into 220, 240.
+   *
+   * Returns segments [{ amt: {value,hadBigUnit}|null, text }] in spoken order.
+   */
+  function amountSegments(text) {
+    const words = text.toLowerCase().replace(/,/g, '').replace(/[-]/g, ' ').split(/\s+/).filter(Boolean);
+    const groups = [];
+    let cur = [], lastMag = null, scaleMin = null, trailStart = 0, sealed = false;
+    const flush = () => {
+      if (cur.length) groups.push(cur.join(' '));
+      cur = []; lastMag = null; scaleMin = null; trailStart = 0; sealed = false;
+    };
+    for (const w of words) {
+      const n = tokenNumber(w);
+      if (n != null) {
+        if (cur.length && lastMag != null && !(n < lastMag)) flush();  // e.g. "240" after "220"
+        if (sealed) { trailStart = cur.length; sealed = false; }       // start of a fresh sub-number after a scale word
+        cur.push(w); lastMag = n;
+      } else if (w === 'hundred' || w === 'hundreds') {
+        cur.push(w); lastMag = 100;                                    // "hundred" is not a big unit; keep it in the number
+      } else if (MAG[w] != null) {
+        const M = MAG[w];
+        // A repeated or ascending big unit ("thousand … thousand", "thousand … lakh")
+        // can't be a lower-order continuation → the trailing number is a NEW amount.
+        if (scaleMin != null && M >= scaleMin) {
+          const completed = cur.slice(0, trailStart);
+          const tail = cur.slice(trailStart);
+          if (completed.length) groups.push(completed.join(' '));
+          cur = tail; scaleMin = null; trailStart = 0;
+        }
+        cur.push(w); scaleMin = scaleMin == null ? M : Math.min(scaleMin, M); lastMag = M; sealed = true;
+      } else {
+        cur.push(w);   // connector / team word: keep, but don't split or move magnitude
+      }
+    }
+    flush();
+    return groups.map(g => ({ amt: parseAmount(g), text: g }));
+  }
+
   const digitCount = n => String(Math.max(1, Math.round(Math.abs(n)))).length;
 
   /**
@@ -219,17 +277,29 @@
     }
   }
 
-  // ── classify one utterance into an intent (or a control command) ──────────
-  function classify(text) {
+  // ── classify one utterance into ordered intents (or a control command) ────
+  // Returns an ARRAY: control commands yield one intent; a phrase with several
+  // amounts ("220 240") yields one bid intent PER amount, so they stream into
+  // the queue and apply one by one instead of being summed.
+  function classifyToIntents(text) {
     const t = text.toLowerCase();
     // Order matters: "unsold" contains "sold", so test unsold first.
-    if (/\bunsold\b/.test(t) && /\bconfirm\b/.test(t)) return { kind: 'unsold' };
-    if (/\bsold\b/.test(t)   && /\bconfirm\b/.test(t)) return { kind: 'sold' };
-    if (/\b(cancel|clear|reset|scratch)\b/.test(t))    return { kind: 'clear' };
-    const amt = parseAmount(text);
-    const teamId = parseTeam(text);
-    if (amt == null && teamId == null) return null;
-    return { kind: 'bid', amountRaw: amt ? amt.value : null, hadBigUnit: amt ? amt.hadBigUnit : false, teamId };
+    if (/\bunsold\b/.test(t) && /\bconfirm\b/.test(t)) return [{ kind: 'unsold' }];
+    if (/\bsold\b/.test(t)   && /\bconfirm\b/.test(t)) return [{ kind: 'sold' }];
+    if (/\b(cancel|clear|reset|scratch)\b/.test(t))    return [{ kind: 'clear' }];
+
+    const amtSegs = amountSegments(text).filter(s => s.amt != null);
+    if (amtSegs.length <= 1) {
+      // Zero or one amount: keep the whole-utterance team (e.g. "seventy five Warriors").
+      const amt = amtSegs.length ? amtSegs[0].amt : null;
+      const teamId = parseTeam(text);
+      if (amt == null && teamId == null) return [];
+      return [{ kind: 'bid', amountRaw: amt ? amt.value : null, hadBigUnit: amt ? amt.hadBigUnit : false, teamId }];
+    }
+    // Multiple amounts: one bid each, with any team named within that segment.
+    return amtSegs.map(s => ({
+      kind: 'bid', amountRaw: s.amt.value, hadBigUnit: s.amt.hadBigUnit, teamId: parseTeam(s.text),
+    }));
   }
 
   // ── Web Speech API wiring ─────────────────────────────────────────────────
@@ -252,8 +322,7 @@
         if (/\b(stop|pause) listening\b/.test(t) || /\bgo to sleep\b/.test(t)) { setArmed(false); continue; }
         if (/\b(start|resume) listening\b/.test(t) || /\bwake up\b/.test(t))   { setArmed(true); continue; }
         if (!armed) continue;                 // paused: ignore bids/commands
-        const intent = classify(text);
-        if (intent) enqueue(intent);
+        for (const intent of classifyToIntents(text)) enqueue(intent);
       } else {
         interim += res[0].transcript;
       }
