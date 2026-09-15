@@ -54,11 +54,9 @@ async function placeBid(amount) {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       toast(body.message || 'Bid not accepted', 'err');
-    } else if (body.youLead) {
-      toast('You lead at ' + fmtINR(body.amount) + ' 🎉', 'ok');
-      els.custom.value = '';
     } else {
-      toast('Bid placed at ' + fmtINR(body.amount), 'ok');
+      // Neutral confirmation — the status line does the real talking.
+      toast('Bid placed — ' + fmtINR(body.amount));
       els.custom.value = '';
     }
   } catch (e) {
@@ -127,7 +125,7 @@ function render(state) {
     els.leader.textContent = 'No bids yet';
     els.leader.className = 'leader';
   } else if (state.youLead) {
-    els.leader.innerHTML = '<span class="badge-lead">You lead</span>';
+    els.leader.textContent = "You're the highest bidder";
     els.leader.className = 'leader you';
   } else {
     els.leader.textContent = 'Leading: ' + (state.leadingTeamName || '—');
