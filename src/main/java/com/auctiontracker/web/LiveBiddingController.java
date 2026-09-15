@@ -8,6 +8,7 @@ import com.auctiontracker.core.CoreService;
 import com.auctiontracker.core.Player;
 import com.auctiontracker.core.Team;
 import com.auctiontracker.tournament.RuleBook;
+import com.auctiontracker.tournament.TournamentContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -83,6 +84,11 @@ public class LiveBiddingController {
                              Authentication authentication) {
         AuthPrincipal principal = principal(authentication);
         UUID teamId = requireOwnerTeam(principal);
+        // Scope this whole request to the OWNER'S own tournament (not the global
+        // default), so an owner always bids in their auction. The request filter
+        // clears the context afterwards.
+        UUID tournamentId = requireOwnerTournament(principal);
+        TournamentContext.set(tournamentId);
 
         AuctionProperties rules = ruleBook.current();
         if (rules == null || !rules.onlineBiddingEnabled()) {
@@ -93,12 +99,11 @@ public class LiveBiddingController {
         if (playerId == null) {
             throw AuctionException.conflict("NO_BLOCK", "No player is on the block right now.");
         }
-        // Scope guard: the owner's team must belong to the auction that is live.
+        // Sanity: the owner's team belongs to their tournament (scoped lookup).
         Team team = core.getTeam(teamId);
-        UUID activeId = ruleBook.activeTournamentId();
-        if (activeId == null || !activeId.equals(team.getTournamentId())) {
+        if (!tournamentId.equals(team.getTournamentId())) {
             throw AuctionException.conflict("WRONG_AUCTION",
-                    "Your team isn't part of the auction that is currently live.");
+                    "Your team isn't part of your auction.");
         }
 
         Long amount = request == null ? null : request.amount();
@@ -119,6 +124,10 @@ public class LiveBiddingController {
     public LiveStateView state(Authentication authentication) {
         AuthPrincipal principal = principal(authentication);
         UUID teamId = principal.teamId();   // null for admins peeking; then youLead/purse stay null
+        // An owner sees THEIR tournament's live auction, whatever the global default is.
+        if (principal.tournamentId() != null) {
+            TournamentContext.set(principal.tournamentId());
+        }
         AuctionProperties rules = ruleBook.current();
         boolean online = rules != null && rules.onlineBiddingEnabled();
 
@@ -176,5 +185,14 @@ public class LiveBiddingController {
                     "Only a franchise owner account can place a live bid — use the auctioneer console.");
         }
         return teamId;
+    }
+
+    private UUID requireOwnerTournament(AuthPrincipal principal) {
+        UUID tournamentId = principal.tournamentId();
+        if (tournamentId == null) {
+            throw AuctionException.conflict("NO_TOURNAMENT",
+                    "Your account isn't linked to an auction — ask the organizer to fix it.");
+        }
+        return tournamentId;
     }
 }

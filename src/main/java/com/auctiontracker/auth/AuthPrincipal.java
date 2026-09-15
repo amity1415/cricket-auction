@@ -22,27 +22,30 @@ public class AuthPrincipal implements UserDetails {
     private final String displayName;
     private final Role role;
     private final UUID teamId;      // null for the admin / tournament admins
+    private final UUID tournamentId;  // the auction a franchise owner belongs to (null otherwise)
     private final Set<UUID> adminTournamentIds;  // auctions a tournament-admin may run
 
     public AuthPrincipal(UUID userId, String username, String passwordHash,
-                         String displayName, Role role, UUID teamId, Set<UUID> adminTournamentIds) {
+                         String displayName, Role role, UUID teamId, UUID tournamentId,
+                         Set<UUID> adminTournamentIds) {
         this.userId = userId;
         this.username = username;
         this.passwordHash = passwordHash;
         this.displayName = displayName;
         this.role = role;
         this.teamId = teamId;
+        this.tournamentId = tournamentId;
         this.adminTournamentIds = adminTournamentIds == null ? Set.of() : Set.copyOf(adminTournamentIds);
     }
 
     static AuthPrincipal admin(String username, String passwordHash) {
-        return new AuthPrincipal(null, username, passwordHash, "Administrator", Role.ADMIN, null, Set.of());
+        return new AuthPrincipal(null, username, passwordHash, "Administrator", Role.ADMIN, null, null, Set.of());
     }
 
     static AuthPrincipal of(UserAccount account) {
         return new AuthPrincipal(account.getId(), account.getUsername(), account.getPasswordHash(),
                 account.getDisplayName(), account.getRole(), account.getTeamId(),
-                account.getAdminTournamentIds());
+                account.getTournamentId(), account.getAdminTournamentIds());
     }
 
     /** The app admin runs every auction; a tournament admin only its granted ones. */
@@ -70,6 +73,11 @@ public class AuthPrincipal implements UserDetails {
 
     public UUID teamId() {
         return teamId;
+    }
+
+    /** The tournament a franchise owner belongs to (null for admins). */
+    public UUID tournamentId() {
+        return tournamentId;
     }
 
     @Override

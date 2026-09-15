@@ -52,7 +52,9 @@ class BidTimerServiceTest {
                 new IncrementRuleEngine(ruleBook), feasibility, lock, ruleBook, store);
         SaleService sale = new SaleService(players, teams, new InMemorySaleRepository(),
                 feasibility, lock, ruleBook, bidding);
-        bidTimer = new BidTimerService(store, sale, ruleBook);
+        // No TournamentRepository in the unit test — the sweep falls back to the
+        // id-less (default) session, which is where markUnderAuction opens the lot.
+        bidTimer = new BidTimerService(store, sale, null);
     }
 
     private Team saveTeam(String name) {
