@@ -19,6 +19,23 @@
   function menuFor(role, me, inTournament) {
     const items = [{ href: 'auctions.html', label: '🏆 Auctions' }];
 
+    // A franchise owner belongs to ONE auction (me.tournamentId), so their menu is
+    // always available — even on the Live Bidding screen, which carries no auction
+    // id in its URL. Stamp their auction id onto the scoped links so navigating
+    // from live.html to the team/broadcast screens doesn't bounce to the hub.
+    if (role === 'FRANCHISE_OWNER' && me && me.tournamentId) {
+      const q = 'tournamentId=' + me.tournamentId;
+      items.push(
+        { href: 'live.html', label: '🔨 Live bidding' },
+        { href: me.teamId ? 'team.html?teamId=' + me.teamId + '&' + q : 'team.html?' + q,
+          label: '⭐ My team' },
+        { href: 'players.html?' + q, label: '📊 Players & analysis' },
+        { href: 'team.html?' + q, label: '👥 Browse teams' },
+        { href: 'broadcast.html?' + q, label: '📺 Live broadcast' },
+      );
+      return items;
+    }
+
     if (inTournament) {
       items.push({ href: 'players.html', label: '📊 Players & analysis' });
       if (role === 'ADMIN' || role === 'TOURNAMENT_ADMIN') {
@@ -31,6 +48,7 @@
         );
       } else if (role === 'FRANCHISE_OWNER') {
         items.push(
+          { href: 'live.html', label: '🔨 Live bidding' },
           { href: me && me.teamId ? 'team.html?teamId=' + me.teamId : 'team.html', label: '⭐ My team' },
           { href: 'team.html', label: '👥 Browse teams' },
           { href: 'broadcast.html', label: '📺 Live broadcast' },
