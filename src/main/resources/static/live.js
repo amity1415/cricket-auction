@@ -55,8 +55,8 @@ async function placeBid(amount) {
     if (!res.ok) {
       toast(body.message || 'Bid not accepted', 'err');
     } else {
-      // Neutral confirmation — the status line does the real talking.
-      toast('Bid placed — ' + fmtINR(body.amount));
+      // No success popup — the status line (amount + "You're the highest bidder")
+      // updates on the next poll, which is confirmation enough.
       els.custom.value = '';
     }
   } catch (e) {
