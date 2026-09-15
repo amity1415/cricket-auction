@@ -193,6 +193,23 @@ public class InMemoryLiveBidStore implements LiveBidStore {
     }
 
     @Override
+    public Snapshot snapshot(UUID tournamentId, UUID playerId) {
+        synchronized (lock) {
+            LiveBidSession s = session(tournamentId);
+            if (!s.isFor(playerId)) {
+                return new Snapshot(false, null, null, 0, null, null);
+            }
+            LiveBidSession.Step last = s.last();
+            return new Snapshot(true,
+                    last == null ? null : last.amount(),
+                    last == null ? null : last.teamId(),
+                    s.count(),
+                    s.pendingVerbalAmount(),
+                    deadlines.get(key(tournamentId)));
+        }
+    }
+
+    @Override
     public Optional<UUID> claimExpiredClose(UUID tournamentId) {
         synchronized (lock) {
             UUID k = key(tournamentId);

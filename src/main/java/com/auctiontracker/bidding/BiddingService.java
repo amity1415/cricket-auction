@@ -274,6 +274,26 @@ public class BiddingService {
         return store.deadline(tid(), playerId);
     }
 
+    /**
+     * The full read-side view of a player's live state, computed from a SINGLE
+     * store round-trip (one Redis hop when Redis-backed) instead of the six
+     * separate calls the dashboard/current-bid/live-state views used to make.
+     * When the player is not the one on the block, {@code bidCount} falls back to
+     * the persisted trail so post-auction views still show the historic count.
+     */
+    public record BlockView(boolean live, Long currentAmount, UUID leadingTeamId,
+                            int bidCount, Long pendingVerbalAmount, Instant deadline,
+                            long nextBidAmount) {}
+
+    public BlockView blockView(Player player) {
+        LiveBidStore.Snapshot s = store.snapshot(tid(), player.getPlayerId());
+        long next = incrementEngine.nextBidAmount(player.getBasePrice(),
+                s.live() ? s.leadingAmount() : null);
+        int count = s.live() ? s.count() : (int) bidEvents.countByPlayerId(player.getPlayerId());
+        return new BlockView(s.live(), s.leadingAmount(), s.leadingTeam(), count,
+                s.pendingVerbal(), s.deadline(), next);
+    }
+
     /** The bid that confirm-sale would commit, if any. */
     public Optional<LeadingBid> leadingBid(UUID playerId) {
         LiveBidStore.Step last = store.last(tid(), playerId);

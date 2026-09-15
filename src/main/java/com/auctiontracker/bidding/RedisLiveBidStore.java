@@ -139,6 +139,18 @@ public class RedisLiveBidStore implements LiveBidStore {
             return v
             """, String.class);
 
+    /** KEYS: player, trail, verbal, deadline; ARGV: playerId. Returns
+     *  {live, lastEntry, count, verbal, deadline} in one round-trip. */
+    private static final RedisScript<List> SNAPSHOT = new DefaultRedisScript<>("""
+            if redis.call('GET', KEYS[1]) ~= ARGV[1] then return {'0','','0','',''} end
+            local n = redis.call('LLEN', KEYS[2])
+            local last = ''
+            if n > 0 then last = redis.call('LINDEX', KEYS[2], -1) end
+            local v = redis.call('GET', KEYS[3])
+            local d = redis.call('GET', KEYS[4])
+            return {'1', last, tostring(n), v or '', d or ''}
+            """, List.class);
+
     /** KEYS: player, deadline; ARGV: nowMillis. */
     private static final RedisScript<String> CLAIM = new DefaultRedisScript<>("""
             local p = redis.call('GET', KEYS[1])
@@ -268,6 +280,35 @@ public class RedisLiveBidStore implements LiveBidStore {
         }
         String d = redis.opsForValue().get(deadlineKey(t));
         return d == null ? null : Instant.ofEpochMilli(Long.parseLong(d));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Snapshot snapshot(UUID t, UUID playerId) {
+        List<String> r = redis.execute(SNAPSHOT,
+                List.of(playerKey(t), trailKey(t), verbalKey(t), deadlineKey(t)),
+                playerId.toString());
+        if (r == null || r.isEmpty() || !"1".equals(r.get(0))) {
+            return new Snapshot(false, null, null, 0, null, null);
+        }
+        Step last = parse(emptyToNull(r.get(1)));
+        int count = Integer.parseInt(r.get(2));
+        Long verbal = toLong(r.size() > 3 ? r.get(3) : null);
+        String d = r.size() > 4 ? emptyToNull(r.get(4)) : null;
+        Instant deadline = d == null ? null : Instant.ofEpochMilli(Long.parseLong(d));
+        return new Snapshot(true,
+                last == null ? null : last.amount(),
+                last == null ? null : last.teamId(),
+                count, verbal, deadline);
+    }
+
+    private static String emptyToNull(String s) {
+        return (s == null || s.isEmpty()) ? null : s;
+    }
+
+    private static Long toLong(String s) {
+        s = emptyToNull(s);
+        return s == null ? null : Long.valueOf(s);
     }
 
     @Override

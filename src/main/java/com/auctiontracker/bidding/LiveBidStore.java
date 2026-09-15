@@ -38,6 +38,16 @@ public interface LiveBidStore {
      */
     record PushOutcome(PushStatus status, int count, Long leadingAmount) {}
 
+    /**
+     * The whole live state for one player, read in a SINGLE round-trip. {@code live}
+     * is whether that player is the one on the block; the rest are meaningful only
+     * when live (leading bid, trail size, pending voice amount, auto-close deadline).
+     * Read-side views use this instead of calling {@link #last}/{@link #count}/
+     * {@link #deadline}/etc. separately, so a poll costs one Redis hop, not six.
+     */
+    record Snapshot(boolean live, Long leadingAmount, UUID leadingTeam, int count,
+                    Long pendingVerbal, Instant deadline) {}
+
     /** The player currently on the block for this tournament, or null. */
     UUID currentPlayer(UUID tournamentId);
 
@@ -80,6 +90,9 @@ public interface LiveBidStore {
 
     /** The absolute auto-close instant for the on-block player, or null. */
     Instant deadline(UUID tournamentId, UUID playerId);
+
+    /** The full live state for a player in one round-trip (see {@link Snapshot}). */
+    Snapshot snapshot(UUID tournamentId, UUID playerId);
 
     /**
      * If the on-block lot's auto-close deadline has passed, atomically claims it —

@@ -70,18 +70,19 @@ public class PlayerQueryController {
     public CurrentBidView currentBid(@PathVariable("id") UUID playerId) {
         Player player = core.getPlayer(playerId);
         boolean underAuction = player.getStatus() == PlayerStatus.UNDER_AUCTION;
-        Long currentAmount = bidding.currentBidAmount(playerId);
-        UUID leadingTeamId = bidding.currentLeadingTeamId(playerId);
+        // One store round-trip for the whole live view instead of several.
+        BiddingService.BlockView view = bidding.blockView(player);
+        UUID leadingTeamId = view.leadingTeamId();
         return new CurrentBidView(
                 player.getPlayerId(),
                 player.getName(),
                 player.getStatus(),
                 player.getBasePrice(),
-                currentAmount,
+                view.currentAmount(),
                 leadingTeamId,
                 leadingTeamId == null ? null : core.getTeam(leadingTeamId).getName(),
-                underAuction ? bidding.nextBidAmount(player) : null,
-                bidding.bidCount(playerId),
+                underAuction ? view.nextBidAmount() : null,
+                view.bidCount(),
                 Instant.now());
     }
 }

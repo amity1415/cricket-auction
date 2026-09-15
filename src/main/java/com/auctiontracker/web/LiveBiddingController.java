@@ -128,8 +128,9 @@ public class LiveBiddingController {
                     null, false, teamPurse(teamId), null, Instant.now());
         }
         Player player = core.getPlayer(playerId);
-        Long current = bidding.currentBidAmount(playerId);
-        UUID leadingTeamId = bidding.currentLeadingTeamId(playerId);
+        // One store round-trip for the live view (leader, amount, next bid, deadline).
+        BiddingService.BlockView view = bidding.blockView(player);
+        UUID leadingTeamId = view.leadingTeamId();
         String leadingTeamName = leadingTeamId == null ? null : core.teamNameOrFallback(leadingTeamId);
         return new LiveStateView(
                 online,
@@ -139,13 +140,13 @@ public class LiveBiddingController {
                 player.getRole() == null ? null : player.getRole().name(),
                 player.getCategory() == null ? null : player.getCategory().name(),
                 player.getBasePrice(),
-                current,
+                view.currentAmount(),
                 leadingTeamId,
                 leadingTeamName,
-                bidding.nextBidAmount(player),
+                view.nextBidAmount(),
                 teamId != null && teamId.equals(leadingTeamId),
                 teamPurse(teamId),
-                bidding.currentBlockDeadline(playerId),
+                view.deadline(),
                 Instant.now());
     }
 

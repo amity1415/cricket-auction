@@ -194,6 +194,26 @@ class RedisLiveBidStoreIT {
     }
 
     @Test
+    void snapshotReturnsTheWholeStateInOneCall() {
+        UUID p = player();
+        UUID teamA = UUID.randomUUID();
+        // Not the on-block player yet.
+        LiveBidStore.Snapshot before = store.snapshot(tid, p);
+        org.junit.jupiter.api.Assertions.assertFalse(before.live());
+
+        store.open(tid, p, 30);
+        store.tryPush(tid, p, teamA, 600_000, 500_000, 30);
+
+        LiveBidStore.Snapshot s = store.snapshot(tid, p);
+        assertTrue(s.live());
+        assertEquals(600_000L, s.leadingAmount());
+        assertEquals(teamA, s.leadingTeam());
+        assertEquals(1, s.count());
+        assertNull(s.pendingVerbal());
+        assertNotNull(s.deadline());
+    }
+
+    @Test
     void undoRemovesTheLastBid() {
         UUID p = player();
         UUID teamA = UUID.randomUUID();

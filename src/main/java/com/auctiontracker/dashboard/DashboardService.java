@@ -145,11 +145,13 @@ public class DashboardService {
     }
 
     private OnTheBlockView onTheBlockView(Player player) {
-        // Live bid state comes from the in-memory session via the bidding facade,
-        // not the database — bids only persist once the outcome commits. The leading
-        // team's name is cached (see teamNameCache) so repeated polls don't re-query.
-        Long currentAmount = bidding.currentBidAmount(player.getPlayerId());
-        UUID leadingTeamId = bidding.currentLeadingTeamId(player.getPlayerId());
+        // Live bid state comes from the store via the bidding facade, not the
+        // database — bids only persist once the outcome commits. Fetched in ONE
+        // round-trip (blockView) so a fast broadcast/team poll doesn't fan out into
+        // half a dozen sequential Redis calls. The leading team's name is cached
+        // (see teamNameCache) so repeated polls don't re-query.
+        BiddingService.BlockView view = bidding.blockView(player);
+        UUID leadingTeamId = view.leadingTeamId();
         String leadingTeamName = leadingTeamId == null ? null
                 : teamNameCache.computeIfAbsent(leadingTeamId,
                         id -> teams.findById(id).map(Team::getName).orElse(null));
@@ -160,14 +162,14 @@ public class DashboardService {
                 player.getCategory(),
                 player.getBasePrice(),
                 player.getStats(),
-                currentAmount,
+                view.currentAmount(),
                 leadingTeamId,
                 leadingTeamName,
-                bidding.nextBidAmount(player),
-                bidding.bidCount(player.getPlayerId()),
+                view.nextBidAmount(),
+                view.bidCount(),
                 player.hasPhoto(),
                 player.getSeq() == null ? null : player.getSeq() + 1,
-                bidding.pendingVerbalBidAmount(player.getPlayerId()),
-                bidding.currentBlockDeadline(player.getPlayerId()));
+                view.pendingVerbalAmount(),
+                view.deadline());
     }
 }
