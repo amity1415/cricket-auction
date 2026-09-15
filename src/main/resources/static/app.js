@@ -72,6 +72,7 @@ async function refresh() {
     ]);
     lastPlayers = players;
     lastTeams = dash.teams;
+    TeamLogo.registerImages(lastTeams);   // admin-set logos win over name-matched crests
     lastBlock = dash.onTheBlock;
     renderBlock(dash);
     renderTeams(dash);

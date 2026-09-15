@@ -29,13 +29,15 @@ public final class Requests {
             @NotBlank String ownerName,
             @Positive long startingPurse,
             @Min(1) int maxSquadSize,
-            Map<PlayerRole, Integer> minPerRole) {} // optional
+            Map<PlayerRole, Integer> minPerRole, // optional
+            String imageUrl) {} // optional team logo/photo URL
 
     public record UpdateTeamRequest(
             @NotBlank String name,
             @NotBlank String ownerName,
             @Positive long startingPurse,
-            @Min(1) int maxSquadSize) {}
+            @Min(1) int maxSquadSize,
+            String imageUrl) {} // optional team logo/photo URL
 
     /**
      * A bid for a team. {@code amount} is normally null — the server computes the

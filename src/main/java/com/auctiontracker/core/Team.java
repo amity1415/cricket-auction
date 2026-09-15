@@ -35,6 +35,12 @@ public class Team {
     private String name;
 
     private String ownerName;
+
+    /** Optional team logo/photo, as an image URL. Nullable — teams without one
+     *  fall back to the name-matched crest or initials (see team-logo.js). */
+    @Column(name = "image_url")
+    private String imageUrl;
+
     private long startingPurse;
     private long remainingPurse;
     private int maxSquadSize;
@@ -84,6 +90,9 @@ public class Team {
 
     public String getOwnerName() { return ownerName; }
     public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public long getStartingPurse() { return startingPurse; }
     public void setStartingPurse(long startingPurse) { this.startingPurse = startingPurse; }

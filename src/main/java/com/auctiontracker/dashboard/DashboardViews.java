@@ -28,7 +28,9 @@ public final class DashboardViews {
             Map<PlayerRole, Integer> minPerRole,
             Map<PlayerCategory, Integer> categoryCounts,
             /** Max this team may bid on the player currently on the block; null when none is. */
-            Long maxBidForBlockPlayer) {}
+            Long maxBidForBlockPlayer,
+            /** Optional team logo/photo URL (null when the team has none). */
+            String imageUrl) {}
 
     public record OnTheBlockView(
             UUID playerId,

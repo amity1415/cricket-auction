@@ -47,14 +47,30 @@
     return hit;
   }
 
+  // Admin-provided team images (name -> URL), registered per page from the team
+  // list. These take priority over the name-matched static crest, so a team whose
+  // logo was set in setup shows that image everywhere its crest renders.
+  const _images = new Map();
+
+  /** Register admin-set team images from a list of {name, imageUrl} objects. */
+  function registerImages(teams) {
+    if (!Array.isArray(teams)) return;
+    teams.forEach(t => {
+      const key = normalize(t && t.name);
+      if (key && t && t.imageUrl) _images.set(key, t.imageUrl);
+    });
+  }
+
   /** The logo image URL for a team name, or null if we don't have one. */
   function teamLogoUrl(name) {
+    const custom = _images.get(normalize(name));
+    if (custom) return custom;
     const slug = teamLogoSlug(name);
     return slug ? BASE + slug + '.png' + VER : null;
   }
 
   /** True when we have a real crest for this team. */
-  const hasTeamLogo = name => teamLogoSlug(name) != null;
+  const hasTeamLogo = name => teamLogoUrl(name) != null;
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
       c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -77,5 +93,5 @@
     return `<span class="crest ${cls}"${style}>${esc(initials(name))}</span>`;
   }
 
-  global.TeamLogo = { teamLogoUrl, teamLogoSlug, hasTeamLogo, teamCrest, teamInitials: initials };
+  global.TeamLogo = { teamLogoUrl, teamLogoSlug, hasTeamLogo, teamCrest, teamInitials: initials, registerImages };
 })(window);

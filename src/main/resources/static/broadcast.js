@@ -166,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let lastTeamsHtml = '';
 function renderTeams(teams, highlightTeamId, block) {
+  TeamLogo.registerImages(teams);   // admin-set logos win over name-matched crests
   lastTeamCount = (teams || []).length;
   const html = (teams || []).map(t => {
     const pct = t.startingPurse > 0 ? (t.remainingPurse / t.startingPurse) * 100 : 0;

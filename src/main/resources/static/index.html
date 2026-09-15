@@ -63,6 +63,7 @@
           <label>Owner name <input name="ownerName" placeholder="e.g. R. Mehta" required></label>
           <label>Starting purse (₹) <input name="startingPurse" type="number" required min="1" value="150000000"></label>
           <label>Max squad size <input name="maxSquadSize" type="number" required min="1" value="20"></label>
+          <label>Team image URL <input name="imageUrl" type="url" placeholder="https://… (optional team logo)"></label>
           <div class="submit-row"><button class="primary">＋ Add team</button></div>
         </form>
       </section>
@@ -167,6 +168,7 @@
       <label class="full">Owner <input name="ownerName" required></label>
       <label>Starting purse (₹) <input name="startingPurse" type="number" min="1" required></label>
       <label>Max squad size <input name="maxSquadSize" type="number" min="1" required></label>
+      <label class="full">Team image URL <input name="imageUrl" type="url" placeholder="https://… (optional team logo)"></label>
     </div>
     <div class="modal-foot">
       <button type="button" class="ghost" onclick="document.getElementById('team-modal').close()">Cancel</button>

@@ -178,6 +178,7 @@ window.deletePlayer = async playerId => {
 /* --- Teams (add / edit / remove) --- */
 
 function renderTeams() {
+  TeamLogo.registerImages(lastTeams);   // admin-set logos win over name-matched crests
   document.getElementById('team-list').innerHTML = lastTeams.length
       ? lastTeams.map(t => `
         <div class="row">
@@ -205,6 +206,7 @@ window.openTeamModal = teamId => {
   teamForm.ownerName.value = t.ownerName;
   teamForm.startingPurse.value = t.startingPurse;
   teamForm.maxSquadSize.value = t.squadFilled + t.squadOpenSlots;
+  teamForm.imageUrl.value = t.imageUrl || '';
   teamModal.showModal();
 };
 
@@ -215,6 +217,7 @@ teamForm.onsubmit = async e => {
     ownerName: teamForm.ownerName.value,
     startingPurse: Number(teamForm.startingPurse.value),
     maxSquadSize: Number(teamForm.maxSquadSize.value),
+    imageUrl: teamForm.imageUrl.value.trim() || null,
   });
   if (r) { toast(`Saved ${r.name}`); teamModal.close(); refresh(); }
 };
@@ -248,6 +251,7 @@ document.getElementById('form-team').onsubmit = async e => {
     ownerName: f.get('ownerName'),
     startingPurse: Number(f.get('startingPurse')),
     maxSquadSize: Number(f.get('maxSquadSize')),
+    imageUrl: (f.get('imageUrl') || '').trim() || null,
   });
   if (r) { toast(`Registered ${r.name}`); e.target.reset(); applyTeamDefaults(); refresh(); }
 };

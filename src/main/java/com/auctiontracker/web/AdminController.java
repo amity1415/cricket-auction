@@ -101,7 +101,7 @@ public class AdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public Team registerTeam(@Valid @RequestBody RegisterTeamRequest request) {
         return core.registerTeam(request.name(), request.ownerName(), request.startingPurse(),
-                request.maxSquadSize(), request.minPerRole());
+                request.maxSquadSize(), request.minPerRole(), request.imageUrl());
     }
 
     // --- Setup-screen CRUD -------------------------------------------------
@@ -126,7 +126,7 @@ public class AdminController {
     public Team updateTeam(@PathVariable("id") UUID teamId,
                            @Valid @RequestBody UpdateTeamRequest request) {
         return core.updateTeam(teamId, request.name(), request.ownerName(),
-                request.startingPurse(), request.maxSquadSize());
+                request.startingPurse(), request.maxSquadSize(), request.imageUrl());
     }
 
     /** Remove a team — only while its squad is empty. */

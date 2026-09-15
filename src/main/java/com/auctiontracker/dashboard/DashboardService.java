@@ -98,7 +98,8 @@ public class DashboardService {
                 feasibility.roleCounts(squad),
                 team.getMinPerRole(),
                 feasibility.categoryCounts(squad),
-                maxBidForBlock);
+                maxBidForBlock,
+                team.getImageUrl());
     }
 
     // --- Ticker live-view cache -------------------------------------------------

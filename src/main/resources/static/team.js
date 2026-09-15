@@ -150,6 +150,7 @@ async function renderOverview() {
   // all-teams overview (not only a single team's dashboard).
   getJSON('/api/admin/audit').then(updateLastResult).catch(() => {});
   const teams = dash.teams || [];
+  TeamLogo.registerImages(teams);   // admin-set logos win over name-matched crests
   const block = dash.onTheBlock;
   const totalSpent = teams.reduce((s, t) => s + (t.startingPurse - t.remainingPurse), 0);
   const signed = teams.reduce((s, t) => s + t.squadFilled, 0);
@@ -178,6 +179,8 @@ async function refresh() {
       getJSON('/api/admin/audit').catch(() => []),
     ]);
     document.getElementById('dashboard').style.display = '';
+    TeamLogo.registerImages(dash.teams);          // admin-set logos win over name-matched crests
+    TeamLogo.registerImages([detail.team]);
     renderBanner(dash.onTheBlock, detail.team);
     renderHead(detail.team, detail.squad);
     renderComposition(detail.team, detail.squad);

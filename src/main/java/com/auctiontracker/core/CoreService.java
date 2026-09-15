@@ -58,6 +58,11 @@ public class CoreService {
     @Transactional
     public Team registerTeam(String name, String ownerName, long startingPurse, int maxSquadSize,
                              Map<PlayerRole, Integer> minPerRole) {
+        return registerTeam(name, ownerName, startingPurse, maxSquadSize, minPerRole, null);
+    }
+
+    public Team registerTeam(String name, String ownerName, long startingPurse, int maxSquadSize,
+                             Map<PlayerRole, Integer> minPerRole, String imageUrl) {
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_TEAM", "Team name must not be blank");
         }
@@ -74,8 +79,14 @@ public class CoreService {
                     "Role minimums (" + mandatorySlots + ") exceed max squad size (" + maxSquadSize + ")");
         }
         ruleBook.current().assertSquadFits(maxSquadSize); // group min/max must fit this squad
-        return teams.save(Team.register(name.trim(), ownerName, startingPurse, maxSquadSize,
-                minPerRole));
+        Team team = Team.register(name.trim(), ownerName, startingPurse, maxSquadSize, minPerRole);
+        team.setImageUrl(normalizeImageUrl(imageUrl));
+        return teams.save(team);
+    }
+
+    /** Trims a submitted image URL to null when blank, so "no image" stays null. */
+    private static String normalizeImageUrl(String imageUrl) {
+        return imageUrl == null || imageUrl.isBlank() ? null : imageUrl.trim();
     }
 
     /**
@@ -153,6 +164,11 @@ public class CoreService {
     @Transactional
     public Team updateTeam(UUID teamId, String name, String ownerName,
                            long startingPurse, int maxSquadSize) {
+        return updateTeam(teamId, name, ownerName, startingPurse, maxSquadSize, null);
+    }
+
+    public Team updateTeam(UUID teamId, String name, String ownerName,
+                           long startingPurse, int maxSquadSize, String imageUrl) {
         Team team = getTeam(teamId);
         if (name == null || name.isBlank()) {
             throw AuctionException.badRequest("INVALID_TEAM", "Team name must not be blank");
@@ -177,6 +193,7 @@ public class CoreService {
         team.setStartingPurse(startingPurse);
         team.setRemainingPurse(startingPurse - spent);
         team.setMaxSquadSize(maxSquadSize);
+        team.setImageUrl(normalizeImageUrl(imageUrl));
         return teams.save(team);
     }
 
