@@ -124,6 +124,20 @@
         <input type="checkbox" id="f-demote"> <span>Demote unsold players one group and return them to the pool</span>
       </label>
 
+      <fieldset class="rules-group">
+        <legend>Live owner bidding <span class="muted" style="font-weight:400;">— online auction</span></legend>
+        <p class="hint" style="margin:.1rem 0 .6rem;">Let franchise owners place their own bids from their devices.
+          The auctioneer console keeps working either way; leave this off for a fully auctioneer-run (offline) auction.</p>
+        <label class="check-row">
+          <input type="checkbox" id="f-onlineBidding">
+          <span>Enable online bidding — owners bid on the on-block player from their own login</span>
+        </label>
+        <label class="field" id="f-timer-field" style="margin-top:.6rem; max-width:360px;">
+          <span>Auto-close timer (seconds) <span class="muted">— blank = auctioneer closes each lot</span></span>
+          <input id="f-bidTimerSeconds" type="number" min="1" placeholder="e.g. 30" disabled>
+        </label>
+      </fieldset>
+
       <div class="editor-actions">
         <button type="submit" class="primary" id="btn-save">Create &amp; load</button>
         <button type="button" class="ghost" id="btn-cancel">Cancel</button>

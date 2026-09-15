@@ -48,7 +48,17 @@ public record AuctionProperties(
         // pre-auction picks don't consume its auction pool budgets or slots (KCPL:
         // ₹150L purse = ₹30L retentions + ₹120L pools). Null ⇒ true (legacy: they
         // count everywhere).
-        Boolean preAuctionCountsInPools) {
+        Boolean preAuctionCountsInPools,
+        // ---- Live owner-driven bidding add-ons; all null/absent = legacy (offline) ----
+        // When true, franchise owners place their own bids from their devices (the
+        // "online" auction). Null/false ⇒ offline: only the auctioneer console bids,
+        // exactly as today. See {@link #onlineBiddingEnabled()}.
+        Boolean onlineBidding,
+        // For an online auction, the per-lot countdown: if no new bid lands within
+        // this many seconds the lot auto-closes (sold to the leader, or unsold if
+        // there were no bids). Null ⇒ no timer — the auctioneer closes each lot
+        // manually. Only meaningful when {@code onlineBidding} is true.
+        Integer bidTimerSeconds) {
 
     /**
      * Where an unsold player moves next and the base price they carry into that
@@ -97,7 +107,7 @@ public record AuctionProperties(
         return new AuctionProperties(minViablePrice, basePrices, newIncrementRules, defaultIncrement,
                 categoryRules, retention, teamDefaults, demoteUnsoldPlayers, seedDemoData,
                 unsoldTransitions, retentionBasePriceMultiplier, groupSequence,
-                budgetCarryForward, preAuctionCountsInPools);
+                budgetCarryForward, preAuctionCountsInPools, onlineBidding, bidTimerSeconds);
     }
 
     /**
@@ -168,6 +178,26 @@ public record AuctionProperties(
      */
     public boolean retentionsCountInPools() {
         return preAuctionCountsInPools == null || Boolean.TRUE.equals(preAuctionCountsInPools);
+    }
+
+    /**
+     * Whether franchise owners place their own bids (the "online" auction).
+     * Defaults to false (offline: auctioneer console only) when unset — so a rule
+     * book that never sets this behaves byte-identically to today.
+     * (Named distinctly from the {@code onlineBidding} record accessor, which
+     * returns the raw nullable Boolean, so both can coexist.)
+     */
+    public boolean onlineBiddingEnabled() {
+        return Boolean.TRUE.equals(onlineBidding);
+    }
+
+    /**
+     * True when this online auction runs a per-lot auto-close countdown — i.e.
+     * {@link #onlineBiddingEnabled()} and a positive {@code bidTimerSeconds}.
+     * Offline auctions and online auctions with no timer both return false.
+     */
+    public boolean bidTimerEnabled() {
+        return onlineBiddingEnabled() && bidTimerSeconds != null && bidTimerSeconds > 0;
     }
 
     public long basePriceFor(PlayerCategory category) {

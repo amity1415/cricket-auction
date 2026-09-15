@@ -40,7 +40,24 @@ public final class TestFixtures {
                 null,
                 null,   // groupSequence
                 null,   // budgetCarryForward
-                null);  // preAuctionCountsInPools
+                null,   // preAuctionCountsInPools
+                null,   // onlineBidding
+                null);  // bidTimerSeconds
+    }
+
+    /**
+     * The default rule book, but as an ONLINE auction — owners may bid, and (when
+     * {@code timerSeconds > 0}) each lot auto-closes after that many idle seconds.
+     */
+    public static AuctionProperties onlineProps(Integer timerSeconds) {
+        AuctionProperties base = props();
+        return new AuctionProperties(
+                base.minViablePrice(), base.basePrices(), base.incrementRules(),
+                base.defaultIncrement(), base.categoryRules(), base.retention(),
+                base.teamDefaults(), base.demoteUnsoldPlayers(), base.seedDemoData(),
+                base.unsoldTransitions(), base.retentionBasePriceMultiplier(),
+                base.groupSequence(), base.budgetCarryForward(), base.preAuctionCountsInPools(),
+                Boolean.TRUE, timerSeconds);
     }
 
     /** Props whose retention uses KCPL per-category caps: 2 Icons + 1 Owner, nothing else. */
@@ -59,7 +76,7 @@ public final class TestFixtures {
                 new AuctionProperties.Retention(3, 2, 1, 1_200_000L, 600_000L,
                         Map.of(PlayerCategory.ICON, 2, PlayerCategory.OWNER, 1)),
                 new AuctionProperties.TeamDefaults(150_000_000L, 8),
-                true, false, null, null, null, null, null);
+                true, false, null, null, null, null, null, null, null);
     }
 
     /**
@@ -87,7 +104,9 @@ public final class TestFixtures {
                 null,
                 null,   // groupSequence
                 null,   // budgetCarryForward
-                null);  // preAuctionCountsInPools
+                null,   // preAuctionCountsInPools
+                null,   // onlineBidding
+                null);  // bidTimerSeconds
     }
 
     public static Team team(String name, long purse, int maxSquad,

@@ -51,7 +51,14 @@ public final class DashboardViews {
              * every screen shows THIS as the current amount and HIDES the leading
              * team logo until a team is named. Null on the normal committed path.
              */
-            Long pendingBidAmount) {}
+            Long pendingBidAmount,
+            /**
+             * For an ONLINE auction with an auto-close timer, the absolute instant
+             * this lot will auto-close if no further bid lands. Every screen renders
+             * a countdown from it against a server clock, so all devices agree. Null
+             * for offline auctions, online auctions with no timer, or once closed.
+             */
+            Instant biddingDeadline) {}
 
     public record DashboardView(
             OnTheBlockView onTheBlock,

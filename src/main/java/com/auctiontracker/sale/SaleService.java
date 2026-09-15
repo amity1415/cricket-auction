@@ -165,6 +165,29 @@ public class SaleService {
         }
     }
 
+    /**
+     * Timer-driven close for an ONLINE auction: when the per-lot countdown
+     * expires, sell to the current leading bidder, or mark the player unsold if
+     * nobody bid. A no-op if the player is no longer UNDER_AUCTION (a manual
+     * close, or a re-marked lot, beat the timer to it). Runs the same
+     * transactional confirm-sale / mark-unsold as a manual close, so the bid
+     * trail is persisted identically.
+     */
+    @Transactional
+    public void autoClose(UUID playerId) {
+        synchronized (lock) {
+            Player player = players.findById(playerId).orElse(null);
+            if (player == null || player.getStatus() != PlayerStatus.UNDER_AUCTION) {
+                return;
+            }
+            if (bidding.leadingBid(playerId).isPresent()) {
+                confirmSale(playerId);
+            } else {
+                markUnsold(playerId);
+            }
+        }
+    }
+
     /** Retain at the rule-book's computed fee (see {@link #retainPlayer(UUID, UUID, Long)}). */
     public SaleResult retainPlayer(UUID teamId, UUID playerId) {
         return retainPlayer(teamId, playerId, null);

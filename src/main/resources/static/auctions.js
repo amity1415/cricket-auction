@@ -298,6 +298,9 @@ function fillEditor(rules) {
   $('f-carryForward').checked = !!rules.budgetCarryForward;
   // preAuctionCountsInPools defaults true; the checkbox is the INVERSE ("off pools").
   $('f-preAuctionOffPools').checked = rules.preAuctionCountsInPools === false;
+  $('f-onlineBidding').checked = !!rules.onlineBidding;
+  $('f-bidTimerSeconds').value = rules.bidTimerSeconds ?? '';
+  syncOnlineBidding();
   const bands = $('incrementRules');
   bands.innerHTML = '';
   (rules.incrementRules || []).forEach(b => bands.appendChild(bandRow(b.upTo, b.increment)));
@@ -373,7 +376,20 @@ function readRules() {
     budgetCarryForward: $('f-carryForward').checked,
     // Unchecked ⇒ null so the server applies its legacy default (counts in pools).
     preAuctionCountsInPools: $('f-preAuctionOffPools').checked ? false : null,
+    // Live owner bidding. Off ⇒ null (offline, byte-identical to legacy); the
+    // timer only applies when online and a positive value is given.
+    onlineBidding: $('f-onlineBidding').checked ? true : null,
+    bidTimerSeconds: $('f-onlineBidding').checked ? numOrNull($('f-bidTimerSeconds').value) : null,
   };
+}
+
+/** The auto-close timer only makes sense when online bidding is on. */
+function syncOnlineBidding() {
+  const on = $('f-onlineBidding').checked;
+  const timer = $('f-bidTimerSeconds');
+  timer.disabled = !on;
+  if (!on) timer.value = '';
+  $('f-timer-field').style.opacity = on ? '1' : '.55';
 }
 
 function showEditor(show) {
@@ -429,6 +445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-new').addEventListener('click', openNew);
   $('btn-cancel').addEventListener('click', () => showEditor(false));
   $('add-band').addEventListener('click', () => $('incrementRules').appendChild(bandRow('', '')));
+  $('f-onlineBidding').addEventListener('change', syncOnlineBidding);
   $('form-editor').addEventListener('submit', submitEditor);
   $('search').addEventListener('input', render);
 

@@ -54,6 +54,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Live owner bidding at horizontal scale: a shared Redis holds the
+             authoritative bid state (atomic compare-and-set) and the login
+             sessions, so multiple app instances stay consistent. Both are
+             OPT-IN via auction.live.redis-enabled / spring.session.store-type;
+             with the flag off the app uses the in-memory store exactly as before,
+             and never opens a Redis connection. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -62,6 +76,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- A real (embedded) Redis so the RedisLiveBidStore integration test runs
+             its Lua compare-and-set on an actual server, not a mock. -->
+        <dependency>
+            <groupId>com.github.codemonstur</groupId>
+            <artifactId>embedded-redis</artifactId>
+            <version>1.4.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

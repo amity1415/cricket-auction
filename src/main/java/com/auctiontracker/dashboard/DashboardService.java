@@ -167,6 +167,7 @@ public class DashboardService {
                 bidding.bidCount(player.getPlayerId()),
                 player.hasPhoto(),
                 player.getSeq() == null ? null : player.getSeq() + 1,
-                bidding.pendingVerbalBidAmount(player.getPlayerId()));
+                bidding.pendingVerbalBidAmount(player.getPlayerId()),
+                bidding.currentBlockDeadline(player.getPlayerId()));
     }
 }

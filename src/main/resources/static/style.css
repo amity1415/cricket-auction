@@ -2199,3 +2199,11 @@ table.pool tbody tr:hover {
 
 /* Pending — audience broadcast "leading team" slot: amount shows, logo hidden */
 .bc-awaiting { opacity: .9; font-style: italic; }
+
+/* Online auto-close countdown on the broadcast board. */
+.bc-countdown { display: inline-flex; align-items: baseline; gap: .4rem; margin-top: .5rem;
+  padding: .2rem .8rem; border-radius: 999px; background: rgba(0,0,0,.35); }
+.bc-countdown-secs { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 1.5rem; }
+.bc-countdown-label { opacity: .8; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+.bc-countdown.urgent { background: rgba(224,49,49,.85); }
+.bc-countdown.urgent .bc-countdown-secs { color: #fff; }

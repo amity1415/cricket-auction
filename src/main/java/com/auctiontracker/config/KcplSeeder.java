@@ -207,6 +207,8 @@ public class KcplSeeder implements CommandLineRunner {
                 null,                                           // flat retention fees, not a multiplier
                 List.of(A, B, C, D),                            // group / carry-forward sequence
                 true,                                           // budgetCarryForward ON
-                false);                                         // retentions kept OFF the pool budgets
+                false,                                          // retentions kept OFF the pool budgets
+                null,                                           // onlineBidding — offline (auctioneer console)
+                null);                                          // bidTimerSeconds — no auto-close timer
     }
 }

@@ -54,6 +54,31 @@ spring:
         cachecontrol:
           no-cache: true
 
+  # ------------------------------------------------------------------------
+  # Redis — ONLY used when running more than one app instance for live owner
+  # bidding (see auction.live.redis-enabled below). A single-instance deployment
+  # never connects to Redis: the Redis *session* store is auto-config-excluded by
+  # default (so logins stay in each instance's memory), and the Redis *bid* store
+  # is off unless the flag below is set.
+  #
+  # To scale out on Railway: add a Redis plugin, then set these envs on the app —
+  #   REDIS_URL=<the plugin's URL>
+  #   LIVE_REDIS_ENABLED=true
+  #   SPRING_AUTOCONFIGURE_EXCLUDE=      (empty — re-enables Redis-backed sessions)
+  # so both the live-bid state and the login sessions are shared across instances.
+  autoconfigure:
+    exclude: ${SPRING_AUTOCONFIGURE_EXCLUDE:org.springframework.boot.autoconfigure.session.SessionAutoConfiguration}
+  data:
+    redis:
+      # Defaults to a localhost URL so the connection factory parses cleanly; it is
+      # built lazily and NEVER connected unless auction.live.redis-enabled=true.
+      # Set REDIS_URL to your managed Redis when scaling.
+      url: ${REDIS_URL:redis://localhost:6379}
+  session:
+    # Which store Spring Session uses WHEN it is enabled (i.e. when the exclude
+    # above is cleared for a multi-instance run). Ignored while excluded.
+    store-type: ${SESSION_STORE_TYPE:redis}
+
 server:
   # Railway (and most PaaS) inject the public port via $PORT; default to 8082 locally.
   port: ${PORT:8082}
@@ -91,6 +116,17 @@ auction:
   security:
     admin-username: ${ADMIN_USERNAME:admin}
     admin-password: ${ADMIN_PASSWORD:change-me-admin}
+
+  # Live owner-bidding runtime. redis-enabled=false (default) keeps the live-bid
+  # state in this instance's memory — correct for a single instance and identical
+  # to how the app has always run. Set LIVE_REDIS_ENABLED=true (with REDIS_URL and
+  # SESSION_STORE_TYPE=redis) to move the state into a shared Redis so several
+  # instances behind the load balancer stay consistent and ties between owners on
+  # different instances resolve to exactly one winner. sweep-ms is how often each
+  # instance checks for an expired auto-close timer.
+  live:
+    redis-enabled: ${LIVE_REDIS_ENABLED:false}
+    sweep-ms: ${LIVE_SWEEP_MS:1000}
 
   # Floor used by squad-feasibility and max-affordable-bid calculations.
   # Decision (DESIGN.md 9.2): flat floor = cheapest group's base price.

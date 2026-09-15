@@ -2,6 +2,7 @@ package com.auctiontracker;
 
 import com.auctiontracker.bidding.BiddingService;
 import com.auctiontracker.bidding.InMemoryBidEventRepository;
+import com.auctiontracker.bidding.InMemoryLiveBidStore;
 import com.auctiontracker.bidding.IncrementRuleEngine;
 import com.auctiontracker.config.AuctionProperties;
 import com.auctiontracker.config.AuctionProperties.CategoryRule;
@@ -76,7 +77,8 @@ class KcplFormatTest {
                 new Retention(3, 2, 1, 1_200_000L, 600_000L, null),
                 new TeamDefaults(15_000_000L, 20),
                 false, false, transitions, null,
-                List.of(A, B, C, D), carryForward, preAuctionCountsInPools);
+                List.of(A, B, C, D), carryForward, preAuctionCountsInPools,
+                null, null);   // onlineBidding, bidTimerSeconds — offline
     }
 
     private FeasibilityService feasibility(AuctionProperties props) {
@@ -212,7 +214,7 @@ class KcplFormatTest {
         FeasibilityService f = new FeasibilityService(players, RuleBook.fixed(props));
         AuctionLock lock = new AuctionLock();
         BiddingService bidding = new BiddingService(players, teams, new InMemoryBidEventRepository(),
-                new IncrementRuleEngine(RuleBook.fixed(props)), f, lock, RuleBook.fixed(props));
+                new IncrementRuleEngine(RuleBook.fixed(props)), f, lock, RuleBook.fixed(props), new InMemoryLiveBidStore(lock));
         SaleService sale = new SaleService(players, teams, sales, f, lock, RuleBook.fixed(props), bidding);
         return new SaleContext(teams, bidding, sale);
     }

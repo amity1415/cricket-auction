@@ -77,6 +77,13 @@ public class SecurityConfig {
                         "/api/config", "/api/admin/audit",
                         "/api/tournaments", "/api/tournaments/**").permitAll()
 
+                // Owner-driven live bidding: franchise owners bid on the on-block
+                // player from their own device; the team is taken from the logged-in
+                // principal, and the service rejects bids unless the auction is online.
+                // Tournament/app admins may also read it (e.g. to spectate the owner view).
+                .requestMatchers("/api/live/**")
+                        .hasAnyRole("FRANCHISE_OWNER", "TOURNAMENT_ADMIN", "ADMIN")
+
                 // The users & access page manages accounts — app admin only.
                 .requestMatchers("/users.html").hasRole("ADMIN")
 
@@ -131,8 +138,10 @@ public class SecurityConfig {
         return (request, response, authentication) -> {
             UserDetails principal = (UserDetails) authentication.getPrincipal();
             String role = principal instanceof AuthPrincipal p ? p.role().name() : "FRANCHISE_OWNER";
-            // Everyone lands on the auctions hub and picks which auction to enter.
-            String redirect = "/auctions.html";
+            // Franchise owners land on their live bidding screen (it degrades to a
+            // "no live auction" message when nothing is on the block); everyone else
+            // lands on the auctions hub and picks which auction to enter.
+            String redirect = "FRANCHISE_OWNER".equals(role) ? "/live.html" : "/auctions.html";
             writeJson(response, HttpServletResponse.SC_OK,
                     "{\"username\":\"" + escape(principal.getUsername())
                             + "\",\"role\":\"" + role

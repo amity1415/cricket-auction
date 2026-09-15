@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cricket Auction — Live Bidding</title>
+  <link rel="stylesheet" href="style.css?v=62">
+  <style>
+    /* Owner live-bidding console — mobile-first; a franchise owner bids from
+       their phone. Scoped here so it rides on top of style.css without touching
+       the shared sheet. */
+    .live-wrap { max-width: 560px; margin: 0 auto; padding: 12px 12px 32px; }
+    .live-team { display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 12px; }
+    .live-team .who { font-weight: 700; font-size: 1.05rem; }
+    .live-team .purse { text-align: right; }
+    .live-team .purse b { display: block; font-size: 1.15rem; }
+
+    .live-card { position: relative; overflow: hidden; }
+    .live-photo { width: 100%; max-height: 320px; object-fit: cover; border-radius: 10px;
+      background: var(--surface-2, #eef1f5); display: block; }
+    .live-name { font-size: 1.5rem; font-weight: 800; margin: 10px 0 2px; }
+    .live-meta { color: var(--muted, #667); margin-bottom: 12px; }
+
+    .amount-row { display: flex; align-items: baseline; justify-content: space-between;
+      gap: 10px; margin: 8px 0; }
+    .amount-row .label { color: var(--muted, #667); font-size: .85rem; }
+    .current-amount { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+    .leader { font-weight: 600; }
+    .leader.you { color: #0a7d33; }
+    .leader.other { color: #b4232c; }
+
+    /* Countdown */
+    .countdown { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; }
+    .countdown .bar { flex: 1; height: 8px; border-radius: 999px; background: #e6e8ee; overflow: hidden; }
+    .countdown .bar > span { display: block; height: 100%; width: 100%;
+      background: linear-gradient(90deg, #2f9e44, #ffd43b, #e03131); transition: width .25s linear; }
+    .countdown .secs { font-variant-numeric: tabular-nums; font-weight: 800; min-width: 2.4em;
+      text-align: right; }
+    .countdown.urgent .secs { color: #e03131; }
+
+    .bid-actions { display: grid; gap: 10px; margin-top: 14px; }
+    .btn-bid { font-size: 1.25rem; font-weight: 800; padding: 16px; border-radius: 12px; }
+    .custom-row { display: flex; gap: 8px; }
+    .custom-row input { flex: 1; padding: 12px; font-size: 1.05rem; border-radius: 10px;
+      border: 1px solid var(--border, #ccd); }
+    .custom-row button { white-space: nowrap; }
+
+    .hint { text-align: center; color: var(--muted, #667); padding: 28px 12px; }
+    .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+      background: #222; color: #fff; padding: 12px 18px; border-radius: 10px; font-weight: 600;
+      max-width: 90vw; text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,.3);
+      opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; }
+    .toast.show { opacity: 1; }
+    .toast.err { background: #b4232c; }
+    .toast.ok { background: #0a7d33; }
+
+    .badge-lead { display: inline-block; background: #0a7d33; color: #fff; font-weight: 700;
+      font-size: .8rem; padding: 3px 10px; border-radius: 999px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🏏 Cricket Auction <span class="muted">— Live Bidding</span></h1>
+  <nav><a href="team.html" class="nav-cta">📋 My team</a></nav>
+  <span class="brand-bug" title="Powered by CSAITECH">
+    <span class="brand-kicker">Powered by</span>
+    <img src="img/csaitech-logo.png" alt="CSAITECH">
+  </span>
+</header>
+
+<main class="live-wrap">
+  <div class="live-team">
+    <div class="who" id="team-name">…</div>
+    <div class="purse"><span class="label muted">Purse left</span><b id="purse">—</b></div>
+  </div>
+
+  <!-- No live lot / bidding closed -->
+  <section class="card" id="idle-card">
+    <p class="hint" id="idle-text">Connecting…</p>
+  </section>
+
+  <!-- A player is on the block -->
+  <section class="card live-card" id="block-card" hidden>
+    <img class="live-photo" id="photo" alt="" hidden>
+    <div class="live-name" id="player-name">—</div>
+    <div class="live-meta"><span id="player-role">—</span> · <span id="player-cat">—</span>
+      · base <span id="player-base">—</span></div>
+
+    <div class="countdown" id="countdown" hidden>
+      <div class="bar"><span id="countdown-bar"></span></div>
+      <div class="secs" id="countdown-secs">—</div>
+    </div>
+
+    <div class="amount-row">
+      <span class="label">Current bid</span>
+      <span class="leader" id="leader">No bids yet</span>
+    </div>
+    <div class="current-amount" id="current-amount">—</div>
+
+    <div class="bid-actions">
+      <button class="btn btn-primary btn-bid" id="btn-accept">Bid —</button>
+      <div class="custom-row">
+        <input id="custom-amount" type="number" inputmode="numeric" min="0" step="1"
+               placeholder="Bid a higher amount (₹)">
+        <button class="btn" id="btn-custom">Place</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="auth.js"></script>
+<script src="live.js?v=1"></script>
+</body>
+</html>

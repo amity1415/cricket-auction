@@ -98,8 +98,28 @@ function showState(which) {
   setDisp('live-state', which === 'live' ? '' : 'none');
   setDisp('sold-state', which === 'sold' ? '' : 'none');
   setDisp('teams-section', which === 'idle' ? 'none' : '');
+  if (which !== 'live') setBcCountdown(null);
   fitToScreen();
 }
+
+// Online auto-close countdown (display only — the server enforces the actual
+// close). Set from the on-block payload's biddingDeadline; ticks locally.
+let bcDeadlineMs = null;
+function setBcCountdown(iso) {
+  bcDeadlineMs = iso ? Date.parse(iso) : null;
+  updateBcCountdown();
+}
+function updateBcCountdown() {
+  const el = document.getElementById('bc-countdown');
+  if (!el) return;
+  if (!bcDeadlineMs) { el.hidden = true; return; }
+  const secs = Math.max(0, Math.ceil((bcDeadlineMs - Date.now()) / 1000));
+  el.hidden = false;
+  const s = document.getElementById('bc-countdown-secs');
+  if (s) s.textContent = secs + 's';
+  el.classList.toggle('urgent', secs <= 5);
+}
+setInterval(updateBcCountdown, 250);
 
 // Broadcast fills the whole screen via a flex column (see .broadcast-wrap in
 // style.css): a capped hero on top, the team grid stretching to fill the rest.
@@ -202,6 +222,7 @@ function renderLive(player, teams) {
   }
   setText('bc-next-bid', fmtINR(player.nextBidAmount));
   setHTML('bc-bid-count', player.bidCount ? `<span class="bid-count">Bid #${player.bidCount}</span>` : '');
+  setBcCountdown(player.biddingDeadline);
 
   // While an amount is pending with no team, no team is "leading" — don't crown one.
   renderTeams(teams, pending ? null : player.currentLeadingTeamId, player);
